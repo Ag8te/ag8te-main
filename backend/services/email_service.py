@@ -71,8 +71,16 @@ class EmailService:
             password = current_app.config.get('MAIL_PASSWORD')
             default_from = current_app.config.get('DEFAULT_FROM_EMAIL') or user
             
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info(f"Attempting to send email: To={recipient}, Host={host}, Port={port}, User={user}, From={default_from}")
+
             if not host or not user or not password:
-                raise ValueError("Email configuration is incomplete (host, user, or password missing)")
+                missing = []
+                if not host: missing.append("MAIL_SERVER")
+                if not user: missing.append("MAIL_USERNAME")
+                if not password: missing.append("MAIL_PASSWORD")
+                raise ValueError(f"Email configuration is incomplete (missing: {', '.join(missing)})")
 
             # Create message
             msg = MIMEMultipart('alternative')
@@ -86,16 +94,18 @@ class EmailService:
 
             # Send email
             # Use SSL for port 465, TLS/STARTTLS for others (like 587)
-            if port == 465:
-                server = smtplib.SMTP_SSL(host, port, timeout=10)
+            if str(port) == '465':
+                server = smtplib.SMTP_SSL(host, int(port), timeout=15)
             else:
-                server = smtplib.SMTP(host, port, timeout=10)
+                server = smtplib.SMTP(host, int(port), timeout=15)
                 server.starttls()
             
             server.login(user, password)
             # The ENVELOPE sender must be the authenticated user for Gmail
             server.sendmail(user, [recipient], msg.as_string())
             server.quit()
+            
+            logger.info(f"Email successfully sent to {recipient}")
             
             # Update queue status
             if email_id:
