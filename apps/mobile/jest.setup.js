@@ -1,4 +1,18 @@
-import 'react-native-gesture-handler/jestSetup';
+require('react-native-gesture-handler/jestSetup');
+
+// Generic mocks for common Expo and React Native libraries
+jest.mock('expo-secure-store', () => ({
+  getItemAsync: jest.fn().mockResolvedValue(null),
+  setItemAsync: jest.fn().mockResolvedValue(undefined),
+  deleteItemAsync: jest.fn().mockResolvedValue(undefined),
+}));
+
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  getItem: jest.fn().mockResolvedValue(null),
+  setItem: jest.fn().mockResolvedValue(undefined),
+  removeItem: jest.fn().mockResolvedValue(undefined),
+  clear: jest.fn().mockResolvedValue(undefined),
+}));
 
 // Completely manual mock for Reanimated to avoid any internal requires
 jest.mock('react-native-reanimated', () => {

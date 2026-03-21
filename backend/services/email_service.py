@@ -68,7 +68,8 @@ class EmailService:
             port = current_app.config.get('MAIL_PORT') or int(os.environ.get('SMTP_PORT', '587'))
             user = current_app.config.get('MAIL_USERNAME') or os.environ.get('SMTP_USER')
             password = current_app.config.get('MAIL_PASSWORD') or os.environ.get('SMTP_PASSWORD')
-            from_addr = "Mzansi Serve " +current_app.config.get('DEFAULT_FROM_EMAIL') or os.environ.get('DEFAULT_FROM_EMAIL') or 'noreply@localhost'
+            default_from = current_app.config.get('DEFAULT_FROM_EMAIL') or os.environ.get('DEFAULT_FROM_EMAIL') or 'noreply@localhost'
+            from_addr = f"Mzansi Serve <{default_from}>"
             if not host or not user or password is None:
                 raise ValueError("SMTP_HOST, SMTP_USER, and SMTP_PASSWORD must be set (e.g. in .env)")
             msg = MIMEMultipart('alternative')
