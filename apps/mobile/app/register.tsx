@@ -125,16 +125,17 @@ export default function Register() {
     };
 
     const validateStep1 = () => {
-        if (!email || !password || !confirmPassword || !role) return "Fill all account fields";
+        if (!name || !surname || !email || !password || !confirmPassword || !role) return "Please fill in all account fields";
         if (password !== confirmPassword) return "Passwords do not match";
-        if (password.length < 8) return "Password too short";
+        if (password.length < 8) return "Password must be at least 8 characters";
         return null;
     };
 
     const validateStep2 = () => {
-        if (!name || !surname || !phone || !gender || !nationality || !idNumber) return "Fill all personal details";
-        if (!nokName) return "Next of kin name required";
-        if (!nokPhone && !nokEmail) return "Next of kin contact info required";
+        if (!phone || !gender || !nationality || !idNumber) return "Please fill in all personal details";
+        if (!nokName || (!nokPhone && !nokEmail)) return "Next of kin name and contact info required";
+        if (phone.length < 10) return "Please enter a valid phone number";
+        if (nationality === 'South Africa' && idNumber.length !== 13) return "South African ID must be 13 digits";
         return null;
     };
     
@@ -238,6 +239,23 @@ export default function Register() {
                             ))}
                         </View>
 
+                        <View style={styles.row}>
+                            <Input
+                                label="First Name"
+                                placeholder="Thabo"
+                                value={name}
+                                onChangeText={setName}
+                                containerStyle={{ flex: 1, marginRight: SPACING.xs }}
+                            />
+                            <Input
+                                label="Surname"
+                                placeholder="Mokoena"
+                                value={surname}
+                                onChangeText={setSurname}
+                                containerStyle={{ flex: 1 }}
+                            />
+                        </View>
+
                         <Input
                             label="Email Address"
                             placeholder="name@example.com"
@@ -279,22 +297,7 @@ export default function Register() {
                 {step === 2 && (
                     <Card style={styles.formCard}>
                         <Typography variant="label" style={styles.sectionTitle}>Identity & Contact</Typography>
-                        <View style={styles.row}>
-                            <Input
-                                label="First Name"
-                                placeholder="Thabo"
-                                value={name}
-                                onChangeText={setName}
-                                containerStyle={{ flex: 1, marginRight: SPACING.xs }}
-                            />
-                            <Input
-                                label="Surname"
-                                placeholder="Mokoena"
-                                value={surname}
-                                onChangeText={setSurname}
-                                containerStyle={{ flex: 1 }}
-                            />
-                        </View>
+                        
                         <Input
                             label="Phone Number"
                             placeholder="081 000 1111"
@@ -332,10 +335,11 @@ export default function Register() {
                         </TouchableOpacity>
 
                         <Input
-                            label={nationality === 'South Africa' ? "ID Number" : "Passport Number"}
+                            label={nationality === 'South Africa' ? "ID Number (13 digits)" : "Passport Number"}
                             placeholder="Enter number"
                             value={idNumber}
                             onChangeText={setIdNumber}
+                            keyboardType={nationality === 'South Africa' ? "number-pad" : "default"}
                         />
 
                         <Input

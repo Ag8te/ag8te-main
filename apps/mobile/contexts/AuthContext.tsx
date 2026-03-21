@@ -80,7 +80,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const endpoint = isFormData ? "/auth/register-with-payment" : "/auth/register";
       
       const payload = isFormData ? data : { ...data, role: data.role || "client" };
-      const config = isFormData ? { headers: { 'Content-Type': 'multipart/form-data' } } : {};
+      // Let Axios automatically set the boundaries for FormData by omitting Content-Type override
+      const config = isFormData ? { headers: { 'Accept': 'application/json' } } : {};
 
       const response = await apiClient.post(endpoint, payload, config);
       const result = response.data;
@@ -94,7 +95,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
       return { success: false, error: result.message || "Registration failed" };
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || error.message || "An error occurred during registration";
+      console.error("Registration error full response:", error.response?.data);
+      let errorMessage = "An error occurred during registration";
+      if (error.response?.data?.message) {
+         errorMessage = error.response.data.message;
+      } else if (typeof error.response?.data === 'string' && error.response.data.includes('<html')) {
+         errorMessage = "Internal Server Error or Bad Request (Boundary parsing failed)";
+      } else if (error.message) {
+         errorMessage = error.message;
+      }
       return { success: false, error: errorMessage };
     }
   }, []);

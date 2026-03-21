@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, FlatList, ActivityIndicator, Image, TouchableOpacity, Dimensions } from 'react-native';
+import { View, StyleSheet, FlatList, ActivityIndicator, Image, TouchableOpacity, Dimensions, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '../../api/client';
@@ -13,10 +13,12 @@ import { Button } from '../../components/UI/Button';
 
 const { width } = Dimensions.get('window');
 const COLUMN_WIDTH = (width - SPACING.lg * 2 - SPACING.md) / 2;
+const CATEGORIES = ['All', 'Electronics', 'Home', 'Fashion', 'Health', 'Sports', 'Other'];
 
 export default function Shop() {
   const router = useRouter();
   const [search, setSearch] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All');
   const { addItem, itemCount } = useCart();
 
   const { data, isLoading } = useQuery({
@@ -27,9 +29,12 @@ export default function Shop() {
     },
   });
 
-  const filteredData = data?.filter((item: any) =>
-    item.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredData = data?.filter((item: any) => {
+    const matchesSearch = item.name.toLowerCase().includes(search.toLowerCase());
+    const matchesCategory = selectedCategory === 'All' || 
+                           item.category?.toLowerCase() === selectedCategory.toLowerCase();
+    return matchesSearch && matchesCategory;
+  });
 
   const renderHeader = () => (
     <View style={styles.header}>
@@ -56,8 +61,28 @@ export default function Shop() {
         value={search}
         onChangeText={setSearch}
         icon={<Search color={COLORS.gray[400]} size={20} />}
-        containerStyle={{ marginTop: SPACING.md }}
+        containerStyle={{ marginTop: SPACING.md, marginBottom: SPACING.md }}
       />
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryScroll}>
+        {CATEGORIES.map((cat) => (
+          <TouchableOpacity
+            key={cat}
+            onPress={() => setSelectedCategory(cat)}
+            style={[
+              styles.categoryChip,
+              selectedCategory === cat && styles.categoryChipActive
+            ]}
+          >
+            <Typography
+              variant="label"
+              color={selectedCategory === cat ? COLORS.white : COLORS.gray[600]}
+              weight={selectedCategory === cat ? 'bold' : 'medium'}
+            >
+              {cat}
+            </Typography>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
     </View>
   );
 
@@ -239,5 +264,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: SPACING.xxl,
     marginTop: SPACING.xxl,
+  },
+  categoryScroll: {
+    paddingBottom: SPACING.sm,
+  },
+  categoryChip: {
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.xs + 2,
+    borderRadius: SIZES.radius.full,
+    backgroundColor: COLORS.gray[50],
+    marginRight: SPACING.sm,
+    borderWidth: 1,
+    borderColor: COLORS.gray[100],
+  },
+  categoryChipActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
   },
 });

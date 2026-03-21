@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, ImageBackground } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, ImageBackground, ActivityIndicator } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { Link, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Search, Bell, TrendingUp, Star, MapPin, ChevronRight, ShoppingBag, Briefcase, Zap } from 'lucide-react-native';
+import { Search, Bell, TrendingUp, Star, MapPin, ChevronRight, ShoppingBag, Briefcase, Zap, Car, Users } from 'lucide-react-native';
 import { useQuery } from '@tanstack/react-query';
 import apiClient, { getImageUrl } from '../../api/client';
 import { COLORS, SPACING, SIZES } from '../../constants/Theme';
@@ -17,6 +17,13 @@ export default function Home() {
   const { user } = useAuth();
   const router = useRouter();
   const [activeSlide, setActiveSlide] = useState(0);
+  const { data: recommended, isLoading: loadingRecommended } = useQuery({
+    queryKey: ['recommended-providers'],
+    queryFn: async () => {
+      const response = await apiClient.get('/profile/service-providers?limit=3');
+      return response.data?.data?.service_providers || [];
+    },
+  });
 
   const { data: slides = [] } = useQuery({
     queryKey: ['public-carousel'],
@@ -158,10 +165,11 @@ export default function Home() {
 
       <View style={styles.categoryGrid}>
         {[
-          { icon: <Briefcase />, label: 'Services', color: '#EEF2FF', iconColor: COLORS.primary, href: '/services' },
-          { icon: <ShoppingBag />, label: 'Shop', color: '#ECFDF5', iconColor: COLORS.secondary, href: '/shop' },
-          { icon: <Star />, label: 'Featured', color: '#FFFBEB', iconColor: '#D97706', href: '/(tabs)/services' },
-          { icon: <TrendingUp />, label: 'Trending', color: '#FEF2F2', iconColor: COLORS.error, href: '/(tabs)/shop' },
+          { icon: <Car />, label: 'Book a Ride', color: '#F0FDF4', iconColor: '#16A34A', href: '/book/ride' },
+          { icon: <ShoppingBag />, label: 'Shop', color: '#ECFDF5', iconColor: COLORS.secondary, href: '/(tabs)/shop' },
+          { icon: <Briefcase />, label: 'Services', color: '#EEF2FF', iconColor: COLORS.primary, href: '/(tabs)/services' },
+          { icon: <Users />, label: 'Professionals', color: '#FFFBEB', iconColor: '#D97706', href: '/(tabs)/professionals' },
+          { icon: <TrendingUp />, label: 'Trending', color: '#FEF2F2', iconColor: COLORS.error, href: '/(tabs)/shop?filter=trending' },
         ].map((item, index) => (
           <Link key={index} href={item.href as any} asChild>
             <TouchableOpacity style={styles.categoryCard}>
@@ -181,52 +189,63 @@ export default function Home() {
         <Typography variant="h3" weight="bold">Recommended for You</Typography>
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.horizontalScroll}
-      >
-        {[
-          { id: '1', title: 'Professional House Cleaning', price: 'R250/hr', img: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?q=80&w=500', category: 'services' },
-          { id: '2', title: 'Expert Plumbing Service', price: 'R350/hr', img: 'https://images.unsplash.com/photo-1585704032915-c3400ca199e7?q=80&w=500', category: 'services' },
-          { id: '3', title: 'Certified Electrician', price: 'R400/hr', img: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?q=80&w=500', category: 'services' },
-        ].map((item, index) => (
-          <TouchableOpacity
-            key={index}
-            activeOpacity={0.9}
-            onPress={() => router.push({ pathname: '/provider/[id]', params: { id: item.id, category: item.category } })}
-          >
-            <Card shadow="sm" style={[styles.recommendedCard, { padding: 0 }]}>
-              <Image
-                source={{ uri: item.img || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=500' }}
-                style={styles.cardImage}
-                resizeMode="cover"
-              />
-              <View style={{ padding: SPACING.md }}>
-                <View style={styles.ratingRow}>
-                  <Star size={14} color="#FBBF24" fill="#FBBF24" />
-                  <Typography variant="caption" weight="bold" style={{ marginLeft: 4 }}>4.9</Typography>
-                </View>
-                <Typography variant="subtitle" weight="bold" numberOfLines={1}>
-                  {item.title}
-                </Typography>
-                <View style={styles.locationRow}>
-                  <MapPin size={12} color={COLORS.gray[400]} />
-                  <Typography variant="caption" color={COLORS.gray[500]} style={{ marginLeft: 4 }}>
-                    Cape Town, SA
-                  </Typography>
-                </View>
-                <View style={styles.cardFooter}>
-                  <Typography weight="bold" color={COLORS.primary}>{item.price}</Typography>
-                  <View style={styles.miniButton}>
-                    <ChevronRight size={16} color={COLORS.primary} />
+      {loadingRecommended ? (
+        <ActivityIndicator size="small" color={COLORS.primary} style={{ marginTop: 20, marginBottom: 40 }} />
+      ) : (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.horizontalScroll}
+        >
+          {(recommended && recommended.length > 0 ? recommended : []).map((item: any, index: number) => {
+            const user = item.provider || item.professional || {};
+            const userData = user.data || {};
+            const name = `${userData.full_name || ''} ${userData.surname || ''}`.trim() || userData.business_name || 'Provider';
+            
+            return (
+              <TouchableOpacity
+                key={index}
+                activeOpacity={0.9}
+                onPress={() => router.push({ 
+                  pathname: '/provider/[id]', 
+                  params: { id: user.id || item.id, category: item.type === 'professional' ? 'professionals' : 'services' } 
+                })}
+              >
+                <Card shadow="sm" style={[styles.recommendedCard, { padding: 0 }]}>
+                  <Image
+                    source={{ uri: user.profile_image_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random` }}
+                    style={styles.cardImage}
+                    resizeMode="cover"
+                  />
+                  <View style={{ padding: SPACING.md }}>
+                    <View style={styles.ratingRow}>
+                      <Star size={14} color="#FBBF24" fill="#FBBF24" />
+                      <Typography variant="caption" weight="bold" style={{ marginLeft: 4 }}>4.9</Typography>
+                    </View>
+                    <Typography variant="subtitle" weight="bold" numberOfLines={1}>
+                      {name}
+                    </Typography>
+                    <View style={styles.locationRow}>
+                      <MapPin size={12} color={COLORS.gray[400]} />
+                      <Typography variant="caption" color={COLORS.gray[500]} style={{ marginLeft: 4 }}>
+                        {userData.city || 'South Africa'}
+                      </Typography>
+                    </View>
+                    <View style={styles.cardFooter}>
+                      <Typography weight="bold" color={COLORS.primary}>
+                        R{item.services?.[0]?.hourly_rate || '200'}/hr
+                      </Typography>
+                      <View style={styles.miniButton}>
+                        <ChevronRight size={16} color={COLORS.primary} />
+                      </View>
+                    </View>
                   </View>
-                </View>
-              </View>
-            </Card>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+                </Card>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      )}
 
       {!user && (
         <View style={styles.promoWrapper}>
