@@ -69,7 +69,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
       return { success: false, error: result.message || "Login failed" };
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || error.message || "An error occurred during login";
+      console.error("Login failed. Error object:", error);
+      console.error("Login error message:", error.message);
+      console.error("Login error response data:", error.response?.data);
+      console.error("Login error response status:", error.response?.status);
+
+      const errorMessage = error.response?.data?.message || 
+                          error.response?.data?.error?.message || 
+                          error.message || 
+                          "An error occurred during login";
       return { success: false, error: errorMessage };
     }
   }, []);
