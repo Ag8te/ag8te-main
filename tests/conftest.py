@@ -8,6 +8,9 @@ import json
 # Mock PostgreSQL types for SQLite compatibility
 class SQLiteJSONB(TypeDecorator):
     impl = TEXT
+    def __init__(self, *args, **kwargs):
+        super().__init__()
+
     def process_bind_param(self, value, dialect):
         if value is None: return None
         return json.dumps(value)
@@ -17,6 +20,9 @@ class SQLiteJSONB(TypeDecorator):
 
 class SQLiteUUID(TypeDecorator):
     impl = CHAR(36)
+    def __init__(self, *args, **kwargs):
+        super().__init__()
+
     def process_bind_param(self, value, dialect):
         if value is None: return None
         return str(value)
@@ -25,6 +31,8 @@ class SQLiteUUID(TypeDecorator):
 
 class SQLiteCITEXT(TypeDecorator):
     impl = TEXT
+    def __init__(self, *args, **kwargs):
+        super().__init__()
 
 # Patch the postgresql dialect module
 postgresql.JSONB = SQLiteJSONB
