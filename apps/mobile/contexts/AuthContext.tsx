@@ -81,7 +81,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       const payload = isFormData ? data : { ...data, role: data.role || "client" };
       // Let Axios automatically set the boundaries for FormData by omitting Content-Type override
-      const config = isFormData ? { headers: { 'Accept': 'application/json' } } : {};
+      const config = isFormData ? { headers: { 'Accept': 'application/json' } } : { headers: { 'Content-Type': 'application/json' } };
 
       const response = await apiClient.post(endpoint, payload, config);
       const result = response.data;
