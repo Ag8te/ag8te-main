@@ -4,9 +4,6 @@ import sys
 from flask import Flask, jsonify, request
 from flask_migrate import Migrate
 from flask_cors import CORS
-from dotenv import load_dotenv
-load_dotenv()
-
 from backend.extensions import db, jwt, mail, login_manager
 from backend.config import Config
 from backend.utils.middleware import setup_error_handlers, request_trace_middleware, RequestIdFilter
