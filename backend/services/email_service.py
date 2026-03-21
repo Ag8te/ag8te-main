@@ -5,6 +5,7 @@ import os
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.header import Header
 from flask import current_app, render_template
 from backend.models import EmailQueue
 from backend.extensions import db
@@ -84,13 +85,15 @@ class EmailService:
 
             # Create message
             msg = MIMEMultipart('alternative')
-            msg['Subject'] = subject
+            msg['Subject'] = Header(subject, 'utf-8')
             # Use Display Name if possible, fallback to default_from
             msg['From'] = f"Mzansi Serve <{default_from}>"
             msg['To'] = recipient
-            msg.attach(MIMEText(body, 'plain'))
+            
+            # Explicitly use utf-8 for body parts
+            msg.attach(MIMEText(body, 'plain', 'utf-8'))
             if body_html:
-                msg.attach(MIMEText(body_html, 'html'))
+                msg.attach(MIMEText(body_html, 'html', 'utf-8'))
 
             # Send email
             # Use SSL for port 465, TLS/STARTTLS for others (like 587)
@@ -134,7 +137,7 @@ class EmailService:
         frontend_url = current_app.config.get('FRONTEND_URL', 'http://localhost').rstrip('/')
         verification_url = f"{frontend_url}/verify-email?token={token}"
         first_name = _first_name(user)
-        subject = "Verify Your Email Address – Welcome to MzansiServe"
+        subject = "Verify Your Email Address - Welcome to MzansiServe"
         body = f"""Hi {first_name},
 
 Welcome to MzansiServe 
@@ -145,7 +148,7 @@ Verify My Email: {verification_url}
 
 If you did not create this account, you can safely ignore this email.
 
-Thank you for joining South Africa’s trusted marketplace for services, professionals, drivers, and shops.
+Thank you for joining South Africa's trusted marketplace for services, professionals, drivers, and shops.
 
 Warm regards,
 MzansiServe Support Team
@@ -156,7 +159,7 @@ www.mzansiserve.co.za"""
 <p>To complete your registration, please verify your email address by clicking the button below:</p>
 <p><a href="{verification_url}" style="display:inline-block;background:#2563eb;color:#fff;padding:10px 20px;text-decoration:none;border-radius:6px;">Verify My Email</a></p>
 <p>If you did not create this account, you can safely ignore this email.</p>
-<p>Thank you for joining South Africa’s trusted marketplace for services, professionals, drivers, and shops.</p>
+<p>Thank you for joining South Africa's trusted marketplace for services, professionals, drivers, and shops.</p>
 <p>Warm regards,<br>MzansiServe Support Team<br><a href="https://www.mzansiserve.co.za">www.mzansiserve.co.za</a></p>
 </body></html>"""
         email = EmailService.queue_email(
@@ -202,7 +205,7 @@ www.mzansiserve.co.za"""
         first_name = _first_name(user)
         frontend_url = current_app.config.get('FRONTEND_URL', 'http://localhost').rstrip('/')
         login_url = f"{frontend_url}/login"
-        subject = "Registration Successful – Welcome to MzansiServe!"
+        subject = "Registration Successful - Welcome to MzansiServe!"
         body = f"""Hi {first_name},
 
 Great news! Your registration on MzansiServe was successful 
@@ -215,7 +218,7 @@ Your account is now active, and you can start exploring:
 
 Login anytime here: {login_url} or directly from the mzansiserve mobile app, www.MzansiServe.com or www.MzansiServe.co.za
 
-Thank you for choosing MzansiServe — made for Mzansi, built for you 🇿🇦
+Thank you for choosing MzansiServe - made for Mzansi, built for you
 
 Kind regards,
 MzansiServe Team"""
@@ -230,7 +233,7 @@ MzansiServe Team"""
     <li>Secure payments</li>
 </ul>
 <p>Login anytime here: <a href="{login_url}">{login_url}</a> or directly from the mzansiserve mobile app, <a href="https://www.MzansiServe.com">www.MzansiServe.com</a> or <a href="https://www.MzansiServe.co.za">www.MzansiServe.co.za</a></p>
-<p>Thank you for choosing MzansiServe — made for Mzansi, built for you 🇿🇦</p>
+<p>Thank you for choosing MzansiServe - made for Mzansi, built for you</p>
 <p>Kind regards,<br>MzansiServe Team</p>
 </body></html>"""
         email = EmailService.queue_email(
@@ -249,7 +252,7 @@ MzansiServe Team"""
         first_name = _first_name(user)
         payment_date = datetime.utcnow().strftime('%Y-%m-%d')
         reference = getattr(user, 'tracking_number', None) or 'Registration'
-        subject = "Payment Received – Registration Confirmed"
+        subject = "Payment Received - Registration Confirmed"
         body = f"""Hi {first_name},
 
 Thank you! We have successfully received your registration payment of:
@@ -292,10 +295,10 @@ billing@mzansiserve.co.za"""
         if isinstance(delivery_address, dict):
             parts = [delivery_address.get('street'), delivery_address.get('city'), delivery_address.get('postal_code')]
             delivery_address = ', '.join(p for p in parts if p) or 'N/A'
-        subject = "Order Confirmed – Thank You for Shopping with MzansiServe"
+        subject = "Order Confirmed - Thank You for Shopping with MzansiServe"
         body = f"""Hi {first_name},
 
-Thank you for your purchase on MzansiServe Shop 🛒
+Thank you for your purchase on MzansiServe Shop
 
 Order Number: {order.id}
 Total Amount: R{float(order.total):.2f}
@@ -308,7 +311,7 @@ Warm regards,
 MzansiServe Shop Team"""
         body_html = f"""<html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333 text-align: left;">
 <p>Hi {first_name},</p>
-<p>Thank you for your purchase on MzansiServe Shop 🛒</p>
+<p>Thank you for your purchase on MzansiServe Shop</p>
 <p><strong>Order Number:</strong> {order.id}<br>
 <strong>Total Amount:</strong> R{float(order.total):.2f}<br>
 <strong>Delivery Address:</strong> {delivery_address}<br>
@@ -339,10 +342,10 @@ MzansiServe Shop Team"""
         if service_request.scheduled_time:
             booking_date = f"{booking_date} {service_request.scheduled_time}".strip()
         booking_date = booking_date or 'N/A'
-        subject = "Call-Out Payment Confirmed – Service Booking Successful"
+        subject = "Call-Out Payment Confirmed - Service Booking Successful"
         body = f"""Hi {first_name},
 
-Your call-out payment has been successfully processed ✅
+Your call-out payment has been successfully processed
 
 Service Provider: {provider_name}
 Service Requested: {service_name}
@@ -355,7 +358,7 @@ Regards,
 MzansiServe Support Team"""
         body_html = f"""<html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333 text-align: left;">
 <p>Hi {first_name},</p>
-<p>Your call-out payment has been successfully processed ✅</p>
+<p>Your call-out payment has been successfully processed</p>
 <p><strong>Service Provider:</strong> {provider_name}<br>
 <strong>Service Requested:</strong> {service_name}<br>
 <strong>Call-Out Fee Paid:</strong> R{payment_amount:.2f}<br>
@@ -453,10 +456,10 @@ MzansiServe Team
         frontend_url = current_app.config.get('FRONTEND_URL', 'http://localhost').rstrip('/')
         dashboard_url = f"{frontend_url}/dashboard"
         account_type = (user.role or 'member').replace('-', ' ').title()
-        subject = "Account Approved – Welcome to MzansiServe!"
+        subject = "Account Approved - Welcome to MzansiServe!"
         body = f"""Hi {first_name},
 
-Congratulations 🎉
+Congratulations
 
 Your account has been successfully reviewed and approved!
 
@@ -468,7 +471,7 @@ Warm regards,
 MzansiServe Team"""
         body_html = f"""<html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333 text-align: left;">
 <p>Hi {first_name},</p>
-<p>Congratulations 🎉</p>
+<p>Congratulations</p>
 <p>Your account has been successfully reviewed and approved!</p>
 <p>You are now authorised as a: <strong>{account_type}</strong></p>
 <p>Access your dashboard here: <a href="{dashboard_url}">{dashboard_url}</a></p>
@@ -489,7 +492,7 @@ MzansiServe Team"""
         """Send user suspension notification email. reason is optional."""
         first_name = _first_name(user)
         suspension_reason = (reason or '').strip() or 'Please contact support for details.'
-        subject = "Account Suspended – Important Notice"
+        subject = "Account Suspended - Important Notice"
         body = f"""Hi {first_name},
 
 We regret to inform you that your MzansiServe account has been temporarily suspended.
