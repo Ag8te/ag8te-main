@@ -13,6 +13,7 @@ jest.mock('../contexts/AuthContext', () => ({
 
 // Mock apiClient
 jest.mock('../api/client', () => ({
+  __esModule: true,
   default: {
     get: jest.fn().mockResolvedValue({ data: { success: true, data: { services: [], gateways: [] } } }),
     post: jest.fn().mockResolvedValue({ data: { success: true } }),

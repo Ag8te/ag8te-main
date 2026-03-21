@@ -1,5 +1,14 @@
 require('react-native-gesture-handler/jestSetup');
 
+// Polyfill for Expo's winter runtime in Node/Jest environment
+global.__ExpoImportMetaRegistry = {};
+global.structuredClone = global.structuredClone || ((val) => JSON.parse(JSON.stringify(val)));
+if (typeof TextEncoder === 'undefined') {
+  const { TextEncoder, TextDecoder } = require('util');
+  global.TextEncoder = TextEncoder;
+  global.TextDecoder = TextDecoder;
+}
+
 // Generic mocks for common Expo and React Native libraries
 jest.mock('expo-secure-store', () => ({
   getItemAsync: jest.fn().mockResolvedValue(null),
@@ -12,6 +21,19 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn().mockResolvedValue(undefined),
   removeItem: jest.fn().mockResolvedValue(undefined),
   clear: jest.fn().mockResolvedValue(undefined),
+}));
+
+jest.mock('expo-constants', () => ({
+  expoConfig: {
+    extra: {
+      apiUrl: 'http://localhost:5006/api',
+    },
+  },
+}));
+
+jest.mock('expo-linking', () => ({
+  createURL: jest.fn().mockReturnValue('mzansiserve://'),
+  parse: jest.fn().mockReturnValue({}),
 }));
 
 // Completely manual mock for Reanimated to avoid any internal requires
