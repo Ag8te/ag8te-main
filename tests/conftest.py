@@ -43,6 +43,10 @@ postgresql.JSONB = SQLiteJSONB
 postgresql.UUID = SQLiteUUID
 postgresql.CITEXT = SQLiteCITEXT
 
+from backend.config import Config
+# Force empty engine options for testing to avoid pool_size error in SQLite
+Config.SQLALCHEMY_ENGINE_OPTIONS = {}
+
 from app import create_app
 from backend.extensions import db
 from backend.config import Config
