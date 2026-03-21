@@ -1,9 +1,13 @@
 import pytest
 import os
+import sys
 import sqlalchemy as sa
 from sqlalchemy.types import TypeDecorator, CHAR, TEXT
 from sqlalchemy.dialects import postgresql
 import json
+
+# Add project root to sys.path to allow importing 'app' and other modules
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Mock PostgreSQL types for SQLite compatibility
 class SQLiteJSONB(TypeDecorator):

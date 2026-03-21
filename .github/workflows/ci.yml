@@ -2,9 +2,9 @@ name: MzansiServe CI
 
 on:
   push:
-    branches: [ main, master, develop ]
+    branches: [ main, master, develop, fix/yoco-instantiation ]
   pull_request:
-    branches: [ main, master, develop ]
+    branches: [ main, master, develop, fix/yoco-instantiation ]
 
 jobs:
   backend-tests:
@@ -26,6 +26,7 @@ jobs:
         env:
           FLASK_ENV: testing
           DATABASE_URL: "sqlite:///:memory:"
+          PYTHONPATH: .
         run: |
           pytest tests/
           
