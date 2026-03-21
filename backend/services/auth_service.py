@@ -82,8 +82,13 @@ class AuthService:
     def register_with_payment_logic(cls, registration_data, files):
         """Complex registration logic with file uploads and payment initiation."""
         # Validation is mostly handled by the blueprint schema, but we do critical checks here
-        email = registration_data.get('email')
+        email = registration_data.get('email', '').strip()
         role = registration_data.get('role')
+        
+        # Ensure critical strings are trimmed
+        for key in ['full_name', 'surname', 'phone', 'id_number']:
+            if key in registration_data and isinstance(registration_data[key], str):
+                registration_data[key] = registration_data[key].strip()
         
         if User.query.filter_by(email=email, role=role).first():
             return None, "USER_EXISTS"
@@ -193,14 +198,18 @@ class AuthService:
             user.data = user_data
 
         db.session.commit()
+        logger.info(f"User {user.id} committed to DB in register_with_payment_logic")
         
         # Send Verification Email
         try:
             token = create_email_verification_token(user.id)
+            logger.info(f"Generated verification token for user {user.id}")
             EmailService.send_verification_email(user, token)
+            logger.info(f"Verification email sent for user {user.id}")
         except Exception as e:
-            logger.warning(f"Failed to send verification email for user {user.id}: {e}")
-
+            logger.error(f"CRITICAL: Failed to send verification email for user {user.id}: {e}")
+            logger.exception(e) # Log the full stack trace
+            
         return user, None
 
     @staticmethod
