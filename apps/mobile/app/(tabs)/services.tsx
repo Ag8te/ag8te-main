@@ -9,7 +9,7 @@ import { Typography } from '../../components/UI/Typography';
 import { Card } from '../../components/UI/Card';
 import { Input } from '../../components/UI/Input';
 
-const CATEGORIES = ['All', 'Cleaning', 'Plumbing', 'Electrician', 'Delivery', 'Tutor'];
+const CATEGORIES = ['All', 'Cleaning', 'Plumbing', 'Electrician', 'Gardening', 'Moving', 'Beauty', 'Wellness'];
 
 export default function Services() {
   const router = useRouter();
@@ -30,9 +30,17 @@ export default function Services() {
     const userData = user.data || {};
     const name = `${userData.full_name || ''} ${userData.surname || ''}`.trim() || userData.business_name || '';
     const matchesSearch = name.toLowerCase().includes(search.toLowerCase());
-
-    // In a real app, we would filter by category based on service descriptions or tags
-    return matchesSearch;
+    
+    if (selectedCategory === 'All') return matchesSearch;
+    
+    // Check if any service name matches the category
+    const services = item.services || [];
+    const matchesCategory = services.some((s: any) => 
+      s.name.toLowerCase().includes(selectedCategory.toLowerCase()) ||
+      (s.category && s.category.toLowerCase().includes(selectedCategory.toLowerCase()))
+    );
+    
+    return matchesSearch && matchesCategory;
   });
 
   const renderHeader = () => (

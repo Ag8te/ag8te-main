@@ -2,7 +2,7 @@ import React from 'react';
 import { View, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { useRouter } from 'expo-router';
-import { ChevronRight, Heart, Settings, LogOut, HelpCircle, Shield, CreditCard, ChevronLeft } from 'lucide-react-native';
+import { ChevronRight, Heart, Settings, LogOut, HelpCircle, Shield, CreditCard, ChevronLeft, Calendar, ShoppingBag } from 'lucide-react-native';
 import { COLORS, SPACING, SIZES, SHADOWS } from '../../constants/Theme';
 import { Typography } from '../../components/UI/Typography';
 import { Button } from '../../components/UI/Button';
@@ -30,11 +30,13 @@ export default function Profile() {
   }
 
   const menuItems = [
+    { title: 'My Bookings', icon: <Calendar color={COLORS.primary} size={22} />, route: '/history?type=bookings' },
+    { title: 'My Orders', icon: <ShoppingBag color={COLORS.secondary} size={22} />, route: '/history?type=orders' },
     { title: 'My Wishlist', icon: <Heart color={COLORS.error} size={22} />, route: '/wishlist' },
-    { title: 'Payment Methods', icon: <CreditCard color={COLORS.gray[700]} size={22} />, route: null },
+    { title: 'Payment Methods', icon: <CreditCard color={COLORS.gray[700]} size={22} />, route: '/settings' },
     { title: 'Account Settings', icon: <Settings color={COLORS.gray[700]} size={22} />, route: '/settings' },
-    { title: 'Privacy & Security', icon: <Shield color={COLORS.gray[700]} size={22} />, route: null },
-    { title: 'Help & Support', icon: <HelpCircle color={COLORS.gray[700]} size={22} />, route: null },
+    { title: 'Privacy & Security', icon: <Shield color={COLORS.gray[700]} size={22} />, route: '/terms' },
+    { title: 'Help & Support', icon: <HelpCircle color={COLORS.gray[700]} size={22} />, route: '/terms' },
   ];
 
   return (

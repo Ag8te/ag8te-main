@@ -10,7 +10,11 @@ from flask import current_app
 import datetime
 
 from backend.extensions import db
-from backend.models import User, ShopCategory, ShopSubcategory, Country, ServiceType, Agent, ServiceRequest, Order, MarketplaceCategory, MarketplaceAd
+from backend.models import (
+    User, ShopCategory, ShopSubcategory, Country, ServiceType, Agent, 
+    ServiceRequest, Order, MarketplaceCategory, MarketplaceAd,
+    CarouselItem, Testimonial, LandingFeature, AppSetting, ShopProduct
+)
 from backend.services.wallet_service import WalletService
 from backend.utils.auth import generate_tracking_number
 
@@ -26,10 +30,6 @@ def seed_all():
       Email   : admin@mzansiserve.co.za
       Password: admin
     """
-    from backend.models.carousel import CarouselItem
-    from backend.models.testimonial import Testimonial
-    from backend.models.landing_feature import LandingFeature
-    from backend.models.setting import AppSetting
 
     SEP = '─' * 55
     click.echo(f'\n{SEP}')
@@ -47,13 +47,13 @@ def seed_all():
         ('Mozambique', 'MZ'), ('Zambia', 'ZM'), ('Tanzania', 'TZ'),
         ('India', 'IN'), ('China', 'CN'),
     ]
-    c_created = 0
+    countries_added: list = []
     for name, code in countries_data:
         if not Country.query.filter_by(name=name).first():
             db.session.add(Country(name=name, code=code, is_active=True))
-            c_created += 1
+            countries_added.append(name)
     db.session.commit()
-    click.echo(f'   {c_created} created.\n')
+    click.echo(f'   {len(countries_added)} created.\n')
 
     # ── 2. Shop Categories ─────────────────────────────────────────────────
     click.echo('[2/8] Shop categories…')
@@ -65,17 +65,18 @@ def seed_all():
         ('dry-food',        'Dry Food',        [('dry-food-grains-rice', 'Grains & Rice'), ('dry-food-snacks', 'Snacks')]),
         ('furniture',       'Furniture',       [('furniture-living-room', 'Living Room'), ('furniture-bedroom', 'Bedroom')]),
     ]
-    cat_c = sub_c = 0
+    cats_added: list = []
+    subs_added: list = []
     for cid, ctitle, subs in cats:
         if not ShopCategory.query.get(cid):
             db.session.add(ShopCategory(id=cid, title=ctitle))
-            cat_c += 1
+            cats_added.append(cid)
         for sid, stitle in subs:
             if not ShopSubcategory.query.get(sid):
                 db.session.add(ShopSubcategory(id=sid, category_id=cid, title=stitle))
-                sub_c += 1
+                subs_added.append(sid)
     db.session.commit()
-    click.echo(f'   {cat_c} categories, {sub_c} subcategories created.\n')
+    click.echo(f'   {len(cats_added)} categories, {len(subs_added)} subcategories created.\n')
 
     # ── 3. Services ────────────────────────────────────────────────────────
     click.echo('[3/8] Service types…')
@@ -93,13 +94,13 @@ def seed_all():
         ('Architect',        'professional', 5),      ('Financial Advisor', 'professional', 6),
         ('Real Estate Agent','professional', 7),      ('IT Consultant', 'professional', 8),
     ]
-    svc_c = 0
+    services_added: list = []
     for sname, scat, sorder in services_data:
         if not ServiceType.query.filter_by(name=sname, category=scat).first():
             db.session.add(ServiceType(name=sname, category=scat, order=sorder, is_active=True))
-            svc_c += 1
+            services_added.append(sname)
     db.session.commit()
-    click.echo(f'   {svc_c} created.\n')
+    click.echo(f'   {len(services_added)} created.\n')
 
     # ── 4. Agents ──────────────────────────────────────────────────────────
     click.echo('[4/8] Agents…')
@@ -108,7 +109,7 @@ def seed_all():
         'Tshepo Rasiile', 'Phumlani Mfenyana', 'Sebolelo Mpiko', 'Mankoebe Letsie',
         'Lintle Letsie', 'Ntshiuoa Macingwane', 'Andile Fusi',
     ]
-    agt_c = 0
+    agents_added: list = []
     for i, full_name in enumerate(agent_names, start=1):
         code = f'AGT{i:03d}'
         if not Agent.query.filter_by(agent_id=code).first():
@@ -118,9 +119,9 @@ def seed_all():
                 surname=parts[1] if len(parts) > 1 else '',
                 agent_id=code,
             ))
-            agt_c += 1
+            agents_added.append(code)
     db.session.commit()
-    click.echo(f'   {agt_c} created.\n')
+    click.echo(f'   {len(agents_added)} created.\n')
 
     # ── 5. Hero Banners ────────────────────────────────────────────────────
     click.echo('[5/8] Hero banners…')
@@ -141,7 +142,7 @@ def seed_all():
          'Discover products from local sellers. A ads built for Mzansi.',
          'Start Shopping', '/shop',        'bg-sa-red shadow-lg',                  'hero-shop.jpg'),
     ]
-    ban_c = 0
+    banners_added: list = []
     for order, badge, title, subtitle, cta_text, cta_link, cta_color, img_file in banners:
         if CarouselItem.query.filter_by(badge=badge).first():
             continue
@@ -159,9 +160,9 @@ def seed_all():
             title=title, subtitle=subtitle, badge=badge,
             cta_color=cta_color, order=order, is_active=True,
         ))
-        ban_c += 1
+        banners_added.append(badge)
     db.session.commit()
-    click.echo(f'   {ban_c} created.\n')
+    click.echo(f'   {len(banners_added)} created.\n')
 
     # ── 6. Landing Features & Testimonials ─────────────────────────────────
     click.echo('[6/8] Landing content…')
@@ -171,11 +172,11 @@ def seed_all():
         ('BadgeCheck',  'Accredited Experts',"Professional bodies validate credentials so you don't have to do due diligence.", 3),
         ('Headphones',  'Dedicated Support', 'Our Mzansi-based support team is available to help — any time, any issue.',       4),
     ]
-    feat_c = 0
+    features_added: list = []
     for icon, title, desc, order in features:
         if not LandingFeature.query.filter_by(title=title).first():
             db.session.add(LandingFeature(icon=icon, title=title, description=desc, order=order, is_active=True))
-            feat_c += 1
+            features_added.append(title)
     testimonials = [
         ('Sipho Dlamini', 'Homeowner, Johannesburg',  5, 1,
          'I booked a plumber through MzansiServe and he arrived within the hour. Verified, professional, and affordable!'),
@@ -186,13 +187,13 @@ def seed_all():
         ('Lerato Khumalo','Event Planner, Pretoria',    5, 4,
          "I hired a caterer and DJ through MzansiServe for my client's event. Both were exceptional!"),
     ]
-    test_c = 0
+    testimonials_added: list = []
     for name, role, rating, order, text in testimonials:
         if not Testimonial.query.filter_by(name=name).first():
             db.session.add(Testimonial(name=name, role=role, rating=rating, order=order, text=text, is_active=True))
-            test_c += 1
+            testimonials_added.append(name)
     db.session.commit()
-    click.echo(f'   {feat_c} features, {test_c} testimonials created.\n')
+    click.echo(f'   {len(features_added)} features, {len(testimonials_added)} testimonials created.\n')
 
     # ── 7. App Settings ────────────────────────────────────────────────────
     click.echo('[7/10] App settings…')
@@ -207,13 +208,13 @@ def seed_all():
         ('agent_commission_service-provider',25.0),
         ('agent_commission_client',          10.0),
     ]
-    set_c = 0
+    settings_added: list = []
     for key, value in settings:
         if not AppSetting.query.get(key):
             db.session.add(AppSetting(key=key, value=value))
-            set_c += 1
+            settings_added.append(key)
     db.session.commit()
-    click.echo(f'   {set_c} created.\n')
+    click.echo(f'   {len(settings_added)} created.\n')
 
     # ── 8. Default Admin User ──────────────────────────────────────────────
     click.echo('[8/10] Default admin user…')
@@ -238,7 +239,6 @@ def seed_all():
 
     # ── 9. Shop Products ───────────────────────────────────────────────────
     click.echo('[9/10] Shop products…')
-    from backend.models import ShopProduct
     import secrets
     default_products = [
         {'name': 'Smartphone', 'description': 'Latest smartphone with advanced features', 'price': 8999.99, 'category': 'electronics', 'image_url': 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=800&auto=format&fit=crop'},
@@ -250,7 +250,7 @@ def seed_all():
         {'name': 'Coffee Maker', 'description': 'Automatic drip coffee maker', 'price': 899.99, 'category': 'homeware', 'image_url': 'https://images.unsplash.com/photo-1520970014086-2208d157c9e2?q=80&w=800&auto=format&fit=crop'},
         {'name': 'Blender', 'description': 'High-speed kitchen blender', 'price': 599.99, 'category': 'homeware', 'image_url': 'https://images.unsplash.com/photo-1585238341267-1cfec2046a55?q=80&w=800&auto=format&fit=crop'},
     ]
-    prod_c = 0
+    products_added: list = []
     for p_data in default_products:
         if not ShopProduct.query.filter_by(name=p_data['name']).first():
             p_id = f"PROD-{secrets.token_hex(8).upper()}"
@@ -259,9 +259,9 @@ def seed_all():
                 price=p_data['price'], category_id=p_data['category'],
                 in_stock=True, image_url=p_data['image_url']
             ))
-            prod_c += 1
+            products_added.append(p_id)
     db.session.commit()
-    click.echo(f'   {prod_c} products created.\n')
+    click.echo(f'   {len(products_added)} products created.\n')
 
     # ── 10. Demo Service Providers & Professionals ──────────────────────────
     click.echo('[10/10] Demo data (Providers & Professionals)…')
@@ -284,7 +284,7 @@ def seed_all():
             'qualification': 'BAcc, CTA (UJ)', 'body': 'SAICA'
         }
     ]
-    user_c = 0
+    users_added: list = []
     for u_data in demo_users:
         if not User.query.filter_by(email=u_data['email']).first():
             user = User(
@@ -305,13 +305,12 @@ def seed_all():
             db.session.add(user)
             db.session.flush()
             WalletService.get_or_create_wallet(user.id)
-            user_c += 1
+            users_added.append(user.email)
     db.session.commit()
-    click.echo(f'   {user_c} demo users created.\n')
+    click.echo(f'   {len(users_added)} demo users created.\n')
 
     # ── 11. ads Categories ──────────────────────────────────────────
     click.echo('[11/12] ads categories…')
-    from backend.models.ads import MarketplaceCategory, MarketplaceAd
     m_cats = [
         ('Vehicles', 'vehicles', 'Car'),
         ('Property', 'property', 'Home'),
@@ -322,13 +321,13 @@ def seed_all():
         ('Fashion', 'fashion', 'Shirt'),
         ('Appliances', 'appliances', 'Microwave')
     ]
-    mcat_c = 0
+    mcats_added: list = []
     for name, slug, icon in m_cats:
         if not MarketplaceCategory.query.filter_by(slug=slug).first():
             db.session.add(MarketplaceCategory(name=name, slug=slug, icon=icon))
-            mcat_c += 1
+            mcats_added.append(slug)
     db.session.commit()
-    click.echo(f'   {mcat_c} ads categories created.\n')
+    click.echo(f'   {len(mcats_added)} ads categories created.\n')
 
     # ── 12. ads Ads ────────────────────────────────────────────────
     click.echo('[12/12] ads ads…')
@@ -366,7 +365,7 @@ def seed_all():
                 'images': ['https://images.unsplash.com/photo-1632661674596-df8be070a5c5?q=80&w=800&auto=format&fit=crop']
             }
         ]
-        mad_c = 0
+        mads_added: list = []
         for ad_data in example_ads:
             if not MarketplaceAd.query.filter_by(title=ad_data['title']).first():
                 cat = MarketplaceCategory.query.filter_by(slug=ad_data['category_slug']).first()
@@ -385,9 +384,9 @@ def seed_all():
                         contact_phone='011 234 5678',
                         status='active'
                     ))
-                    mad_c += 1
+                    mads_added.append(ad_data['title'])
         db.session.commit()
-        click.echo(f'   {mad_c} ads ads created.\n')
+        click.echo(f'   {len(mads_added)} ads ads created.\n')
 
         # ── 12. Demo Bookings (for Admin) ───────────────────────────────────
         click.echo('[12/12] Demo bookings & orders…')
@@ -464,6 +463,5 @@ def seed_all():
             db.session.commit()
             click.echo('   Demo bookings created for admin.\n')
 
-    click.echo(SEP)
-    click.echo(f'  Seed complete  ✓  ({prod_c} products, {user_c} demo users, {mad_c} ads added)')
+    click.echo(f'  Seed complete  ✓  ({len(products_added)} products, {len(users_added)} demo users, {len(mads_added)} ads added)')
     click.echo(SEP)

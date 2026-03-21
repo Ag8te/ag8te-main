@@ -147,7 +147,7 @@ const Register = () => {
     const fetchGateways = async () => {
       try {
         const response = await apiFetch("/api/public/payment-gateways");
-        if (response.success && response.data) {
+        if (response?.success && response.data) {
           const gateways = {
             paypal: response.data.paypal?.enabled ?? false,
             yoco: response.data.yoco?.enabled ?? false
@@ -500,7 +500,7 @@ const Register = () => {
 
                     {/* Role */}
                     <div className="space-y-1 sm:col-span-2">
-                      <label className={fieldLabel}>Register as<Req /></label>
+                      <label htmlFor="role" className={fieldLabel}>Register as<Req /></label>
                       <select id="role" value={form.role}
                         onChange={(e) => update("role", e.target.value)}
                         className={fieldErrors.role ? errorSelect : validSelect}>
@@ -515,7 +515,7 @@ const Register = () => {
 
                     {/* Email */}
                     <div className="space-y-1">
-                      <label className={fieldLabel}>Email Address<Req /></label>
+                      <label htmlFor="email" className={fieldLabel}>Email Address<Req /></label>
                       <div className="relative">
                         <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
                         <input id="email" type="email" placeholder="you@example.co.za"
@@ -530,7 +530,7 @@ const Register = () => {
 
                     {/* Password */}
                     <div className="space-y-1">
-                      <label className={fieldLabel}>Password<Req /></label>
+                      <label htmlFor="password" className={fieldLabel}>Password<Req /></label>
                       <div className="relative">
                         <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
                         <input id="password" type={showPassword ? "text" : "password"}
@@ -560,7 +560,7 @@ const Register = () => {
 
                     {/* Confirm Password */}
                     <div className="space-y-1">
-                      <label className={fieldLabel}>Confirm Password<Req /></label>
+                      <label htmlFor="confirm-password" className={fieldLabel}>Confirm Password<Req /></label>
                       <div className="relative">
                         <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
                         <input id="confirm-password" type="password" placeholder="Re-enter password"

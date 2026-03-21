@@ -9,7 +9,7 @@ import { Typography } from '../../components/UI/Typography';
 import { Card } from '../../components/UI/Card';
 import { Input } from '../../components/UI/Input';
 
-const CATEGORIES = ['All', 'Cleaning', 'Plumbing', 'Electrician', 'Tutor'];
+const CATEGORIES = ['All', 'Accountant', 'Lawyer', 'IT Specialist', 'Architect', 'Consultant', 'Tutor', 'Engineer'];
 
 export default function Professionals() {
     const router = useRouter();
@@ -26,9 +26,21 @@ export default function Professionals() {
 
     const filteredData = data?.filter((item: any) => {
         const user = item.professional || {};
+        const userData = user.data || {};
         const name = `${user.full_name || ''} ${user.surname || ''}`.trim() || user.name || 'Professional';
         const matchesSearch = name.toLowerCase().includes(search.toLowerCase());
-        return matchesSearch;
+        
+        if (selectedCategory === 'All') return matchesSearch;
+        
+        const profession = userData.profession || '';
+        const services = item.services || [];
+        const matchesCategory = profession.toLowerCase().includes(selectedCategory.toLowerCase()) ||
+                              services.some((s: any) => 
+                                s.name.toLowerCase().includes(selectedCategory.toLowerCase()) ||
+                                (s.category && s.category.toLowerCase().includes(selectedCategory.toLowerCase()))
+                              );
+        
+        return matchesSearch && matchesCategory;
     });
 
     const renderHeader = () => (

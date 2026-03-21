@@ -29,8 +29,8 @@ export default function Settings() {
         {
             title: 'Account',
             items: [
-                { icon: <User size={20} color={COLORS.gray[600]} />, label: 'Personal Information', type: 'link' },
-                { icon: <Lock size={20} color={COLORS.gray[600]} />, label: 'Change Password', type: 'link' },
+                { icon: <User size={20} color={COLORS.gray[600]} />, label: 'Personal Information', type: 'link', href: '/profile/edit' },
+                { icon: <Lock size={20} color={COLORS.gray[600]} />, label: 'Change Password', type: 'link', href: '/profile/password' },
             ]
         }
     ];
@@ -54,7 +54,12 @@ export default function Settings() {
                         </Typography>
                         <View style={styles.card}>
                             {section.items.map((item: any, itemIdx) => (
-                                <View key={itemIdx} style={[styles.itemRow, itemIdx === section.items.length - 1 && styles.noBorder]}>
+                                <TouchableOpacity 
+                                    key={itemIdx} 
+                                    style={[styles.itemRow, itemIdx === section.items.length - 1 && styles.noBorder]}
+                                    onPress={() => item.type === 'link' && item.href ? router.push(item.href as any) : null}
+                                    activeOpacity={item.type === 'link' ? 0.7 : 1}
+                                >
                                     <View style={styles.itemLeft}>
                                         <View style={styles.iconBox}>
                                             {item.icon}
@@ -81,7 +86,7 @@ export default function Settings() {
                                             <ArrowLeft style={{ transform: [{ rotate: '180deg' }] }} size={16} color={COLORS.gray[300]} />
                                         </View>
                                     )}
-                                </View>
+                                </TouchableOpacity>
                             ))}
                         </View>
                     </View>

@@ -1,0 +1,62 @@
+import pytest
+import os
+import sqlalchemy as sa
+from sqlalchemy.types import TypeDecorator, CHAR, TEXT
+from sqlalchemy.dialects import postgresql
+import json
+
+# Mock PostgreSQL types for SQLite compatibility
+class SQLiteJSONB(TypeDecorator):
+    impl = TEXT
+    def process_bind_param(self, value, dialect):
+        if value is None: return None
+        return json.dumps(value)
+    def process_result_value(self, value, dialect):
+        if value is None: return None
+        return json.loads(value)
+
+class SQLiteUUID(TypeDecorator):
+    impl = CHAR(36)
+    def process_bind_param(self, value, dialect):
+        if value is None: return None
+        return str(value)
+    def process_result_value(self, value, dialect):
+        return value
+
+class SQLiteCITEXT(TypeDecorator):
+    impl = TEXT
+
+# Patch the postgresql dialect module
+postgresql.JSONB = SQLiteJSONB
+postgresql.UUID = SQLiteUUID
+postgresql.CITEXT = SQLiteCITEXT
+
+from app import create_app
+from backend.extensions import db
+from backend.config import Config
+
+class TestConfig(Config):
+    TESTING = True
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_ENGINE_OPTIONS = {}
+    WTF_CSRF_ENABLED = False
+    SECRET_KEY = 'test-secret-key'
+    JWT_SECRET_KEY = 'test-jwt-secret-key'
+
+@pytest.fixture(scope='session')
+def app():
+    app = create_app(TestConfig)
+    return app
+
+@pytest.fixture(scope='session')
+def client(app):
+    return app.test_client()
+
+@pytest.fixture(scope='function')
+def db_session(app):
+    with app.app_context():
+        db.create_all()
+        yield db
+        db.session.remove()
+        db.drop_all()
