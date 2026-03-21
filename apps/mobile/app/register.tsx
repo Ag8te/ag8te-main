@@ -165,13 +165,26 @@ export default function Register() {
             const formData = new FormData();
             
             const registrationData = {
-                email, password, password_confirm: confirmPassword,
-                role, full_name: name, surname, phone,
-                gender, nationality, id_number: idNumber,
-                next_of_kin: { full_name: nokName, contact_number: nokPhone, contact_email: nokEmail },
-                highest_qualification: highestQualification, professional_body: professionalBody, agent_id: agentId,
-                professional_services: role === 'professional' ? selectedServices.map(s => ({name: s, description: ""})) : [],
-                provider_services: role === 'service-provider' ? selectedServices.map(s => ({name: s, description: ""})) : [],
+                email: email.trim(),
+                password,
+                password_confirm: confirmPassword,
+                role,
+                full_name: name.trim(),
+                surname: surname.trim(),
+                phone: phone.trim(),
+                gender,
+                nationality,
+                id_number: idNumber.trim(),
+                next_of_kin: {
+                  full_name: nokName.trim(),
+                  contact_number: nokPhone.trim(),
+                  contact_email: nokEmail.trim()
+                },
+                highest_qualification: highestQualification.trim(),
+                professional_body: professionalBody.trim(),
+                agent_id: agentId.trim(),
+                professional_services: role === 'professional' ? selectedServices.map(s => ({name: s.trim(), description: ""})) : [],
+                provider_services: role === 'service-provider' ? selectedServices.map(s => ({name: s.trim(), description: ""})) : [],
                 provider: selectedProvider
             };
 

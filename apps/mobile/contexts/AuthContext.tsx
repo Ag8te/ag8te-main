@@ -69,7 +69,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
       return { success: false, error: result.message || "Login failed" };
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || error.message || "An error occurred during login";
+      console.error("Login failed. Error object:", error);
+      console.error("Login error message:", error.message);
+      console.error("Login error response data:", error.response?.data);
+      console.error("Login error response status:", error.response?.status);
+
+      const errorMessage = error.response?.data?.message || 
+                          error.response?.data?.error?.message || 
+                          error.message || 
+                          "An error occurred during login";
       return { success: false, error: errorMessage };
     }
   }, []);
@@ -81,12 +89,32 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       const payload = isFormData ? data : { ...data, role: data.role || "client" };
       // Let Axios automatically set the boundaries for FormData by omitting Content-Type override
-      const config = isFormData ? { headers: { 'Accept': 'application/json' } } : {};
+      const token = await SecureStore.getItemAsync("token");
+      const headers: any = {
+        'Accept': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      if (!isFormData) {
+        headers['Content-Type'] = 'application/json';
+      }
 
-      const response = await apiClient.post(endpoint, payload, config);
-      const result = response.data;
+      // Use native fetch for better FormData/boundary handling in React Native
+      const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://mzansiserve.co.za';
+      const url = `${API_URL}/api${endpoint}`;
 
-      if (result.success) {
+      const fetchOptions: RequestInit = {
+        method: 'POST',
+        headers: headers,
+        body: isFormData ? (payload as any) : JSON.stringify(payload),
+      };
+
+      console.log(`Registering via fetch to: ${url}`);
+      const fetchResponse = await fetch(url, fetchOptions);
+      const result = await fetchResponse.json();
+
+      if (fetchResponse.ok && result.success) {
         if (result.data?.token) {
           await SecureStore.setItemAsync("token", result.data.token);
           setUser(result.data.user);
@@ -95,7 +123,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
       return { success: false, error: result.message || "Registration failed" };
     } catch (error: any) {
-      console.error("Registration error full response:", error.response?.data);
+      console.error("Registration failed. Error object:", error);
+      console.error("Registration error message:", error.message);
+      console.error("Registration error response data:", error.response?.data);
+      console.error("Registration error response status:", error.response?.status);
+      
       let errorMessage = "An error occurred during registration";
       if (error.response?.data?.message) {
          errorMessage = error.response.data.message;

@@ -54,42 +54,50 @@ class EmailService:
             if email.status == 'sent':
                 return email  # Already sent
             
-            recipient = email.recipient
+            recipient = email.recipient.strip()
             subject = email.subject
             body = email.body
             body_html = email.body_html
         else:
             if not recipient or not subject or not body:
                 raise ValueError("recipient, subject, and body are required")
+            recipient = recipient.strip()
         
         try:
-            # Send via smtplib using SMTP env vars
-            host = current_app.config.get('MAIL_SERVER') or os.environ.get('SMTP_HOST')
-            port = current_app.config.get('MAIL_PORT') or int(os.environ.get('SMTP_PORT', '587'))
-            user = current_app.config.get('MAIL_USERNAME') or os.environ.get('SMTP_USER')
-            password = current_app.config.get('MAIL_PASSWORD') or os.environ.get('SMTP_PASSWORD')
-            default_from = current_app.config.get('DEFAULT_FROM_EMAIL') or os.environ.get('DEFAULT_FROM_EMAIL') or 'noreply@localhost'
-            from_addr = f"Mzansi Serve <{default_from}>"
-            if not host or not user or password is None:
-                raise ValueError("SMTP_HOST, SMTP_USER, and SMTP_PASSWORD must be set (e.g. in .env)")
+            # Get settings from app config
+            host = current_app.config.get('MAIL_SERVER')
+            port = current_app.config.get('MAIL_PORT')
+            user = current_app.config.get('MAIL_USERNAME')
+            password = current_app.config.get('MAIL_PASSWORD')
+            default_from = current_app.config.get('DEFAULT_FROM_EMAIL') or user
+            
+            if not host or not user or not password:
+                raise ValueError("Email configuration is incomplete (host, user, or password missing)")
+
+            # Create message
             msg = MIMEMultipart('alternative')
             msg['Subject'] = subject
-            msg['From'] = from_addr
+            # Use Display Name if possible, fallback to default_from
+            msg['From'] = f"Mzansi Serve <{default_from}>"
             msg['To'] = recipient
             msg.attach(MIMEText(body, 'plain'))
             if body_html:
                 msg.attach(MIMEText(body_html, 'html'))
+
+            # Send email
+            # Use SSL for port 465, TLS/STARTTLS for others (like 587)
             if port == 465:
-                with smtplib.SMTP_SSL(host, port) as server:
-                    server.login(user, password)
-                    server.sendmail(from_addr, [recipient], msg.as_string())
+                server = smtplib.SMTP_SSL(host, port, timeout=10)
             else:
-                with smtplib.SMTP(host, port) as server:
-                    server.starttls()
-                    server.login(user, password)
-                    server.sendmail(from_addr, [recipient], msg.as_string())
+                server = smtplib.SMTP(host, port, timeout=10)
+                server.starttls()
             
-            # Update queue if applicable
+            server.login(user, password)
+            # The ENVELOPE sender must be the authenticated user for Gmail
+            server.sendmail(user, [recipient], msg.as_string())
+            server.quit()
+            
+            # Update queue status
             if email_id:
                 email.status = 'sent'
                 email.sent_at = datetime.utcnow()
@@ -97,12 +105,18 @@ class EmailService:
             
             return True
         except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"STRICT EMAIL FAILURE: To={recipient}, Host={host}, Error={str(e)}")
             # Update queue if applicable
             if email_id:
                 email.status = 'failed'
                 email.error_message = str(e)
-                db.session.commit()
-            raise Exception(f"Failed to send email: {str(e)}")
+                try:
+                    db.session.commit()
+                except:
+                    db.session.rollback()
+            return False
     
     @staticmethod
     def send_verification_email(user, token):
