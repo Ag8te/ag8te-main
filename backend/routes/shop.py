@@ -345,4 +345,38 @@ def get_order(order_id):
         current_app.logger.error(f"Get order error: {str(e)}")
         return error_response('INTERNAL_ERROR', 'Failed to get order', None, 500)
 
+@bp.route('/orders/<order_id>/invoice', methods=['GET'])
+@require_auth
+def get_order_invoice(order_id):
+    """Download invoice for an order"""
+    try:
+        from flask_jwt_extended import get_jwt_identity
+        from flask import send_file
+        from backend.services.document_service import DocumentService
+        
+        user_id = get_jwt_identity()
+        order = Order.query.get(order_id)
+        
+        if not order:
+            return error_response('NOT_FOUND', 'Order not found', None, 404)
+        
+        # Only allow user to access their own invoices (or admin)
+        if str(order.customer_id) != user_id:
+            # Check if admin
+            requesting_user = User.query.get(user_id)
+            if requesting_user.role != 'admin':
+                return error_response('FORBIDDEN', 'Access denied', None, 403)
+        
+        pdf_buffer = DocumentService.generate_invoice(order.to_dict())
+        return send_file(
+            pdf_buffer,
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name=f"invoice_{order_id}.pdf"
+        )
+        
+    except Exception as e:
+        current_app.logger.error(f"Get invoice error: {str(e)}")
+        return error_response('INTERNAL_ERROR', 'Failed to generate invoice', None, 500)
+
 

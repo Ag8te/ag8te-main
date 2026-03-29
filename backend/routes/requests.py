@@ -11,7 +11,7 @@ from marshmallow import Schema, ValidationError, fields, validate
 from sqlalchemy import and_, or_, func
 
 from backend.extensions import db
-from backend.models import AppSetting, Payment, ServiceRequest, User, Wallet, DriverRating, ClientRating, ProfessionalRating, ProviderRating
+from backend.models import AppSetting, Payment, ServiceRequest, User, Wallet, DriverRating, ClientRating, ProfessionalRating, ProviderRating, Order
 from backend.services.wallet_service import WalletService
 from backend.services.payment_service import PaymentService
 from backend.utils.decorators import require_auth, require_role
@@ -1273,3 +1273,69 @@ def get_provider_reviews(provider_id):
     except Exception as e:
         current_app.logger.error(f"Get provider reviews error: {str(e)}")
         return error_response('INTERNAL_ERROR', 'Failed to fetch reviews', None, 500)
+
+@bp.route('/<request_id>/reject', methods=['POST'])
+@require_auth
+def reject_request(request_id):
+    """Reject service request (provider)"""
+    try:
+        user_id = get_jwt_identity()
+        service_request = ServiceRequest.query.get(request_id)
+        
+        if not service_request:
+            return error_response('NOT_FOUND', 'Service request not found', None, 404)
+        
+        # Check if user is the assigned provider or candidate
+        if service_request.provider_id and str(service_request.provider_id) != user_id:
+            return error_response('FORBIDDEN', 'You are not assigned to this request', None, 403)
+        
+        # Rejection logic: set back to pending and clear provider
+        service_request.status = 'pending'
+        service_request.provider_id = None
+        db.session.commit()
+        
+        return success_response(service_request.to_dict(), 'Request rejected successfully')
+        
+    except Exception as e:
+        current_app.logger.error(f"Reject request error: {str(e)}")
+        return error_response('INTERNAL_ERROR', 'Failed to reject request', None, 500)
+
+@bp.route('/<request_id>/certificate', methods=['GET'])
+@require_auth
+def get_service_certificate(request_id):
+    """Download completion certificate for a service request"""
+    try:
+        from flask import send_file
+        from backend.services.document_service import DocumentService
+        
+        user_id = get_jwt_identity()
+        service_request = ServiceRequest.query.get(request_id)
+        
+        if not service_request:
+            return error_response('NOT_FOUND', 'Service request not found', None, 404)
+        
+        if service_request.status != 'completed':
+            return error_response('INVALID_STATUS', 'Certificate only available for completed services', None, 400)
+        
+        # Only requester (or provider/admin) can access
+        if str(service_request.requester_id) != user_id and str(service_request.provider_id) != user_id:
+            requesting_user = User.query.get(user_id)
+            if requesting_user.role != 'admin':
+                return error_response('FORBIDDEN', 'Access denied', None, 403)
+        
+        req_data = service_request.to_dict()
+        # Add display names for the certificate
+        req_data['client_name'] = service_request.requester.to_dict()['full_name'] if service_request.requester else 'Client'
+        req_data['provider_name'] = service_request.provider.to_dict()['full_name'] if service_request.provider else 'Professional'
+        
+        pdf_buffer = DocumentService.generate_certificate(req_data)
+        return send_file(
+            pdf_buffer,
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name=f"certificate_{request_id}.pdf"
+        )
+        
+    except Exception as e:
+        current_app.logger.error(f"Get certificate error: {str(e)}")
+        return error_response('INTERNAL_ERROR', 'Failed to generate certificate', None, 500)

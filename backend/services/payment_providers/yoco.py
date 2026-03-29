@@ -157,6 +157,8 @@ class YocoProvider(PaymentProvider):
                     
                     status_map = {
                         'paid': 'completed',
+                        'successful': 'completed',
+                        'succeeded': 'completed',
                         'cancelled': 'cancelled',
                         'failed': 'failed',
                         'pending': 'pending'

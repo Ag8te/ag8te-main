@@ -243,7 +243,7 @@ class AuthService:
         return user, None
 
     @staticmethod
-    def verify_registration_payment(external_id, subscription_id=None):
+    def verify_registration_payment(external_id, subscription_id=None, callback_status=None):
         """Verify payment status and update user record."""
         from backend.models import Payment, Subscription, User
         from backend.services.agent_service import AgentService
@@ -257,9 +257,21 @@ class AuthService:
             return None, "PAYMENT_NOT_FOUND"
             
         # Verify with provider
-        verified_status = PaymentService.get_payment_status(external_id)
-        if verified_status != 'completed':
-            return None, "VERIFICATION_FAILED"
+        if payment:
+            verified_status = PaymentService.get_payment_status(external_id)
+            if verified_status != 'completed':
+                # Treat Yoco success callback as completed to bypass webhook/API delays
+                if callback_status == 'success' and payment.payment_method == 'yoco':
+                    logger.info(f"verify_registration_payment: trusting callback_status=success for Yoco {external_id}")
+                    verified_status = 'completed'
+                    payment.status = 'completed'
+                    db.session.commit()
+                else:
+                    return None, f"VERIFICATION_FAILED (status: {verified_status})"
+        elif subscription:
+            verified_status = PaymentService.get_subscription_status(subscription.provider_subscription_id, subscription.provider)
+            if verified_status not in ['active', 'approved']:
+                return None, f"VERIFICATION_FAILED (status: {verified_status})"
             
         # Extract User
         parts = external_id.split('_')

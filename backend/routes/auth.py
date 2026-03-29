@@ -595,7 +595,7 @@ def registration_payment_callback():
                 302
             ))
 
-        user, error = AuthService.verify_registration_payment(external_id, subscription_id)
+        user, error = AuthService.verify_registration_payment(external_id, subscription_id, callback_status=callback_status)
         
         if user:
             return current_app.make_response((
