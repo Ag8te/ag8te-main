@@ -359,3 +359,42 @@ class PayPalProvider(PaymentProvider):
                 logger.error("PayPalProvider.get_payment_status: failed to verify with PayPal: %s", str(e))
                 
         return payment.status
+
+    def get_subscription_status(self, subscription_id: str) -> str:
+        """Get subscription status from PayPal API"""
+        try:
+            token = self._get_access_token()
+            headers = {
+                'Authorization': f'Bearer {token}',
+                'Content-Type': 'application/json'
+            }
+            response = requests.get(
+                f"{self.api_url}/v1/billing/subscriptions/{subscription_id}",
+                headers=headers,
+                timeout=20
+            )
+            if response.ok:
+                data = response.json()
+                status = data.get('status')
+                
+                from backend.models import Subscription
+                sub = Subscription.query.filter_by(provider_subscription_id=subscription_id).first()
+                if sub:
+                    status_map = {
+                        'ACTIVE': 'active',
+                        'APPROVED': 'approved',
+                        'CANCELLED': 'cancelled',
+                        'SUSPENDED': 'suspended',
+                        'EXPIRED': 'expired'
+                    }
+                    new_status = status_map.get(status, 'pending')
+                    if new_status != sub.status:
+                        logger.info("PayPalProvider.get_subscription_status: updating %s from %s to %s", subscription_id, sub.status, new_status)
+                        sub.status = new_status
+                        db.session.commit()
+                    return new_status
+                return status.lower()
+            return 'not_found'
+        except Exception as e:
+            logger.error("PayPalProvider.get_subscription_status: failed to verify with PayPal: %s", str(e))
+            return 'error'

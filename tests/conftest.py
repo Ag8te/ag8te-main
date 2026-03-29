@@ -59,12 +59,12 @@ class TestConfig(Config):
     WTF_CSRF_ENABLED = False
     SECRET_KEY = 'test-secret-key'
     JWT_SECRET_KEY = 'test-jwt-secret-key'
-    DEFAULT_FROM_EMAIL = 'test@mzansiserve.co.za'
-    MAIL_SERVER = 'localhost'
-    MAIL_PORT = 1025
-    MAIL_USE_TLS = False
-    MAIL_USERNAME = 'test@localhost'
-    MAIL_PASSWORD = 'password'
+    DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL') or 'test@mzansiserve.co.za'
+    MAIL_SERVER = os.environ.get('SMTP_HOST') or 'localhost'
+    MAIL_PORT = int(os.environ.get('SMTP_PORT') or 1025)
+    MAIL_USE_TLS = os.environ.get('SMTP_USE_TLS') == 'True' or MAIL_PORT == 587
+    MAIL_USERNAME = os.environ.get('SMTP_USER') or 'test@localhost'
+    MAIL_PASSWORD = os.environ.get('SMTP_PASSWORD') or 'password'
 
 @pytest.fixture(scope='session')
 def app():

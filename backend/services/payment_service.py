@@ -64,6 +64,18 @@ class PaymentService:
             return payment.status
 
     @staticmethod
+    def get_subscription_status(subscription_id: str, provider_name: str = 'paypal') -> str:
+        """Get subscription status from the correct provider"""
+        try:
+            p = PaymentService._get_provider(provider_name)
+            if hasattr(p, 'get_subscription_status'):
+                return p.get_subscription_status(subscription_id)
+            return 'not_found'
+        except Exception as e:
+            logger.error("get_subscription_status: error with provider %s: %s", provider_name, str(e))
+            return 'error'
+
+    @staticmethod
     def update_payment_status(external_id, status, metadata=None):
         """Update payment status in database"""
         payment = Payment.query.filter_by(external_id=external_id).first()
