@@ -37,9 +37,17 @@ A service ads platform connecting users with vetted service providers (cabs, pro
    # Edit .env with your configuration (see ENV VARS below)
    ```
 
-3. **Start with Docker Compose (Recommended)**
+3. **Start with Docker Compose**
+
+   **For Local Development (Recommended):**
    ```bash
-   docker-compose up -d
+   # Use the development override to skip SSL requirements locally
+   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+   ```
+
+   **For Production (Requires SSL):**
+   ```bash
+   docker compose up -d
    ```
    
    **Note:** Database migrations run automatically when the container starts via the entrypoint script. The first startup may take a few seconds as it initializes the database schema.
