@@ -8,7 +8,7 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
-    allowedHosts: ["mzansiserve.co.za"],
+    allowedHosts: ["localhost","mzansiserve.co.za"],
     hmr: {
       overlay: false,
     },
