@@ -9,6 +9,7 @@ from email.header import Header
 from flask import current_app, render_template
 from backend.models import EmailQueue
 from backend.extensions import db
+from backend.utils.url import get_public_frontend_base_url
 from datetime import datetime
 
 def _first_name(user):
@@ -134,7 +135,7 @@ class EmailService:
     @staticmethod
     def send_verification_email(user, token):
         """Send email verification email"""
-        frontend_url = current_app.config.get('FRONTEND_URL', 'http://localhost').rstrip('/')
+        frontend_url = get_public_frontend_base_url()
         verification_url = f"{frontend_url}/verify-email?token={token}"
         first_name = _first_name(user)
         subject = "Verify Your Email Address - Welcome to MzansiServe"
@@ -175,7 +176,7 @@ www.mzansiserve.co.za"""
     @staticmethod
     def send_password_reset_email(user, token):
         """Send password reset email"""
-        frontend_url = current_app.config.get('FRONTEND_URL', 'http://localhost').rstrip('/')
+        frontend_url = get_public_frontend_base_url()
         reset_url = f"{frontend_url}/reset-password?token={token}"
         
         first_name = _first_name(user)
@@ -203,7 +204,7 @@ www.mzansiserve.co.za"""
     def send_registration_confirmation(user):
         """Send email informing user they have successfully registered."""
         first_name = _first_name(user)
-        frontend_url = current_app.config.get('FRONTEND_URL', 'http://localhost').rstrip('/')
+        frontend_url = get_public_frontend_base_url()
         login_url = f"{frontend_url}/login"
         subject = "Registration Successful - Welcome to MzansiServe!"
         body = f"""Hi {first_name},
@@ -453,7 +454,7 @@ MzansiServe Team
     def send_user_approval_notification(user):
         """Send user approval notification email"""
         first_name = _first_name(user)
-        frontend_url = current_app.config.get('FRONTEND_URL', 'http://localhost').rstrip('/')
+        frontend_url = get_public_frontend_base_url()
         dashboard_url = f"{frontend_url}/dashboard"
         account_type = (user.role or 'member').replace('-', ' ').title()
         subject = "Account Approved - Welcome to MzansiServe!"
@@ -520,4 +521,3 @@ MzansiServe Compliance Team"""
         )
         EmailService.send_email(email_id=email.id)
         return email
-

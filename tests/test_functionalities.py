@@ -4,7 +4,9 @@ import uuid
 from datetime import datetime
 from unittest.mock import patch
 from backend.models import User, Wallet, ServiceRequest, WithdrawalRequest, Order, Payment
+from backend.extensions import db
 from backend.services.auth_service import AuthService
+from backend.services.payment_service import PaymentService
 
 def get_auth_header(client, email, password, role):
     endpoint = '/api/auth/admin-login' if role == 'admin' else '/api/auth/login'
@@ -190,6 +192,66 @@ def test_15_16_shop_purchases(client, app, db_session):
         inv_res = client.get(f'/api/shop/orders/{order_id}/invoice', headers=client_headers)
         assert inv_res.status_code == 200
         assert inv_res.content_type == 'application/pdf'
+
+def test_order_payment_callback_marks_yoco_payment_paid_when_provider_status_lags(client, app, db_session):
+    with app.app_context():
+        user = User(
+            email="gaulomail+ordercallback@gmail.com",
+            role="client",
+            is_active=True,
+            email_verified=True
+        )
+        user.set_password("pass1234")
+        db.session.add(user)
+        db.session.flush()
+
+        order = Order(
+            id="ORD-CALLBACK01",
+            customer_id=user.id,
+            customer_email=user.email,
+            status="pending",
+            total=100.0,
+            items=[{"product_id": "prod_1", "product_name": "Tool", "quantity": 1, "price": 100.0}],
+            shipping={"address": "123 Main St"}
+        )
+        payment = Payment(
+            external_id=order.id,
+            amount=100.0,
+            currency="ZAR",
+            status="pending",
+            payment_method="yoco",
+            payment_provider_id="checkout_123"
+        )
+        db.session.add(order)
+        db.session.add(payment)
+        db.session.commit()
+
+        success, error = PaymentService.handle_order_payment(order.id, order.id, callback_status="success")
+        assert success is True
+        assert error is None
+
+        db.session.refresh(order)
+        db.session.refresh(payment)
+        assert order.status == "paid"
+        assert payment.status == "completed"
+
+def test_update_payment_status_normalizes_paid_alias(client, app, db_session):
+    with app.app_context():
+        payment = Payment(
+            external_id="alias_status_1",
+            amount=50.0,
+            currency="ZAR",
+            status="pending",
+            payment_method="yoco",
+            payment_provider_id="checkout_alias_1"
+        )
+        db.session.add(payment)
+        db.session.commit()
+
+        assert PaymentService.update_payment_status("alias_status_1", "paid", {"source": "webhook"}) is True
+
+        db.session.refresh(payment)
+        assert payment.status == "completed"
 
 def test_7_19_booking_reject_certificate(client, app, db_session):
     # Setup client and provider

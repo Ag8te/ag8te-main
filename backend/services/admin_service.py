@@ -233,7 +233,9 @@ class AdminService:
         from datetime import timedelta
         
         shop_revenue = db.session.query(func.sum(Order.total)).filter(Order.status == 'paid').scalar() or 0
-        service_revenue = db.session.query(func.sum(ServiceRequest.payment_amount)).filter(ServiceRequest.status == 'completed').scalar() or 0
+        service_revenue = db.session.query(func.sum(ServiceRequest.payment_amount)).filter(
+            ServiceRequest.payment_status == 'paid'
+        ).scalar() or 0
         total_revenue = float(shop_revenue) + float(service_revenue)
         
         seven_days_ago = datetime.utcnow() - timedelta(days=7)
