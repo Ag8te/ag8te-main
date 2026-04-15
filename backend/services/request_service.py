@@ -11,6 +11,7 @@ from backend.extensions import db
 from backend.models import ServiceRequest, User, AppSetting, Payment, Wallet, ClientRating, DriverRating, ProfessionalRating, ProviderRating
 from backend.services.wallet_service import WalletService
 from backend.services.payment_service import PaymentService
+from backend.utils.url import get_request_frontend_base_url
 
 logger = logging.getLogger(__name__)
 
@@ -166,10 +167,11 @@ class RequestService:
         amount_cents = int(round(payment_amount * 100))
         external_id = f"request_{request_id}_{secrets.token_hex(6)}"
         base_url = host_url.rstrip('/')
+        frontend_url = get_request_frontend_base_url()
         
-        success_url = f"{base_url}/api/payments/request-callback?callback_status=success&external_id={external_id}&request_id={request_id}"
-        cancel_url = f"{base_url}/api/payments/request-callback?callback_status=cancel&external_id={external_id}&request_id={request_id}"
-        failure_url = f"{base_url}/api/payments/request-callback?callback_status=failure&external_id={external_id}&request_id={request_id}"
+        success_url = f"{base_url}/api/payments/request-callback?callback_status=success&external_id={external_id}&request_id={request_id}&frontend_url={frontend_url}"
+        cancel_url = f"{base_url}/api/payments/request-callback?callback_status=cancel&external_id={external_id}&request_id={request_id}&frontend_url={frontend_url}"
+        failure_url = f"{base_url}/api/payments/request-callback?callback_status=failure&external_id={external_id}&request_id={request_id}&frontend_url={frontend_url}"
         
         checkout = PaymentService.create_checkout(
             amount=amount_cents,

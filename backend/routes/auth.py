@@ -21,6 +21,7 @@ from backend.services.wallet_service import WalletService
 from backend.services.payment_service import PaymentService
 from backend.services.agent_service import AgentService
 from backend.services.auth_service import AuthService
+from backend.utils.url import get_callback_frontend_base_url, get_public_backend_base_url, get_request_frontend_base_url
 
 bp = Blueprint('auth', __name__)
 logger = logging.getLogger(__name__)
@@ -360,9 +361,10 @@ def initiate_registration_payment():
         # Providers and Professionals pay a recurring fee (subscription)
         needs_subscription = user.role in ('professional', 'service-provider')
         
-        backend_url = current_app.config.get('BACKEND_URL', 'https://mzansiserve.co.za').rstrip('/')
-        success_url = f"{backend_url}/api/auth/registration-callback?callback_status=success&external_id={external_id}&provider={provider}"
-        cancel_url = f"{backend_url}/api/auth/registration-callback?callback_status=cancel&external_id={external_id}&provider={provider}"
+        backend_url = get_public_backend_base_url()
+        frontend_url = get_request_frontend_base_url()
+        success_url = f"{backend_url}/api/auth/registration-callback?callback_status=success&external_id={external_id}&provider={provider}&frontend_url={frontend_url}"
+        cancel_url = f"{backend_url}/api/auth/registration-callback?callback_status=cancel&external_id={external_id}&provider={provider}&frontend_url={frontend_url}"
         
         if provider == 'paypal' and needs_subscription:
             from backend.models import SubscriptionPlan
@@ -414,7 +416,7 @@ def initiate_registration_payment():
                 external_id=external_id,
                 success_url=success_url,
                 cancel_url=cancel_url,
-                failure_url=f"{backend_url}/api/auth/registration-callback?callback_status=failure&external_id={external_id}&provider={provider}",
+                failure_url=f"{backend_url}/api/auth/registration-callback?callback_status=failure&external_id={external_id}&provider={provider}&frontend_url={frontend_url}",
                 provider=provider
             )
         
@@ -587,7 +589,7 @@ def registration_payment_callback():
         subscription_id = request.args.get('subscription_id')
         callback_status = request.args.get('callback_status')
         
-        frontend_url = current_app.config.get('FRONTEND_URL', 'https://mzansiserve.co.za')
+        frontend_url = get_callback_frontend_base_url()
         
         if callback_status == 'cancel':
             return current_app.make_response((
@@ -610,7 +612,7 @@ def registration_payment_callback():
             
     except Exception as e:
         logger.exception("registration_callback: failed")
-        frontend_url_fallback = current_app.config.get('FRONTEND_URL', 'https://mzansiserve.co.za')
+        frontend_url_fallback = get_callback_frontend_base_url()
         return current_app.make_response((
             f'<html><body><script>window.location.href="{frontend_url_fallback}/?payment=error";</script></body></html>',
             302
@@ -618,9 +620,8 @@ def registration_payment_callback():
         
     except Exception as e:
         logger.exception("registration_callback: failed")
-        frontend_url_fallback = current_app.config.get('FRONTEND_URL', 'https://mzansiserve.co.za')
+        frontend_url_fallback = get_callback_frontend_base_url()
         return current_app.make_response((
             f'<html><body><script>window.location.href="{frontend_url_fallback}/?payment=error";</script></body></html>',
             302
         ))
-
