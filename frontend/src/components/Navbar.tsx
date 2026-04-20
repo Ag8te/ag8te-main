@@ -28,6 +28,8 @@ const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
+ const getNavLinks = () => {
+  const links = [...navLinks];
   const getNavLinks = () => {
     const links = [...navLinks];
     if (isAuthenticated) {
@@ -41,6 +43,29 @@ const Navbar = () => {
     return links;
   };
 
+  if (isAuthenticated) {
+
+    //ADD THIS (for driver, professional, provider)
+    if (["driver", "professional", "service-provider"].includes(user?.role)) {
+      links.push({ label: "My Bookings", to: "/my-bookings", requiresAuth: true });
+    }
+
+    if (user?.role === "client")
+      links.push({ label: "My Bookings", to: "/my-bookings", requiresAuth: true });
+    else if (user?.role === "driver")
+      links.push({ label: "Dashboard", to: "/dashboard/driver", requiresAuth: true });
+    else if (user?.role === "professional")
+      links.push({ label: "Dashboard", to: "/dashboard/professional", requiresAuth: true });
+    else if (user?.role === "service-provider")
+      links.push({ label: "Dashboard", to: "/dashboard/provider", requiresAuth: true });
+    else if (user?.role === "agent")
+      links.push({ label: "Dashboard", to: "/dashboard/agent", requiresAuth: true });
+    else if (user?.role === "admin")
+      links.push({ label: "Admin Console", to: "/admin", requiresAuth: true });
+  }
+
+  return links;
+};
   const dynamicLinks = getNavLinks();
 
   useEffect(() => {
