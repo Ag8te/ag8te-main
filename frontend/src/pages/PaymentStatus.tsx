@@ -152,8 +152,8 @@ const PaymentStatus = () => {
 
                                         <div className="grid gap-4 pt-4">
                                             <Button asChild className="h-14 w-full bg-sa-black hover:bg-sa-black/90 text-lg font-bold shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-200">
-                                                <Link to="/register">
-                                                    Retry Payment <ArrowRight className="ml-2 h-5 w-5" />
+                                                <Link to={`/verify-email?status=pending_payment&payment=${status === 'cancelled' ? 'cancel' : 'error'}`}>
+                                                    Choose Payment Method <ArrowRight className="ml-2 h-5 w-5" />
                                                 </Link>
                                             </Button>
                                             <Button asChild variant="outline" className="h-12 w-full font-medium">

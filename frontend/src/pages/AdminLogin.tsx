@@ -31,7 +31,7 @@ const AdminLogin = () => {
             const result = await adminLogin(email, password);
 
             if (result.success) {
-                toast({ title: "Admin Authenticated", description: "Welcome to the Super Admin Dashboard." });
+                toast({ title: "Admin Authenticated", description: "Welcome to the Super Admin Account Management area." });
                 navigate("/admin");
             } else {
                 setError(result.error || "Login failed.");
