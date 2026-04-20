@@ -90,7 +90,7 @@ const ProviderCard = ({ provider }: { provider: ExtendedServiceProvider }) => {
             )}
             onClick={(e) => {
               e.stopPropagation();
-              navigate(`/book/${provider.category.toLowerCase()}/${provider.id}`);
+              navigate(`/book/${provider.category.toLowerCase()}/${provider.id}?service=${encodeURIComponent(provider.subcategory)}`);
             }}
             disabled={!provider.available}
           >

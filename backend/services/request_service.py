@@ -3,16 +3,13 @@ Service Request Service - Encapsulates logic for cab and professional services.
 """
 import math
 import secrets
-import logging
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask import current_app
 from backend.extensions import db
 from backend.models import ServiceRequest, User, AppSetting, Payment, Wallet, ClientRating, DriverRating, ProfessionalRating, ProviderRating
 from backend.services.wallet_service import WalletService
 from backend.services.payment_service import PaymentService
-
-logger = logging.getLogger(__name__)
 
 CAR_TYPE_BASE_RATE_PER_KM = {
     'small_hatchback': 8.12,
@@ -106,12 +103,36 @@ class RequestService:
             payment_amount = float(data['payment_amount'])
             distance_km = data.get('distance_km') or RequestService._haversine_distance_km(data['pickup'], data['dropoff'])
             
+            schedule_type = data.get('schedule_type', 'now')
+            now = datetime.utcnow()
+            if schedule_type == 'now':
+                scheduled_dt = now
+            elif schedule_type == 'later':
+                try:
+                    sast_dt = datetime.strptime(data['date'] + ' ' + data['time'], '%Y-%m-%d %H:%M')
+                except ValueError:
+                    return None, "INVALID_DATETIME_FORMAT"
+                #Validate in SAST - same timezone the user is in
+                now_sast = now + timedelta(hours=2)
+                if sast_dt <= now_sast:
+                    return None, "BOOKING_IN_PAST"
+                if sast_dt < now_sast + timedelta(hours=1):
+                    return None, "BOOKING_TOO_SOON"
+                
+                #Only convert to UTC after validation passes
+                scheduled_dt = sast_dt - timedelta(hours=2)
+            else:
+                return None, "INVALID_SCHEDULE_TYPE"
+            
+            scheduled_date = scheduled_dt.strftime("%Y-%m-%d")
+            scheduled_time = scheduled_dt.strftime("%H:%M")
+            
             service_request = ServiceRequest(
                 id=request_id,
                 request_type='cab',
                 requester_id=user_id,
-                scheduled_date=data['date'],
-                scheduled_time=data['time'],
+                scheduled_date=scheduled_date,
+                scheduled_time=scheduled_time,
                 location_data=location_data,
                 distance_km=distance_km,
                 details=data.get('preferences', {}),

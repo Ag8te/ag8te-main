@@ -375,9 +375,24 @@ def wallet_topup_callback():
 def request_payment_callback():
     """Handle cab service request payment callback"""
     try:
+        callback_status = request.args.get('callback_status')
         external_id = request.args.get('external_id')
         request_id = request.args.get('request_id')
         frontend_url = current_app.config.get('FRONTEND_URL', 'http://localhost:8080')
+
+        #User clicked back/cancel on Yoco - send back to transport
+        if callback_status == 'cancel':
+            return current_app.make_response((
+                f'<html><body><script>window.location.href="{frontend_url}/transport?payment=cancelled";</script></body></html>',
+                302
+            ))
+        
+        #Payment failed on Yoco side
+        if callback_status == 'failure':
+            return current_app.make_response((
+                f'<html><body><script>window.location.href="{frontend_url}/my-bookings?payment=error&reason=PAYMENT_FAILED&external_id={external_id or ""}";</script></body></html>',
+                302
+            ))
         
         success, error = PaymentService.handle_service_request_payment(request_id, external_id)
         
