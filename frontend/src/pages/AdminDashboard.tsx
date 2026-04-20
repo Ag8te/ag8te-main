@@ -161,6 +161,21 @@ const AdminDashboard = () => {
         }
     }, [navigate]);
 
+    const [pendingRequests, setPendingRequests] = useState([]);
+
+const fetchPending = async () => {
+    const res = await apiFetch('/api/admin/pending-profile-updates');
+    if (res.success) {
+        setPendingRequests(res.data.pending_updates);
+    }
+};
+
+useEffect(() => {
+    fetchPending();
+}, []);
+
+
+
     const fetchDashboardData = useCallback(async () => {
         setLoadingStats(true);
         try {
@@ -265,4 +280,6 @@ const AdminDashboard = () => {
     );
 };
 
+
 export default AdminDashboard;
+

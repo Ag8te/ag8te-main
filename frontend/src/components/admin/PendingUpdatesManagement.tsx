@@ -183,23 +183,80 @@ export const PendingUpdatesManagement = () => {
         (update.user_email?.toLowerCase() || "").includes(searchTerm.toLowerCase())
     );
 
-    const renderPayloadDiff = (payload: Record<string, any>) => {
-        return (
-            <div className="grid grid-cols-1 gap-3">
-                {Object.entries(payload).map(([key, value]) => (
-                    <div key={key} className="bg-slate-50  p-3 border border-slate-100 flex flex-col gap-1">
-                        <span className="text-[10px] font-black text-[#5e35b1] uppercase tracking-widest">{key.replace(/_/g, ' ')}</span>
-                        <div className="flex items-center gap-2 text-sm">
-                            <ArrowRight className="w-3 h-3 text-emerald-500" />
-                            <span className="text-slate-900 font-bold truncate">
-                                {typeof value === 'object' ? JSON.stringify(value) : String(value)}
-                            </span>
-                        </div>
+const renderPayloadDiff = (payload: Record<string, any>) => {
+    return (
+        <div className="grid grid-cols-1 gap-3">
+
+            {/* EXISTING LOGIC (UNCHANGED) */}
+            {Object.entries(payload).map(([key, value]) => (
+                <div key={key} className="bg-slate-50 p-3 border border-slate-100 flex flex-col gap-1">
+                    <span className="text-[10px] font-black text-[#5e35b1] uppercase tracking-widest">
+                        {key.replace(/_/g, ' ')}
+                    </span>
+                    <div className="flex items-center gap-2 text-sm">
+                        <ArrowRight className="w-3 h-3 text-emerald-500" />
+                        <span className="text-slate-900 font-bold truncate">
+                            {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                        </span>
                     </div>
-                ))}
-            </div>
-        );
-    };
+                </div>
+            ))}
+
+            {/* ========================= */}
+            {/* NEW: VEHICLE DISPLAY */}
+            {/* ========================= */}
+            {payload?.driver_services && Array.isArray(payload.driver_services) && (
+                <div className="mt-4 space-y-4">
+                    <h4 className="text-sm font-black text-slate-700 uppercase tracking-widest">
+                        Vehicles Submitted
+                    </h4>
+
+                    {payload.driver_services.map((vehicle: any, i: number) => (
+                        <div key={i} className="border p-4 rounded-lg bg-white space-y-2">
+
+                            <div className="font-bold text-slate-900">
+                                {vehicle.car_make} {vehicle.car_model}
+                            </div>
+
+                            <div className="text-sm text-slate-600">
+                                Color: {vehicle.color}
+                            </div>
+
+                            <div className="text-sm text-slate-600">
+                                Reg: {vehicle.registration_number}
+                            </div>
+
+                            {/*  IMAGES */}
+                            {vehicle.images && (
+                                <div className="flex gap-2 mt-2 flex-wrap">
+                                    {vehicle.images.map((img: string, idx: number) => (
+                                        <img
+                                            key={idx}
+                                            src={img}
+                                            className="w-20 h-20 object-cover rounded border"
+                                        />
+                                    ))}
+                                </div>
+                            )}
+
+                            {/*  DISK */}
+                            {vehicle.disk_document && (
+                                <a
+                                    href={vehicle.disk_document}
+                                    target="_blank"
+                                    className="text-blue-600 text-sm underline"
+                                >
+                                    View Vehicle Disk
+                                </a>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            )}
+
+        </div>
+    );
+};
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">

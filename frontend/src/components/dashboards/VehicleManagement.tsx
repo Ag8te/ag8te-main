@@ -37,6 +37,12 @@ interface Vehicle {
     car_year: number;
     registration_number: string;
     car_type: 'standard' | 'premium' | 'suv';
+    color: string; // NEW
+    images: File[]; // NEW (multiple photos)
+    disk_document: File | null; // NEW (vehicle disk
+    preview_images?: string[]; // for UI preview only
+    disk_preview?: string; // file name preview
+
 }
 
 interface VehicleManagementProps {
@@ -48,10 +54,14 @@ export const VehicleManagement = ({ initialVehicles }: VehicleManagementProps) =
     const theme = useTheme();
     const [vehicles, setVehicles] = useState<Vehicle[]>(initialVehicles || []);
     const [saving, setSaving] = useState(false);
-
+    
+    //updated added new vehicle features
     const addVehicle = () => {
-        setVehicles([...vehicles, { car_make: "", car_model: "", car_year: new Date().getFullYear(), registration_number: "", car_type: 'standard' }]);
+        setVehicles([...vehicles, { car_make: "", car_model: "", car_year: new Date().getFullYear(), registration_number: "", car_type: 'standard', color: "", images: [], disk_document: null}]);
+
+        
     };
+
 
     const removeVehicle = (index: number) => {
         setVehicles(vehicles.filter((_, i) => i !== index));
@@ -64,33 +74,88 @@ export const VehicleManagement = ({ initialVehicles }: VehicleManagementProps) =
     };
 
     const handleSave = async () => {
-        // Validation
-        if (vehicles.some(v => !v.car_make.trim() || !v.car_model.trim() || !v.registration_number.trim())) {
-            toast({ title: "Validation Error", description: "All vehicles must have a make, model, and registration number.", variant: "destructive" });
+         console.log(vehicles);
+    // Validation
+    for (let v of vehicles) {
+        if (!v.car_make.trim()) {
+            toast({ title: "Validation Error", description: "Car make is required", variant: "destructive" });
             return;
         }
 
-        setSaving(true);
-        try {
-            const res = await apiFetch('/api/profile', {
-                method: 'PATCH',
-                body: JSON.stringify({
-                    driver_services: vehicles
-                })
+        if (!v.car_model.trim()) {
+            toast({ title: "Validation Error", description: "Car model is required", variant: "destructive" });
+            return;
+        }
+
+        if (!v.registration_number.trim()) {
+            toast({ title: "Validation Error", description: "Registration number is required", variant: "destructive" });
+            return;
+        }
+
+        if (!v.color?.trim()) {
+            toast({ title: "Validation Error", description: "Vehicle color is required", variant: "destructive" });
+            return;
+        }
+
+        if (!v.images || v.images.length < 3) {
+            toast({ title: "Validation Error", description: "Upload at least 3 vehicle images", variant: "destructive" });
+            return;
+        }
+
+        if (!v.disk_document) {
+            toast({ title: "Validation Error", description: "Vehicle disk document is required", variant: "destructive" });
+            return;
+        }
+    }
+
+    setSaving(true);
+
+    try {
+        //  Create FormData (THIS IS THE FIX)
+        const formData = new FormData();
+
+        vehicles.forEach((v, index) => {
+            formData.append(`vehicles[${index}][car_make]`, v.car_make);
+            formData.append(`vehicles[${index}][car_model]`, v.car_model);
+            formData.append(`vehicles[${index}][car_year]`, v.car_year.toString());
+            formData.append(`vehicles[${index}][registration_number]`, v.registration_number);
+            formData.append(`vehicles[${index}][car_type]`, v.car_type);
+            formData.append(`vehicles[${index}][color]`, v.color);
+
+            // 📸 Append images
+            v.images.forEach((img: File, i: number) => {
+                formData.append(`vehicles[${index}][images][${i}]`, img);
             });
 
-            if (res.success) {
-                toast({
-                    title: "Update Submitted",
-                    description: "Your vehicle changes have been submitted for admin approval."
-                });
+            //Append disk document
+            if (v.disk_document) {
+                formData.append(`vehicles[${index}][disk_document]`, v.disk_document);
             }
-        } catch (err: any) {
-            toast({ title: "Error", description: err.message || "Failed to submit changes", variant: "destructive" });
-        } finally {
-            setSaving(false);
+        });
+
+        // Send FormData instead of JSON
+        const res = await apiFetch('/api/profile', {
+            method: 'PATCH',
+            body: formData
+        });
+
+        if (res.success) {
+            toast({
+                title: "Update Submitted",
+                description: "Your vehicle changes have been submitted for admin approval."
+            });
         }
-    };
+
+    } catch (err: any) {
+        toast({
+            title: "Error",
+            description: err.message || "Failed to submit changes",
+            variant: "destructive"
+        });
+    } finally {
+        setSaving(false);
+    }
+};
 
     return (
         <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden', borderColor: alpha(theme.palette.divider, 0.08) }}>
@@ -213,6 +278,98 @@ export const VehicleManagement = ({ initialVehicles }: VehicleManagementProps) =
                                                 }}
                                             />
                                         </Grid>
+                                        
+                                        <Grid size={{ xs: 12, md: 4 }}>
+                                             <TextField
+                                              fullWidth
+                                              label="Color"
+                                              placeholder="e.g. White"
+                                               size="small"
+                                              value={vehicle.color || ""}
+                                              onChange={(e) => updateVehicle(index, 'color', e.target.value)}
+                                            />
+                                        </Grid>
+                                        
+                                        <Grid size={{ xs: 12 }}>
+                                        <Button
+                                           variant="outlined"
+                                           component="label"
+                                           fullWidth
+                                             >
+                                             Upload Vehicle Photos (Multiple)
+                                             <input
+                                              type="file"
+                                              hidden
+                                              multiple
+                                              accept="image/*"
+                                              onChange={(e) => {
+                                              const files = Array.from(e.target.files || []);
+                                              const previews = files.map(file => URL.createObjectURL(file));
+                                              const updatedVehicle = {
+                                                ...vehicle,
+                                                images: files,
+                                                preview_images: previews
+                                              };
+
+                                              const newVehicles = [...vehicles];
+                                              newVehicles[index] = updatedVehicle;
+                                              setVehicles(newVehicles);
+                                              }}
+                                              />
+                                         </Button>
+                                                  {vehicle.preview_images && (
+                                                  <Box sx={{ display: 'flex', gap: 1, mt: 2, flexWrap: 'wrap' }}>
+                                                  {vehicle.preview_images.map((img, i) => (
+                                                  <Box
+                                                   key={i}
+                                                    component="img"
+                                                    src={img}
+                                                    sx={{
+                                                    width: 80,
+                                                    height: 80,
+                                                    objectFit: 'cover',
+                                                     borderRadius: 2,
+                                                     border: '1px solid #ddd'
+                                                     }}
+                                                      />
+                                                        ))}
+                                                  </Box>
+                                                   )}
+                                           </Grid>
+
+                                         
+                                         <Grid size={{ xs: 12 }}>
+                                           <Button
+                                                variant="outlined"
+                                                component="label"
+                                                fullWidth
+                                                 >
+                                                 Upload Vehicle Disk
+                                             <input
+                                                type="file"
+                                                hidden
+                                                accept="image/*,application/pdf"
+                                               
+                                                onChange={(e) => {
+                                                    const file = e.target.files?.[0] || null;
+                                                
+                                                   const newVehicles = [...vehicles];
+                                                   newVehicles[index] = {
+                                                      ...newVehicles[index],
+                                                        disk_document: file, 
+                                                        disk_preview: file ? file.name : ""
+                                                         };
+                                                        setVehicles(newVehicles);
+                                                   }}
+                                             />
+                                                 </Button>
+                                                 {vehicle.disk_preview && (
+                                                 <Typography variant="caption" sx={{ mt: 1, display: 'block' }}>
+                                                 {vehicle.disk_preview}
+                                                 </Typography>
+                                                 )}
+                                         </Grid>
+    
                                     </Grid>
                                 </CardContent>
                             </Card>

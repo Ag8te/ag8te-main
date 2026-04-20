@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiFetch } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
+
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const baseInput = "w-full bg-slate-50/50 border rounded-2xl py-4 text-[#222222] placeholder:text-slate-400 focus:outline-none focus:ring-4 transition-all font-medium h-14";
 const validInput = `${baseInput} border-[#DDDDDD] focus:ring-primary/10 focus:border-primary/50`;
@@ -33,26 +34,71 @@ type FormFields = {
   nationality: string; id_number: string; role: string;
   nokName: string; nokPhone: string; nokEmail: string;
   highestQualification: string; professionalBody: string; agent_id: string;
+  // Driver fields
+carMake: string;
+carModel: string;
+carYear: string;
+carPlate: string;
+
+// Services
+serviceDescription: string;
+carColor: string;
 };
 
 type FieldErrors = Partial<Record<keyof FormFields, string>>;
-
-const phoneRegex = /^[\d\s+]+$/;
+//Updated phoneregex
+const phoneRegex = /^(?:\+27|0)[6-8][0-9]{8}$/;
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // ─── Field-level validators ───────────────────────────────────────────────────
 const validators: Partial<Record<keyof FormFields, (v: string, form?: FormFields) => string>> = {
-  name: (v) => !v.trim() ? "First name is required" : "",
-  surname: (v) => !v.trim() ? "Surname is required" : "",
+ //added name validation and surname validation also email for a valid email address
+  name: (v) =>!v.trim() ? "First name is required" : !/^[A-Za-z\s'-]+$/.test(v) ? "Name must contain only letters": "",
+  surname: (v) => !v.trim() ? "Surname is required" : !/^[A-Za-z\s'-]+$/.test(v) ? "Surname must contain only letters" : "",
   email: (v) => !v.trim() ? "Email is required" : !emailRegex.test(v) ? "Enter a valid email address" : "",
   password: (v) => !v ? "Password is required" : v.length < 8 ? "Password must be at least 8 characters" : "",
   confirmPassword: (v, f) => !v ? "Please confirm your password" : v !== f?.password ? "Passwords do not match" : "",
   phone: (v) => !v.trim() ? "Phone number is required" : !phoneRegex.test(v) ? "Use only digits, spaces or +" : "",
-  id_number: (v) => !v.trim() ? "ID / Passport number is required" : "",
+  id_number: (v, f) => {
+  if (!v.trim()) return "ID / Passport number is required";
+
+  if (f?.nationality === "South Africa") {
+    if (!/^\d{13}$/.test(v)) return "SA ID must be 13 digits";
+  } else {
+    if (v.length < 6) return "Invalid passport number";
+  }
+
+  return "";
+},
   gender: (v) => !v ? "Please select your gender" : "",
   nokName: (v) => !v.trim() ? "Next of Kin full name is required" : "",
   nokPhone: (v) => v.trim() && !phoneRegex.test(v) ? "Use only digits, spaces or +" : "",
   role: (v) => !v ? "Please select a role to register as" : "",
+  nationality: (v) => !v ? "Please select your nationality" : "",
+  nokEmail: (v) => v.trim() && !emailRegex.test(v) ? "Enter a valid email address" : "",
+  carMake: (v, f) =>
+  f?.role === "driver" && !v.trim() ? "Car make is required" : "",
+
+carModel: (v, f) =>
+  f?.role === "driver" && !v.trim() ? "Car model is required" : "",
+
+carYear: (v, f) =>
+  f?.role === "driver"
+    ? !/^\d{4}$/.test(v)
+      ? "Enter valid year"
+      : ""
+    : "",
+
+carPlate: (v, f) =>
+  f?.role === "driver" && !v.trim() ? "License plate is required" : "",
+
+serviceDescription: (v, f) =>
+  (f?.role === "professional" || f?.role === "service-provider") && !v.trim()
+    ? "Service description is required"
+    : "",
+    //Added new validation
+    carColor: (v, f) =>
+  f?.role === "driver" && !v.trim() ? "Car color is required" : "",
 };
 
 // ─── Country List ─────────────────────────────────────────────────────────────
@@ -116,7 +162,13 @@ const Register = () => {
     name: "", surname: "", email: "", phone: "", password: "", confirmPassword: "",
     gender: "", nationality: "", id_number: "", role: "",
     nokName: "", nokPhone: "", nokEmail: "",
-    highestQualification: "", professionalBody: "", agent_id: ""
+    highestQualification: "", professionalBody: "", agent_id: "",
+    carMake: "",
+carModel: "",
+carYear: "",
+carPlate: "",
+serviceDescription: "",
+carColor: "",
   });
 
   const [selectedProvider, setSelectedProvider] = useState<"paypal" | "yoco">("paypal");
@@ -142,6 +194,9 @@ const Register = () => {
   const [serviceOptions, setServiceOptions] = useState<any[]>([]);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [enabledGateways, setEnabledGateways] = useState<{paypal: boolean, yoco: boolean}>({ paypal: true, yoco: true });
+  //Added new 
+  const [carImages, setCarImages] = useState<File[]>([]);
+const [carPreviews, setCarPreviews] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchGateways = async () => {
@@ -184,18 +239,35 @@ const Register = () => {
   }, [isSubmitted]);
 
   // ─── Update field + clear its error ────────────────────────────────────────
+
   const update = (field: keyof FormFields, value: string) => {
-    setForm((f) => {
-      const next = { ...f, [field]: value };
-      // Re-validate live once the field has been touched
-      if (touched[field]) {
-        const validate = validators[field];
-        const msg = validate ? validate(value, next) : "";
-        setFieldErrors((prev) => ({ ...prev, [field]: msg }));
-      }
-      return next;
-    });
-  };
+
+  // Normalize
+  if (field === "email") value = value.toLowerCase().trim();
+  if (field === "password") value = value.trim();
+  if (field === "agent_id") value = value.toUpperCase();
+
+  setForm((f) => {
+    const next = { ...f, [field]: value };
+
+    if (touched[field]) {
+      const validate = validators[field];
+      const msg = validate ? validate(value, next) : "";
+      setFieldErrors((prev) => ({ ...prev, [field]: msg }));
+    }
+
+    //  Fix confirm password bug
+    if (field === "password" && next.confirmPassword) {
+      setFieldErrors(prev => ({
+        ...prev,
+        confirmPassword:
+          next.confirmPassword !== value ? "Passwords do not match" : ""
+      }));
+    }
+
+    return next;
+  });
+};
 
   // ─── Blur → mark touched + validate ────────────────────────────────────────
   const handleBlur = (field: keyof FormFields) => {
@@ -223,22 +295,64 @@ const Register = () => {
     const allTouched: Partial<Record<keyof FormFields, boolean>> = {};
     (Object.keys(form) as (keyof FormFields)[]).forEach((k) => { allTouched[k] = true; });
     setTouched(allTouched);
+
+    //Validating service and qualififcation
+
+    if (
+  (form.role === "professional" || form.role === "service-provider") &&
+  selectedServices.length === 0
+) {
+  setServerError("Please select at least one service");
+  return false;
+}
+
+// professional qualification
+if (form.role === "professional" && !form.highestQualification.trim()) {
+  errors.highestQualification = "Highest qualification is required";
+}
+
+if (form.role === "driver") {
+  if (!form.carMake || !form.carModel || !form.carYear || !form.carPlate) {
+    setServerError("Please complete all vehicle details");
+    return false;
+  }
+}
+
+// validate pictures
+if (form.role === "driver" && carImages.length < 3) {
+  setServerError("Please upload at least 3 car images");
+  return false;
+}
+
     return Object.keys(errors).length === 0;
   };
 
   // ─── File helpers ───────────────────────────────────────────────────────────
-  const validateFile = (file: File) => {
-    const maxSize = 5 * 1024 * 1024;
-    const allowed = ["image/jpeg", "image/png", "image/jpg", "application/pdf",
-      "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"];
-    if (file.size > maxSize) return "File too large. Max 5MB allowed.";
-    if (!allowed.includes(file.type)) return "Unsupported file type.";
-    return null;
+  //updated files uploading
+  const validateFile = (file: File, field?: string) => {
+  const maxSize = 5 * 1024 * 1024;
+
+  if (file.size > maxSize) return "File too large. Max 5MB allowed.";
+
+  const allowedTypes: Record<string, string[]> = {
+    profile_photo: ["image/jpeg", "image/png"],
+    id_document: ["image/jpeg", "image/png", "application/pdf"],
+    proof_of_residence: ["image/jpeg", "image/png", "application/pdf"],
+    drivers_license: ["image/jpeg", "image/png", "application/pdf"],
+    cv_resume: ["application/pdf"],
+    qualification_documents: ["image/jpeg", "image/png", "application/pdf"],
   };
+
+  if (field && allowedTypes[field] && !allowedTypes[field].includes(file.type)) {
+    return "Invalid file type for this document";
+  }
+
+  return null;
+};
 
   const updateFile = (field: string, file: File | null) => {
     if (file) {
-      const err = validateFile(file);
+      const err = validateFile(file, field);
       if (err) { toast({ title: "Upload Error", description: err, variant: "destructive" }); return; }
       if (file.type.startsWith("image/")) {
         setPreviews((p) => ({ ...p, [field]: URL.createObjectURL(file) }));
@@ -256,6 +370,29 @@ const Register = () => {
     return () => { Object.values(previews).forEach((url) => { if (url) URL.revokeObjectURL(url); }); };
   }, [previews]);
 
+  //Added new handlecar images
+  const handleCarImages = (files: FileList | null) => {
+  if (!files) return;
+
+  const newFiles = Array.from(files);
+
+  // Limit max images (optional: 6)
+  const updated = [...carImages, ...newFiles].slice(0, 6);
+
+  setCarImages(updated);
+
+  const previews = updated.map((file) => URL.createObjectURL(file));
+  setCarPreviews(previews);
+};
+
+//added new remove image function
+const removeCarImage = (index: number) => {
+  const updatedFiles = carImages.filter((_, i) => i !== index);
+  const updatedPreviews = carPreviews.filter((_, i) => i !== index);
+
+  setCarImages(updatedFiles);
+  setCarPreviews(updatedPreviews);
+};
   // ─── Password strength ──────────────────────────────────────────────────────
   const passwordStrength = (() => {
     const p = form.password;
@@ -275,6 +412,7 @@ const Register = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setServerError("");
+    
 
     if (!validateAll()) {
       setServerError("Please fix the highlighted fields before continuing.");
@@ -302,6 +440,20 @@ const Register = () => {
       const payloadServices = selectedServices.map(s => ({ name: s, description: "" }));
       const formData = new FormData();
       formData.append("registration_data", JSON.stringify({
+        car_details: form.role === "driver" ? {
+        make: form.carMake,
+        model: form.carModel,
+        year: form.carYear,
+        plate: form.carPlate,
+        color: form.carColor
+        }: null,
+
+
+
+        service_description:
+        (form.role === "professional" || form.role === "service-provider")
+        ? form.serviceDescription
+         : "",
         email: form.email, password: form.password, password_confirm: form.confirmPassword,
         role: form.role, full_name: form.name, surname: form.surname, phone: form.phone,
         gender: form.gender, nationality: form.nationality, id_number: form.id_number,
@@ -312,6 +464,9 @@ const Register = () => {
         provider: selectedProvider
       }));
       if (files.profile_photo) formData.append("profile_photo", files.profile_photo);
+      carImages.forEach((file, index) => {
+       formData.append("car_images", file);
+        });
       if (files.id_document) formData.append("id_document", files.id_document);
       if (files.proof_of_residence) formData.append("proof_of_residence", files.proof_of_residence);
       if (files.drivers_license) formData.append("drivers_license", files.drivers_license);
@@ -325,11 +480,13 @@ const Register = () => {
       } else {
         setServerError(result.error || "Registration failed");
       }
-    } catch (err: unknown) {
+     } catch (err: unknown) {
       setServerError(err instanceof Error ? err.message : "An unexpected error occurred");
-    } finally {
+     } finally {
       setLoading(false);
-    }
+     }
+
+    
   };
 
   // ─── Shared input class helper ──────────────────────────────────────────────
@@ -735,6 +892,18 @@ const Register = () => {
                 </AnimatePresence>
 
                 {/* ── Services Offered ── */}
+                {(form.role === "professional" || form.role === "service-provider") && (
+  <div className="space-y-1 mt-4">
+    <label className={fieldLabel}>Service Description<Req /></label>
+    <textarea
+      value={form.serviceDescription}
+      onChange={(e) => update("serviceDescription", e.target.value)}
+      onBlur={() => handleBlur("serviceDescription")}
+      className="w-full bg-slate-50 border rounded-2xl p-4 h-28"
+    />
+    <FieldError msg={fieldErrors.serviceDescription} />
+  </div>
+)}
                 <AnimatePresence>
                   {(form.role === "professional" || form.role === "service-provider") && (
                     <motion.section
@@ -776,6 +945,105 @@ const Register = () => {
                     </motion.section>
                   )}
                 </AnimatePresence>
+
+                {/* ── vehicle information ── */}
+                 
+                 <AnimatePresence>
+  {form.role === "driver" && (
+    <motion.section
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      className="space-y-5 pt-6 border-t border-slate-50"
+    >
+      <p className={sectionLabel}>Vehicle Information</p>
+
+      <div className="grid gap-5 sm:grid-cols-2">
+        <input
+          placeholder="Car Make"
+          value={form.carMake}
+          onChange={(e) => update("carMake", e.target.value)}
+          onBlur={() => handleBlur("carMake")}
+          className={ic("carMake")}
+        />
+        <FieldError msg={fieldErrors.carMake} />
+
+        <input
+          placeholder="Car Model"
+          value={form.carModel}
+          onChange={(e) => update("carModel", e.target.value)}
+          onBlur={() => handleBlur("carModel")}
+          className={ic("carModel")}
+        />
+        <FieldError msg={fieldErrors.carModel} />
+
+        <input
+          placeholder="Year"
+          value={form.carYear}
+          onChange={(e) => update("carYear", e.target.value)}
+          onBlur={() => handleBlur("carYear")}
+          className={ic("carYear")}
+        />
+        <FieldError msg={fieldErrors.carYear} />
+
+        <input
+          placeholder="License Plate"
+          value={form.carPlate}
+          onChange={(e) => update("carPlate", e.target.value)}
+          onBlur={() => handleBlur("carPlate")}
+          className={ic("carPlate")}
+        />
+        <FieldError msg={fieldErrors.carPlate} />
+
+        <input
+          placeholder="Car Color"
+          value={form.carColor}
+          onChange={(e) => update("carColor", e.target.value)}
+          onBlur={() => handleBlur("carColor")}
+          className={ic("carColor")}
+        />
+         <FieldError msg={fieldErrors.carColor} />
+
+      </div>
+
+      {/* Image Button */}
+
+      <div className="space-y-3">
+  <label className={fieldLabel}>
+    Car Images (Minimum 3)<Req />
+  </label>
+
+  {/* Upload Button */}
+  <input
+    type="file"
+    multiple
+    accept="image/*"
+    onChange={(e) => handleCarImages(e.target.files)}
+  />
+
+  {/* Preview */}
+  <div className="grid grid-cols-3 gap-3 mt-3">
+    {carPreviews.map((src, index) => (
+      <div key={index} className="relative">
+        <img
+          src={src}
+          className="w-full h-24 object-cover rounded-xl"
+        />
+        <button
+          type="button"
+          onClick={() => removeCarImage(index)}
+          className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 text-xs"
+        >
+          ✕
+        </button>
+      </div>
+    ))}
+  </div>
+</div>
+
+    </motion.section>
+  )}
+</AnimatePresence>
 
                 {/* ── Verification Documents ── */}
                 <section className="space-y-5 pt-6 border-t border-slate-50">

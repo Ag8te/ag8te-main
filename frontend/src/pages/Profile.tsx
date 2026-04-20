@@ -22,7 +22,6 @@ const SOUTH_AFRICAN_AREAS = [
     "Umhlanga, Durban", "Durban Central", "Pinetown, Durban", "Gqeberha Central", "Bloemfontein Central"
 ];
 
-const DAYS_OF_WEEK = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
 const Profile = () => {
     const { user } = useAuth();
@@ -45,16 +44,12 @@ const Profile = () => {
         },
         operating_areas: user?.data?.operating_areas || [],
         availability: user?.data?.availability || {
-            regular_hours: DAYS_OF_WEEK.reduce((acc: any, day) => {
-                acc[day] = { enabled: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'].includes(day), start: "08:00", end: "17:00" };
-                return acc;
-            }, {}),
-            blocked_dates: []
+           is_online: false
+
         }
     });
 
-    const [newBlockedDate, setNewBlockedDate] = useState("");
-
+    
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         if (name.startsWith('nok_')) {
@@ -120,86 +115,44 @@ const Profile = () => {
         }));
     };
 
-    const handleDayToggle = (day: string) => {
-        setFormData((prev: any) => ({
-            ...prev,
-            availability: {
-                ...prev.availability,
-                regular_hours: {
-                    ...prev.availability.regular_hours,
-                    [day]: { ...prev.availability.regular_hours[day], enabled: !prev.availability.regular_hours[day]?.enabled }
-                }
-            }
-        }));
-    };
 
-    const handleTimeChange = (day: string, type: 'start' | 'end', value: string) => {
-        setFormData((prev: any) => ({
-            ...prev,
-            availability: {
-                ...prev.availability,
-                regular_hours: {
-                    ...prev.availability.regular_hours,
-                    [day]: { ...prev.availability.regular_hours[day], [type]: value }
-                }
-            }
-        }));
-    };
+   
 
-    const addBlockedDate = () => {
-        if (!newBlockedDate) return;
-        if (!formData.availability.blocked_dates.includes(newBlockedDate)) {
-            setFormData((prev: any) => ({
-                ...prev,
-                availability: {
-                    ...prev.availability,
-                    blocked_dates: [...prev.availability.blocked_dates, newBlockedDate]
-                }
-            }));
-        }
-        setNewBlockedDate("");
-    };
+     const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
 
-    const removeBlockedDate = (date: string) => {
-        setFormData((prev: any) => ({
-            ...prev,
-            availability: {
-                ...prev.availability,
-                blocked_dates: prev.availability.blocked_dates.filter((d: string) => d !== date)
-            }
-        }));
-    };
+    try {
+        const cleanedData = {
+            phone: formData.phone,
+        };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setLoading(true);
+        console.log("Sending FIXED data:", cleanedData);
 
-        try {
-            const res = await apiFetch('/api/profile', {
-                method: 'PATCH',
-                data: formData
-            });
+        const res = await apiFetch('/api/profile', {
+            method: 'PATCH',
+            data: cleanedData
+        });
 
-            if (res.success) {
-                toast({
-                    title: "Profile Updated",
-                    description: user?.role === 'client' ? "Your profile has been updated." : "Changes submitted for admin approval.",
-                });
-
-                if (user?.role === 'client') {
-                    window.location.reload();
-                }
-            }
-        } catch (error: any) {
+        if (res.success) {
             toast({
-                title: "Update Failed",
-                description: error.message || "An unexpected error occurred",
-                variant: "destructive"
+                title: "Profile Updated",
+                description: "Your profile has been updated."
             });
-        } finally {
-            setLoading(false);
         }
-    };
+
+    } catch (error: any) {
+        console.error("Update error:", error);
+
+        toast({
+            title: "Update Failed",
+            description: error.message || "An unexpected error occurred",
+            variant: "destructive"
+        });
+    } finally {
+        setLoading(false);
+    }
+};
 
     return (
         <main className="min-h-screen bg-slate-50/50 flex flex-col">
@@ -382,105 +335,47 @@ const Profile = () => {
                                 </div>
                             )}
 
-                            {/* Provider Specific: Availability */}
-                            {isProvider && (
-                                <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 sm:p-10 shadow-sm relative overflow-hidden">
-                                    <div className="absolute top-0 left-0 w-2 h-full bg-emerald-400" />
-                                    <h3 className="text-xl font-bold text-[#222222] mb-2 flex items-center gap-3">
-                                        <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
-                                            <Clock size={20} />
-                                        </div>
-                                        Working Hours
-                                    </h3>
-                                    <p className="text-sm text-slate-500 mb-8 ml-13">Set your regular weekly schedule.</p>
+                            {/* Provider Availability (Simplified) */}
+{isProvider && (
+    <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 sm:p-10 shadow-sm relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-2 h-full bg-emerald-400" />
 
-                                    <div className="space-y-4">
-                                        {DAYS_OF_WEEK.map((day) => {
-                                            const dayConfig = formData.availability.regular_hours[day] || { enabled: false, start: '08:00', end: '17:00' };
-                                            return (
-                                                <div key={day} className={cn(
-                                                    "flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-2xl border transition-all",
-                                                    dayConfig.enabled ? "bg-white border-slate-100 shadow-sm" : "bg-slate-50/50 border-transparent opacity-60"
-                                                )}>
-                                                    <div className="flex items-center gap-4 mb-4 sm:mb-0">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleDayToggle(day)}
-                                                            className={cn(
-                                                                "w-12 h-6 rounded-full relative transition-colors duration-200",
-                                                                dayConfig.enabled ? "bg-emerald-500" : "bg-slate-300"
-                                                            )}
-                                                        >
-                                                            <div className={cn(
-                                                                "h-5 w-5 bg-white rounded-full absolute top-0.5 transition-all duration-200",
-                                                                dayConfig.enabled ? "left-6" : "left-0.5"
-                                                            )} />
-                                                        </button>
-                                                        <span className="font-bold text-[#222222] capitalize min-w-[100px]">{day}</span>
-                                                    </div>
+        <h3 className="text-xl font-bold text-[#222222] mb-6 flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
+                <Clock size={20} />
+            </div>
+            Driver Status
+        </h3>
 
-                                                    {dayConfig.enabled ? (
-                                                        <div className="flex items-center gap-3">
-                                                            <input
-                                                                type="time"
-                                                                value={dayConfig.start}
-                                                                onChange={(e) => handleTimeChange(day, 'start', e.target.value)}
-                                                                className="h-10 px-4 rounded-xl bg-slate-50 border-none font-bold text-sm outline-none focus:ring-2 focus:ring-emerald-100 transition-all"
-                                                            />
-                                                            <span className="text-slate-400 font-bold text-xs uppercase">to</span>
-                                                            <input
-                                                                type="time"
-                                                                value={dayConfig.end}
-                                                                onChange={(e) => handleTimeChange(day, 'end', e.target.value)}
-                                                                className="h-10 px-4 rounded-xl bg-slate-50 border-none font-bold text-sm outline-none focus:ring-2 focus:ring-emerald-100 transition-all"
-                                                            />
-                                                        </div>
-                                                    ) : (
-                                                        <span className="text-slate-400 font-bold text-sm italic pr-4">Closed / Unavailable</span>
-                                                    )}
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
+        <div className="flex items-center justify-between p-6 rounded-2xl border bg-slate-50">
+            <span className="font-bold text-lg">
+                {formData.availability.is_online ? "Online (Working)" : "Offline"}
+            </span>
 
-                                    <div className="mt-10 p-6 bg-rose-50/30 rounded-[2rem] border border-rose-100/50">
-                                        <h4 className="font-bold text-rose-600 mb-4 flex items-center gap-2">
-                                            <Calendar size={16} /> Block Specific Dates
-                                        </h4>
-                                        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-                                            <Input
-                                                type="date"
-                                                value={newBlockedDate}
-                                                onChange={(e) => setNewBlockedDate(e.target.value)}
-                                                min={new Date().toISOString().split('T')[0]}
-                                                className="h-12 rounded-xl bg-white border-rose-100"
-                                            />
-                                            <Button
-                                                type="button"
-                                                onClick={addBlockedDate}
-                                                disabled={!newBlockedDate}
-                                                className="h-12 px-6 rounded-xl bg-rose-500 text-white font-bold"
-                                            >
-                                                Block Date
-                                            </Button>
-                                        </div>
-
-                                        <div className="flex flex-wrap gap-2">
-                                            {formData.availability.blocked_dates.map((date: string) => (
-                                                <span
-                                                    key={date}
-                                                    className="flex items-center gap-2 px-4 py-2 bg-white text-rose-500 rounded-xl text-sm font-bold border border-rose-100 shadow-sm"
-                                                >
-                                                    {new Date(date).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' })}
-                                                    <button type="button" onClick={() => removeBlockedDate(date)} className="hover:text-rose-700 transition-colors">
-                                                        <Trash2 size={14} />
-                                                    </button>
-                                                </span>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
+            <button
+                type="button"
+                onClick={() =>
+                    setFormData((prev: any) => ({
+                        ...prev,
+                        availability: {
+                            ...prev.availability,
+                            is_online: !prev.availability.is_online
+                        }
+                    }))
+                }
+                className={`w-16 h-8 rounded-full relative transition-colors duration-300 ${
+                    formData.availability.is_online ? "bg-emerald-500" : "bg-slate-300"
+                }`}
+            >
+                <div
+                    className={`h-7 w-7 bg-white rounded-full absolute top-0.5 transition-all duration-300 ${
+                        formData.availability.is_online ? "left-8" : "left-0.5"
+                    }`}
+                />
+            </button>
+        </div>
+    </div>
+)}
 
                             {/* Next of Kin */}
                             <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 sm:p-10 shadow-sm relative overflow-hidden">

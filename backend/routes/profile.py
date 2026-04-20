@@ -120,7 +120,9 @@ def update_profile():
             request_data = request.json or {}
             
         # Basic validation with Marshmallow
-        data = schema.load(request_data)
+    
+        data = schema.load(request_data, partial=True)
+        data = {k: v for k, v in data.items() if v is not None}
         
         result, error = ProfileService.handle_profile_update(user_id, data, request.files)
         if error:
