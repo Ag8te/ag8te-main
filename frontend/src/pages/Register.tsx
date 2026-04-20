@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Autocomplete, TextField } from "@mui/material";
 import {
   Eye, EyeOff, Mail, Lock, Phone, ChevronRight, Check, AlertTriangle,
@@ -15,9 +15,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { apiFetch } from "@/lib/api";
-import { cn } from "@/lib/utils";
 import { TERMS_LAST_UPDATED, TERMS_SECTIONS } from "@/pages/Terms";
 import { PRIVACY_LAST_UPDATED, PRIVACY_SECTIONS } from "@/pages/Privacy";
+
+const REGISTRATION_DRAFT_KEY = "registrationDraft";
 
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
@@ -176,8 +177,6 @@ serviceDescription: "",
 carColor: "",
   });
 
-  const [selectedProvider, setSelectedProvider] = useState<"paypal" | "yoco">("paypal");
-
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [touched, setTouched] = useState<Partial<Record<keyof FormFields, boolean>>>({});
 
@@ -194,17 +193,16 @@ carColor: "",
   const [legalModal, setLegalModal] = useState<"terms" | "privacy" | null>(null);
   const [legalReviewed, setLegalReviewed] = useState<{ terms: boolean; privacy: boolean }>({ terms: false, privacy: false });
   const { register } = useAuth();
-  const navigate = useNavigate();
   const { toast } = useToast();
   const termsConsentRef = useRef<HTMLButtonElement | null>(null);
 
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [serviceOptions, setServiceOptions] = useState<any[]>([]);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
-  const [enabledGateways, setEnabledGateways] = useState<{paypal: boolean, yoco: boolean}>({ paypal: true, yoco: true });
   //Added new 
   const [carImages, setCarImages] = useState<File[]>([]);
-const [carPreviews, setCarPreviews] = useState<string[]>([]);
+  const [carPreviews, setCarPreviews] = useState<string[]>([]);
+  const [draftRestored, setDraftRestored] = useState(false);
 
   const legalTab = legalModal ?? "terms";
 
@@ -216,30 +214,6 @@ const [carPreviews, setCarPreviews] = useState<string[]>([]);
   };
 
   useEffect(() => {
-    const fetchGateways = async () => {
-      try {
-        const response = await apiFetch("/api/public/payment-gateways");
-        if (response?.success && response.data) {
-          const gateways = {
-            paypal: response.data.paypal?.enabled ?? false,
-            yoco: response.data.yoco?.enabled ?? false
-          };
-          setEnabledGateways(gateways);
-          
-          if (!gateways.paypal && gateways.yoco) {
-            setSelectedProvider("yoco");
-          } else if (gateways.paypal && !gateways.yoco) {
-            setSelectedProvider("paypal");
-          }
-        }
-      } catch (error) {
-        console.error("Failed to fetch payment gateways:", error);
-      }
-    };
-    fetchGateways();
-  }, []);
-
-  useEffect(() => {
     if (form.role === 'service-provider' || form.role === 'professional') {
       apiFetch(`/api/public/service-options?category=${form.role}`).then((res: any) => {
         if (res?.success && res.data?.services) {
@@ -248,6 +222,44 @@ const [carPreviews, setCarPreviews] = useState<string[]>([]);
       });
     }
   }, [form.role]);
+
+  useEffect(() => {
+    const rawDraft = localStorage.getItem(REGISTRATION_DRAFT_KEY);
+    if (!rawDraft) {
+      setDraftRestored(true);
+      return;
+    }
+
+    try {
+      const draft = JSON.parse(rawDraft);
+      if (draft?.form) {
+        setForm((prev) => ({ ...prev, ...draft.form }));
+      }
+      if (Array.isArray(draft?.selectedServices)) {
+        setSelectedServices(draft.selectedServices);
+      }
+      if (typeof draft?.agreed === "boolean") {
+        setAgreed(draft.agreed);
+      }
+    } catch (error) {
+      console.error("Failed to restore registration draft:", error);
+    } finally {
+      setDraftRestored(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!draftRestored) return;
+
+    localStorage.setItem(
+      REGISTRATION_DRAFT_KEY,
+      JSON.stringify({
+        form,
+        selectedServices,
+        agreed,
+      })
+    );
+  }, [draftRestored, form, selectedServices, agreed]);
 
   useEffect(() => {
     if (isSubmitted) {
@@ -478,12 +490,11 @@ const removeCarImage = (index: number) => {
         highest_qualification: form.highestQualification, professional_body: form.professionalBody, agent_id: form.agent_id,
         professional_services: form.role === 'professional' ? payloadServices : [],
         provider_services: form.role === 'service-provider' ? payloadServices : [],
-        provider: selectedProvider
       }));
       if (files.profile_photo) formData.append("profile_photo", files.profile_photo);
-      carImages.forEach((file, index) => {
-       formData.append("car_images", file);
-        });
+      carImages.forEach((file) => {
+        formData.append("car_images", file);
+      });
       if (files.id_document) formData.append("id_document", files.id_document);
       if (files.proof_of_residence) formData.append("proof_of_residence", files.proof_of_residence);
       if (files.drivers_license) formData.append("drivers_license", files.drivers_license);
@@ -492,7 +503,14 @@ const removeCarImage = (index: number) => {
 
       const result = await register(formData);
       if (result.success) {
-        toast({ title: "Verification Sent!", description: "Please check your email to verify and complete payment." });
+        if (result.data?.redirect_url) {
+          localStorage.setItem("registrationPaymentUser", JSON.stringify(result.data.user));
+          window.location.href = result.data.redirect_url;
+          return;
+        }
+
+        localStorage.removeItem(REGISTRATION_DRAFT_KEY);
+        toast({ title: "Registration Complete", description: "Your account has been created successfully." });
         setIsSubmitted(true);
       } else {
         setServerError(result.error || "Registration failed");
@@ -595,19 +613,17 @@ const removeCarImage = (index: number) => {
                   <Check className="h-10 w-10" />
                 </div>
                 <h1 className="text-3xl font-bold text-[#222222] tracking-tight mb-3">
-                  Verification Sent!
+                  Registration Complete
                 </h1>
                 <p className="text-slate-600 text-base mb-8">
-                  Your registration details have been captured. Please check your inbox for a verification email. You'll be able to complete your registration payment once your email is verified.
+                  Your account has been created successfully. You can now sign in and start using MzansiServe.
                 </p>
                 <div className="space-y-3">
                   <Button asChild className="w-full h-14 rounded-2xl bg-primary hover:bg-primary/90 text-white font-bold text-base shadow-xl shadow-primary/10 transition-all active:scale-[0.98]">
-                    <a href="https://mail.google.com" target="_blank" rel="noopener noreferrer">
-                      <Mail className="mr-2 h-5 w-5" /> Open Email
-                    </a>
+                    <Link to="/login">Go to Login</Link>
                   </Button>
                   <Button asChild variant="ghost" className="w-full h-12 rounded-2xl text-slate-500">
-                    <Link to="/login">Go to Login</Link>
+                    <Link to="/">Return Home</Link>
                   </Button>
                 </div>
               </CardContent>
@@ -664,7 +680,7 @@ const removeCarImage = (index: number) => {
                 )}
               </AnimatePresence>
 
-              <form onSubmit={handleSubmit} className="space-y-10" noValidate>
+              <form onSubmit={handleSubmit} className="space-y-10" noValidate autoComplete="off">
 
                 {/* ── Account Details ── */}
                 <section className="space-y-5">
@@ -697,7 +713,7 @@ const removeCarImage = (index: number) => {
                           onChange={(e) => update("email", e.target.value)}
                           onBlur={() => handleBlur("email")}
                           className={ic("email", true)}
-                          autoComplete="email" />
+                          autoComplete="off" />
                       </div>
                       <FieldError msg={fieldErrors.email} />
                     </div>
@@ -713,7 +729,7 @@ const removeCarImage = (index: number) => {
                           onChange={(e) => update("password", e.target.value)}
                           onBlur={() => handleBlur("password")}
                           className={ic("password", true, true)}
-                          autoComplete="new-password" />
+                          autoComplete="off" />
                         <button type="button" onClick={() => setShowPassword(!showPassword)}
                           className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors">
                           {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -742,7 +758,7 @@ const removeCarImage = (index: number) => {
                           onChange={(e) => update("confirmPassword", e.target.value)}
                           onBlur={() => handleBlur("confirmPassword")}
                           className={ic("confirmPassword", true)}
-                          autoComplete="new-password" />
+                          autoComplete="off" />
                       </div>
                       <FieldError msg={fieldErrors.confirmPassword} />
                     </div>
@@ -801,6 +817,8 @@ const removeCarImage = (index: number) => {
                     <div className="space-y-1">
                       <label className={fieldLabel}>Nationality<Req /></label>
                       <Autocomplete
+                        autoHighlight={false}
+                        openOnFocus={false}
                         options={countries}
                         value={form.nationality}
                         onChange={(_, newValue) => {
@@ -812,6 +830,7 @@ const removeCarImage = (index: number) => {
                               {...params.inputProps}
                               placeholder="Search country..."
                               className={ic("nationality")}
+                              autoComplete="new-password"
                             />
                           </div>
                         )}
@@ -935,6 +954,8 @@ const removeCarImage = (index: number) => {
                         <Autocomplete
                           multiple
                           freeSolo
+                          autoHighlight={false}
+                          openOnFocus={false}
                           options={serviceOptions.map((opt) => opt.name)}
                           value={selectedServices}
                           onChange={(_, newValue) => setSelectedServices(newValue as string[])}
@@ -944,6 +965,10 @@ const removeCarImage = (index: number) => {
                               variant="outlined"
                               placeholder="e.g. Electrical Maintenance"
                               className="bg-slate-50 border-slate-100 rounded-2xl"
+                              inputProps={{
+                                ...params.inputProps,
+                                autoComplete: "new-password",
+                              }}
                               sx={{
                                 '& .MuiOutlinedInput-root': {
                                   borderRadius: '16px',
@@ -1110,41 +1135,14 @@ const removeCarImage = (index: number) => {
                     </label>
                   </div>
 
-                  {/* Payment Method Selection */}
-                  <div className="space-y-4 pt-4">
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">Payment Method</p>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                       {enabledGateways.paypal && (
-                         <div 
-                           onClick={() => setSelectedProvider("paypal")}
-                           className={cn(
-                             "cursor-pointer rounded-xl border-2 p-4 transition-all flex items-center justify-between",
-                             selectedProvider === "paypal" ? "border-primary bg-primary/5" : "border-slate-100 bg-white"
-                           )}
-                         >
-                           <span className="text-sm font-bold text-[#222222]">PayPal / Card</span>
-                           {selectedProvider === "paypal" && <Check className="w-4 h-4 text-primary" />}
-                         </div>
-                       )}
-                       {enabledGateways.yoco && (
-                         <div 
-                           onClick={() => setSelectedProvider("yoco")}
-                           className={cn(
-                             "cursor-pointer rounded-xl border-2 p-4 transition-all flex items-center justify-between",
-                             selectedProvider === "yoco" ? "border-primary bg-primary/5" : "border-slate-100 bg-white"
-                           )}
-                         >
-                           <span className="text-sm font-bold text-[#222222]">Yoco (Local)</span>
-                           {selectedProvider === "yoco" && <Check className="w-4 h-4 text-primary" />}
-                         </div>
-                       )}
-                       {!enabledGateways.paypal && !enabledGateways.yoco && (
-                         <div className="col-span-full p-4 bg-slate-50 rounded-xl border border-slate-100 text-center">
-                           <p className="text-slate-500 text-sm font-medium">No payment methods currently available.</p>
-                         </div>
-                       )}
+                  {form.role && form.role !== "client" && (
+                    <div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-4">
+                      <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2">Registration Payment</p>
+                      <p className="text-sm text-slate-600">
+                        Drivers, professionals, and service providers complete registration with a once-off Yoco payment of <span className="font-bold text-[#222222]">R100.00</span>.
+                      </p>
                     </div>
-                  </div>
+                  )}
 
                   <Button
                     id="register-submit-button"
@@ -1156,7 +1154,7 @@ const removeCarImage = (index: number) => {
                       <Loader2 className="w-6 h-6 animate-spin mx-auto" />
                     ) : (
                       <span className="flex items-center justify-center gap-2">
-                        Pay & Create Account <ChevronRight className="w-5 h-5" />
+                        {form.role === "client" ? "Create Account" : "Pay & Complete Registration"} <ChevronRight className="w-5 h-5" />
                       </span>
                     )}
                   </Button>

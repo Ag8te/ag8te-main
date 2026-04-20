@@ -16,6 +16,7 @@ from backend.services.wallet_service import WalletService
 from backend.services.payment_service import PaymentService
 from backend.utils.decorators import require_auth, require_role
 from backend.utils.response import error_response, success_response
+from backend.utils.url import get_public_backend_base_url
 
 bp = Blueprint('requests', __name__)
 
@@ -160,7 +161,12 @@ def create_cab_checkout():
         data = schema.load(request.json or {})
         user_id = get_jwt_identity()
 
-        checkout_data, error = RequestService.create_checkout('cab', data, user_id, request.host_url)
+        checkout_data, error = RequestService.create_checkout(
+            'cab',
+            data,
+            user_id,
+            get_public_backend_base_url(),
+        )
         if error:
             return error_response(error, 'Failed to create cab checkout', None, 400)
 
@@ -193,7 +199,12 @@ def create_professional_checkout():
         user_id = get_jwt_identity()
 
         request_type = data.get('type', 'professional')
-        checkout_data, error = RequestService.create_checkout(request_type, data, user_id, request.host_url)
+        checkout_data, error = RequestService.create_checkout(
+            request_type,
+            data,
+            user_id,
+            get_public_backend_base_url(),
+        )
         
         if error:
             return error_response(error, 'Failed to create checkout', None, 400)

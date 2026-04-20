@@ -70,6 +70,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (result.success) {
         localStorage.setItem("token", result.data.token);
+        localStorage.setItem("user", JSON.stringify(result.data.user));
         setUser(result.data.user);
         return { success: true, data: result.data };
       }
@@ -115,6 +116,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         if (result.data?.token) {
           localStorage.setItem("token", result.data.token);
+          localStorage.setItem("user", JSON.stringify(result.data.user));
           setUser(result.data.user);
         }
         return { success: true, data: result.data };
@@ -129,6 +131,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.removeItem("token");
     localStorage.removeItem("adminToken");
     localStorage.removeItem("adminUser");
+    localStorage.removeItem("user");
+    localStorage.removeItem("registrationPaymentUser");
     setUser(null);
   }, []);
 

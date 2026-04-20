@@ -11,7 +11,7 @@ from backend.services.payment_service import PaymentService
 from datetime import datetime
 import secrets
 import uuid
-from backend.utils.url import get_request_frontend_base_url
+from backend.utils.url import get_public_backend_base_url, get_request_frontend_base_url
 
 bp = Blueprint('shop', __name__)
 
@@ -268,7 +268,7 @@ def initiate_order_payment(order_id):
         amount_in_cents = int(float(order.total) * 100)
         
         # Create callback URLs
-        base_url = request.host_url.rstrip('/')
+        base_url = get_public_backend_base_url()
         frontend_url = get_request_frontend_base_url()
         success_url = f"{base_url}/api/payments/order-callback?callback_status=success&external_id={external_id}&order_id={order_id}&frontend_url={frontend_url}"
         cancel_url = f"{base_url}/api/payments/order-callback?callback_status=cancel&external_id={external_id}&order_id={order_id}&frontend_url={frontend_url}"

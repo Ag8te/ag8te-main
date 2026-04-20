@@ -14,7 +14,7 @@ from backend.services.agent_service import AgentService
 from backend.services.recon_service import run_recon_for_user
 from backend.utils.response import success_response, error_response
 from backend.utils.decorators import require_auth
-from backend.utils.url import get_request_frontend_base_url
+from backend.utils.url import get_public_backend_base_url, get_request_frontend_base_url
 from backend.extensions import db
 
 bp = Blueprint('dashboard', __name__)
@@ -427,7 +427,7 @@ def wallet_top_up():
         wallet = WalletService.get_or_create_wallet(user_id)
         
         # Create checkout session
-        backend_url = request.host_url.rstrip('/')
+        backend_url = get_public_backend_base_url()
         frontend_url = get_request_frontend_base_url()
         checkout_result = PaymentService.create_checkout(
             amount=amount_cents,

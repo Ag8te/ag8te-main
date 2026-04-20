@@ -10,7 +10,11 @@ from backend.services.payment_service import PaymentService
 from backend.services.wallet_service import WalletService
 from backend.utils.response import success_response, error_response
 from backend.utils.decorators import require_auth
-from backend.utils.url import get_callback_frontend_base_url, get_request_frontend_base_url
+from backend.utils.url import (
+    get_callback_frontend_base_url,
+    get_public_backend_base_url,
+    get_request_frontend_base_url,
+)
 from backend.extensions import db
 
 bp = Blueprint('payments', __name__)
@@ -43,7 +47,7 @@ def create_order():
         amount_in_cents = int(data['total'] * 100)
         
         # 2. Initialize payment checkout
-        backend_url = request.host_url.rstrip('/')
+        backend_url = get_public_backend_base_url()
         frontend_url = get_request_frontend_base_url()
         success_url = f"{backend_url}/api/payments/order-callback?callback_status=success&external_id={order_id}&order_id={order_id}&provider={data['provider']}&frontend_url={frontend_url}"
         cancel_url = f"{backend_url}/api/payments/order-callback?callback_status=cancel&external_id={order_id}&order_id={order_id}&provider={data['provider']}&frontend_url={frontend_url}"

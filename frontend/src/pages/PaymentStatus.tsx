@@ -28,6 +28,12 @@ const PaymentStatus = () => {
         return () => clearTimeout(timer);
     }, [searchParams]);
 
+    useEffect(() => {
+        if (status === "success") {
+            localStorage.removeItem("registrationDraft");
+        }
+    }, [status]);
+
     const containerVariants: any = {
         hidden: { opacity: 0, y: 20 },
         visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
@@ -103,21 +109,21 @@ const PaymentStatus = () => {
 
                                         <div className="space-y-4">
                                             <h1 className="text-4xl font-extrabold tracking-tighter text-foreground">
-                                                Welcome to the <span className="text-primary">Family!</span>
+                                                Registration <span className="text-primary">Received</span>
                                             </h1>
                                             <div className="flex items-center justify-center gap-2 text-green-500 font-medium bg-green-500/10 py-1.5 px-4 rounded-full w-fit mx-auto">
                                                 <ShieldCheck className="h-4 w-4" />
-                                                <span>Account Successfully Activated</span>
+                                                <span>Payment Successfully Captured</span>
                                             </div>
                                             <p className="text-lg text-muted-foreground max-w-sm mx-auto leading-relaxed">
-                                                Your registration fee has been processed. You now have full access to South Africa's premier service network.
+                                                Your registration payment has been processed successfully. Your account is now pending review by the system administrator, and we have emailed you an acknowledgement.
                                             </p>
                                         </div>
 
                                         <div className="grid gap-4 pt-4">
                                             <Button asChild className="h-14 w-full bg-gradient-purple text-lg font-bold text-white shadow-glow-purple hover:scale-[1.02] active:scale-[0.98] transition-all duration-200">
                                                 <Link to="/login">
-                                                    Start Exploring Now <ArrowRight className="ml-2 h-5 w-5" />
+                                                    Go to Login <ArrowRight className="ml-2 h-5 w-5" />
                                                 </Link>
                                             </Button>
                                             <Button asChild variant="ghost" className="h-12 w-full hover:bg-muted font-medium">
@@ -145,15 +151,20 @@ const PaymentStatus = () => {
                                             </div>
                                             <p className="text-lg text-muted-foreground max-w-sm mx-auto leading-relaxed">
                                                 {status === 'cancelled'
-                                                    ? "We noticed you cancelled the payment process. Don't worry, your registration data is saved!"
-                                                    : "Unfortunately, your payment could not be processed. Please check your card details or try a different method."}
+                                                    ? "We noticed you cancelled the registration payment. Your account details are saved and you can retry payment at any time."
+                                                    : "Unfortunately, your registration payment could not be processed. Please try again to complete your account setup."}
                                             </p>
                                         </div>
 
                                         <div className="grid gap-4 pt-4">
                                             <Button asChild className="h-14 w-full bg-sa-black hover:bg-sa-black/90 text-lg font-bold shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-200">
                                                 <Link to={`/verify-email?status=pending_payment&payment=${status === 'cancelled' ? 'cancel' : 'error'}`}>
-                                                    Choose Payment Method <ArrowRight className="ml-2 h-5 w-5" />
+                                                    Retry Yoco Payment <ArrowRight className="ml-2 h-5 w-5" />
+                                                </Link>
+                                            </Button>
+                                            <Button asChild variant="outline" className="h-12 w-full font-medium">
+                                                <Link to="/register">
+                                                    Back to Registration
                                                 </Link>
                                             </Button>
                                             <Button asChild variant="outline" className="h-12 w-full font-medium">
