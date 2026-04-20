@@ -64,6 +64,7 @@ class CabCheckoutSchema(Schema):
     distance_km = fields.Float()
     provider = fields.Str(validate=validate.OneOf(['yoco', 'paypal']), load_default='yoco')
     notes = fields.Str()
+    schedule_type = fields.Str(validate=validate.OneOf(['now', 'later']), load_default='now')
 
 
 class ProfessionalCheckoutSchema(Schema):

@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, Star, MapPin, BadgeCheck, Calendar, Clock,
   CreditCard, Check, Loader2, AlertCircle, Search, ChevronRight,
-  ShieldCheck
+  ShieldCheck, Navigation
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +31,7 @@ const DAYS_OF_WEEK: (keyof any)[] = ['sunday', 'monday', 'tuesday', 'wednesday',
 const BookService = () => {
   const { id, category } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
 
@@ -41,10 +42,12 @@ const BookService = () => {
   const [coords, setCoords] = useState<{ lat: number, lng: number } | null>(null);
   const [selectedService, setSelectedService] = useState<string | null>(null);
   const [isCustomService, setIsCustomService] = useState(false);
+  const [isServiceLocked, setIsServiceLocked] = useState(false);
   const [customService, setCustomService] = useState("");
   const [calloutFee, setCalloutFee] = useState<number>(150);
   const [defaultCalloutFee, setDefaultCalloutFee] = useState<number>(150);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
   const [step, setStep] = useState<"form" | "confirm" | "done">("form");
   const [selectedProvider, setSelectedProvider] = useState<"paypal" | "yoco">("yoco");
   const [enabledGateways, setEnabledGateways] = useState<{paypal: boolean, yoco: boolean}>({ paypal: true, yoco: true });
@@ -73,6 +76,14 @@ const BookService = () => {
     };
     fetchGateways();
   }, []);
+
+  useEffect(() => {
+    const serviceFromUrl = searchParams.get("service");
+    if (serviceFromUrl) {
+      setSelectedService(decodeURIComponent(serviceFromUrl));
+      setIsServiceLocked(true);
+    }
+  }, [searchParams]);
 
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
 
@@ -123,16 +134,41 @@ const BookService = () => {
     fetchSettings();
   }, [category]);
 
+  
+  //Get today's date string in SAST for comparison
+  const nowSAST = new Date(new Date().toLocaleString("en-US", { timeZone: "Africa/Johannesburg" }));
+  const todayStr = `${nowSAST.getFullYear()}-${String(nowSAST.getMonth() + 1).padStart(2, "0")}-${String(nowSAST.getDate()).padStart(2, "0")}`;
+
+  // Get current time in SAST (UTC+2)
+  function getCurrentTimeSAST(): string {
+    const nowSAST = new Date(
+      new Date().toLocaleString("en-US", { timeZone: "Africa/Johannesburg" })
+    );
+    const hh = String(nowSAST.getHours()).padStart(2, "0");
+    const mm = String(nowSAST.getMinutes()).padStart(2, "0");
+    return `${hh}:${mm}`;
+  }
+
   // Update available time slots when date changes
   useEffect(() => {
-    if (!date || !provider) {
+    if (!date) {
       setAvailableTimeSlots(DEFAULT_TIME_SLOTS);
+      return;
+    }
+    if (!provider) {
+      if (date === todayStr) {
+        const currentTime = getCurrentTimeSAST();
+        setAvailableTimeSlots(DEFAULT_TIME_SLOTS.filter(slot => slot > currentTime));
+      } else {
+        setAvailableTimeSlots(DEFAULT_TIME_SLOTS);
+      }
       return;
     }
 
     const availability = provider?.data?.availability;
     if (!availability) {
-      setAvailableTimeSlots(DEFAULT_TIME_SLOTS);
+      const currentTime = date === todayStr ? getCurrentTimeSAST() : "00:00";
+      setAvailableTimeSlots(DEFAULT_TIME_SLOTS.filter(slot => slot > currentTime));
       return;
     }
 
@@ -156,15 +192,17 @@ const BookService = () => {
         try {
           const res = await apiFetch(`/api/requests/provider/${id}/busy-slots?date=${date}`);
           const busySlots = res.data?.busy_slots || [];
-
-          const filtered = DEFAULT_TIME_SLOTS.filter(slot => {
-            return slot >= start && slot < end && !busySlots.includes(slot);
-          });
+          
+          const currentTime = date === todayStr ? getCurrentTimeSAST() : "00:00";
+          const filtered = DEFAULT_TIME_SLOTS.filter(slot =>
+            slot >= start && slot < end && !busySlots.includes(slot) && slot > currentTime);
+        
           setAvailableTimeSlots(filtered);
           if (time && !filtered.includes(time)) setTime("");
         } catch (err) {
           // Fallback to regular hours only if API fails
-          const filtered = DEFAULT_TIME_SLOTS.filter(slot => slot >= start && slot < end);
+          const currentTime = date === todayStr ? getCurrentTimeSAST() : "00:00";
+          const filtered = DEFAULT_TIME_SLOTS.filter(slot => slot >= start && slot < end && slot > currentTime);
           setAvailableTimeSlots(filtered);
         }
       };
@@ -189,6 +227,65 @@ const BookService = () => {
     }
   };
 
+  const handleUseCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      toast({
+        variant: "destructive",
+        title: "Not Supported",
+        description: "Your browser does not support location access. Please use a different browser.",
+      });
+      return;
+    }
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        if (!window.google) {
+          setIsLocating(false);
+          return;
+        }
+
+      const geocoder = new google.maps.Geocoder();
+      geocoder.geocode(
+        { location: { lat: latitude, lng: longitude } },
+        (results, status) => {
+          setIsLocating(false);
+          if (status === 'OK' && results && results[0]) {
+            const place = results[0];
+            const components = place.address_components || [];
+            const hasStreet = components.some((c: any) => 
+              c.types.includes("street_number") || c.types.includes("route")
+            );
+            if (!hasStreet) {
+              toast({
+                variant: "destructive",
+                title: "Location Too Vague",
+                description: "Could not determine your address. Please enter it manually.",
+              });
+              return;
+            }
+            setLocation(place.formatted_address ||"");
+            setCoords({ lat: latitude, lng: longitude });
+          } else {
+            toast({
+              variant: "destructive",
+              title: "Location Error",
+              description: `Could not determine your address. Please enter it manually.`,
+            });
+          }
+        });
+      },
+      () => {
+        setIsLocating(false);
+        toast({
+          variant: "destructive",
+          title: "Location Denied",
+          description: `Could not determine your address. Please enter it manually.`,
+        });
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
   const handleSubmit = () => {
     if (!isAuthenticated) { navigate("/login"); return; }
     const finalService = services.length > 0 && isCustomService ? customService : selectedService;
@@ -322,7 +419,22 @@ const BookService = () => {
                         <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 ml-1">
                           {services.length > 0 ? "Choose Service" : "Service Required"}
                         </label>
-                        {services.length > 0 && !isCustomService ? (
+                        {isServiceLocked && selectedService ? (
+                          <div className="w-full h-16 px-6 bg-slate-50 rounded-2xl flex items-center justify-between">
+                            <span className="font-bold text-[#222222] text-lg">{selectedService}</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsServiceLocked(false);
+                                setSelectedService(null);
+                              }}
+                              className="text-xs font-bold text-primary hover:underline"
+                            >
+                              Change
+                            </button>
+                          </div>
+                        ) : services.length > 0 && !isCustomService ? (
+                        
                           <Select value={selectedService || ""} onValueChange={(val) => {
                             if (val === "custom") {
                               setIsCustomService(true);
@@ -392,6 +504,17 @@ const BookService = () => {
                         <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 ml-1">Location</label>
                         <div className="relative">
                           <MapPin className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-primary transition-colors" />
+                          <button
+                            type="button"
+                            onClick={handleUseCurrentLocation}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-xl text-slate-400 hover:text-primary hover:bg-primary/10 transition-all z-10"
+                            title="Use current location"
+                          >
+                            {isLocating
+                             ? <Loader2 className="h-5 w-5 animate-spin" />
+                             : <Navigation className="h-5 w-5" />
+                            }
+                          </button>
                           {isLoaded ? (
                             <Autocomplete
                               onLoad={ref => autocompleteRef.current = ref}
@@ -401,7 +524,7 @@ const BookService = () => {
                                 value={location}
                                 onChange={e => setLocation(e.target.value)}
                                 placeholder="Enter service address"
-                                className="w-full h-16 pl-16 pr-6 bg-slate-50 rounded-2xl border-transparent focus:bg-white focus:border-primary/20 outline-none text-[#222222] font-medium text-lg transition-all"
+                                className="w-full h-16 pl-16 pr-14 bg-slate-50 rounded-2xl border-transparent focus:bg-white focus:border-primary/20 outline-none text-[#222222] font-medium text-lg transition-all"
                               />
                             </Autocomplete>
                           ) : (
