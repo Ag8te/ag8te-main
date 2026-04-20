@@ -14,6 +14,7 @@ from backend.services.agent_service import AgentService
 from backend.services.recon_service import run_recon_for_user
 from backend.utils.response import success_response, error_response
 from backend.utils.decorators import require_auth
+from backend.utils.url import get_public_backend_base_url, get_request_frontend_base_url
 from backend.extensions import db
 
 bp = Blueprint('dashboard', __name__)
@@ -426,14 +427,15 @@ def wallet_top_up():
         wallet = WalletService.get_or_create_wallet(user_id)
         
         # Create checkout session
-        base_url = current_app.config.get('FRONTEND_URL', 'https://mzansiserve.co.za')
+        backend_url = get_public_backend_base_url()
+        frontend_url = get_request_frontend_base_url()
         checkout_result = PaymentService.create_checkout(
             amount=amount_cents,
             currency=currency,
             external_id=external_id,
-            success_url=f"{base_url}/api/payments/wallet-topup-callback?callback_status=success&external_id={external_id}",
-            cancel_url=f"{base_url}/api/payments/wallet-topup-callback?callback_status=cancel&external_id={external_id}",
-            failure_url=f"{base_url}/api/payments/wallet-topup-callback?callback_status=failure&external_id={external_id}"
+            success_url=f"{backend_url}/api/payments/wallet-topup-callback?callback_status=success&external_id={external_id}&frontend_url={frontend_url}",
+            cancel_url=f"{backend_url}/api/payments/wallet-topup-callback?callback_status=cancel&external_id={external_id}&frontend_url={frontend_url}",
+            failure_url=f"{backend_url}/api/payments/wallet-topup-callback?callback_status=failure&external_id={external_id}&frontend_url={frontend_url}"
         )
         
         # Update payment metadata with wallet info
@@ -530,4 +532,3 @@ def list_withdrawal_requests():
     except Exception as e:
         current_app.logger.error(f"List withdrawal requests error: {str(e)}")
         return error_response('INTERNAL_ERROR', 'Failed to list withdrawal requests', None, 500)
-

@@ -70,7 +70,7 @@ const NAV_STRUCTURE = [
     {
         type: "item",
         id: "overview",
-        label: "Dashboard",
+        label: "Account Management",
         icon: LayoutTemplate
     },
     {
@@ -160,6 +160,21 @@ const AdminDashboard = () => {
             }
         }
     }, [navigate]);
+
+    const [pendingRequests, setPendingRequests] = useState([]);
+
+const fetchPending = async () => {
+    const res = await apiFetch('/api/admin/pending-profile-updates');
+    if (res.success) {
+        setPendingRequests(res.data.pending_updates);
+    }
+};
+
+useEffect(() => {
+    fetchPending();
+}, []);
+
+
 
     const fetchDashboardData = useCallback(async () => {
         setLoadingStats(true);
@@ -252,7 +267,7 @@ const AdminDashboard = () => {
 
     return (
         <DashboardLayout
-            title={activeTab === "overview" ? "Dashboard Overview" : activeTab.replace(/([A-Z])/g, ' $1').replace("-", " ").trim()}
+            title={activeTab === "overview" ? "Account Management Overview" : activeTab.replace(/([A-Z])/g, ' $1').replace("-", " ").trim()}
             activeTab={activeTab}
             onTabChange={(tab) => setActiveTab(tab as TabKey)}
             onLogout={handleLogout}
@@ -265,4 +280,6 @@ const AdminDashboard = () => {
     );
 };
 
+
 export default AdminDashboard;
+

@@ -1,7 +1,6 @@
-import { useState, useEffect } from "react";
+import { Fragment, useState, useEffect } from "react";
 import { 
-  Settings, Search, RefreshCw, ChevronDown, 
-  ChevronUp, Code, Globe, AlertCircle, CheckCircle2 
+  RefreshCw, ChevronDown, ChevronUp, Globe
 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -11,11 +10,15 @@ export const ApiLogsManagement = () => {
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedLog, setExpandedLog] = useState<string | null>(null);
+  const [providerFilter, setProviderFilter] = useState<"all" | "yoco" | "paypal">("yoco");
 
   const fetchLogs = async () => {
     setLoading(true);
     try {
-      const res = await apiFetch('/api/admin/api-logs');
+      const endpoint = providerFilter === "all"
+        ? "/api/admin/api-logs"
+        : `/api/admin/api-logs?provider=${providerFilter}`;
+      const res = await apiFetch(endpoint);
       if (res.success) {
         setLogs(res.data.logs);
       }
@@ -28,16 +31,90 @@ export const ApiLogsManagement = () => {
 
   useEffect(() => {
     fetchLogs();
-  }, []);
+  }, [providerFilter]);
+
+  const latestYocoCheckout = logs.find((log) => log.provider === "yoco" && log.endpoint === "/api/checkouts");
+  const latestResponse = latestYocoCheckout?.response_payload || {};
+  const latestRequest = latestYocoCheckout?.request_payload || {};
+  const latestStatus = latestYocoCheckout?.status_code;
+  const latestProcessingMode = latestResponse.processingMode || "unknown";
+  const latestRedirectUrl = latestResponse.redirectUrl || "N/A";
+  const latestExternalId = latestRequest.externalId || latestResponse.externalId || "N/A";
+  const latestErrorMessage =
+    latestYocoCheckout?.error_message ||
+    latestResponse?.message ||
+    latestResponse?.error ||
+    "None";
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-slate-900">External API Integration Logs</h2>
-        <Button variant="outline" size="sm" onClick={fetchLogs} disabled={loading}>
-          <RefreshCw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} /> Refresh
-        </Button>
+        <div className="space-y-1">
+          <h2 className="text-xl font-bold text-slate-900">External API Integration Logs</h2>
+          <p className="text-sm text-slate-500">Use the Yoco filter to inspect the latest checkout request and response.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="flex rounded-xl border border-slate-200 bg-white p-1">
+            {(["yoco", "paypal", "all"] as const).map((provider) => (
+              <button
+                key={provider}
+                type="button"
+                onClick={() => setProviderFilter(provider)}
+                className={cn(
+                  "rounded-lg px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition-colors",
+                  providerFilter === provider
+                    ? "bg-slate-900 text-white"
+                    : "text-slate-500 hover:bg-slate-50"
+                )}
+              >
+                {provider}
+              </button>
+            ))}
+          </div>
+          <Button variant="outline" size="sm" onClick={fetchLogs} disabled={loading}>
+            <RefreshCw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} /> Refresh
+          </Button>
+        </div>
       </div>
+
+      {providerFilter === "yoco" && (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+          <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Latest Status</p>
+            <p className={cn(
+              "mt-2 text-lg font-black",
+              latestStatus >= 200 && latestStatus < 300 ? "text-emerald-600" : "text-rose-600"
+            )}>
+              {latestStatus ?? "N/A"}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Processing Mode</p>
+            <p className="mt-2 text-lg font-black text-slate-900">{latestProcessingMode}</p>
+          </div>
+          <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">External ID</p>
+            <p className="mt-2 truncate text-sm font-bold text-slate-900">{latestExternalId}</p>
+          </div>
+          <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Redirect URL</p>
+            <p className="mt-2 truncate text-sm font-bold text-slate-900">{latestRedirectUrl}</p>
+          </div>
+          <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4 shadow-sm md:col-span-4">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-amber-700">Latest Yoco Error Hint</p>
+            <p className="mt-2 text-sm font-semibold text-amber-900">{String(latestErrorMessage)}</p>
+          </div>
+        </div>
+      )}
+
+      {providerFilter === "yoco" && latestYocoCheckout && (
+        <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">How To Read This</p>
+          <p className="mt-2 text-sm text-slate-600">
+            If status is `200` and `redirectUrl` exists, our server created the checkout successfully and the failure is happening on Yoco&apos;s hosted payment page or merchant setup. If status is `403` or another non-2xx response, the problem is in our Yoco key or request configuration.
+          </p>
+        </div>
+      )}
 
       <div className="bg-white border border-slate-100 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
@@ -55,8 +132,8 @@ export const ApiLogsManagement = () => {
             <tbody className="divide-y divide-slate-100 bg-white">
               {logs.length > 0 ? (
                 logs.map((log) => (
-                  <>
-                    <tr key={log.id} className="hover:bg-slate-50 transition-colors">
+                  <Fragment key={log.id}>
+                    <tr className="hover:bg-slate-50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={cn(
                           "px-2 py-1 rounded-md text-[10px] font-bold uppercase",
@@ -104,12 +181,18 @@ export const ApiLogsManagement = () => {
                               <pre className="p-4 bg-slate-900 text-slate-300 rounded-xl text-xs overflow-x-auto max-h-[300px]">
                                 {JSON.stringify(log.response_payload, null, 2)}
                               </pre>
+                              {log.error_message && (
+                                <div className="mt-3 rounded-xl border border-rose-100 bg-rose-50 p-3">
+                                  <p className="text-[10px] font-bold uppercase tracking-widest text-rose-500">Error Message</p>
+                                  <p className="mt-1 text-xs font-semibold text-rose-700">{log.error_message}</p>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 ))
               ) : (
                 <tr>

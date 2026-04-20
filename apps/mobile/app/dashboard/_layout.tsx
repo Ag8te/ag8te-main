@@ -54,7 +54,7 @@ export default function DashboardLayout() {
       <Drawer.Screen
         name="driver"
         options={{
-          drawerLabel: 'Driver Dashboard',
+          drawerLabel: 'Driver Account Management',
           title: 'Driver Console',
           drawerIcon: ({ color, size }) => <LayoutDashboard color={color} size={size} />,
           drawerItemStyle: { display: user?.role === 'driver' ? 'flex' : 'none' }
@@ -63,7 +63,7 @@ export default function DashboardLayout() {
       <Drawer.Screen
         name="professional"
         options={{
-          drawerLabel: 'Expert Dashboard',
+          drawerLabel: 'Expert Account Management',
           title: 'Expert Console',
           drawerIcon: ({ color, size }) => <LayoutDashboard color={color} size={size} />,
           drawerItemStyle: { display: user?.role === 'professional' ? 'flex' : 'none' }
@@ -72,7 +72,7 @@ export default function DashboardLayout() {
       <Drawer.Screen
         name="service-provider"
         options={{
-          drawerLabel: 'Service HUB',
+          drawerLabel: 'Service Account Management',
           title: 'Service HUB',
           drawerIcon: ({ color, size }) => <LayoutDashboard color={color} size={size} />,
           drawerItemStyle: { display: user?.role === 'service-provider' ? 'flex' : 'none' }

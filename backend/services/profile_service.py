@@ -10,6 +10,7 @@ from backend.extensions import db
 from backend.models import User, PendingProfileUpdate, Payment
 from backend.services.payment_service import PaymentService
 from backend.services.agent_service import AgentService
+from backend.utils.url import get_public_backend_base_url, get_request_frontend_base_url
 
 logger = logging.getLogger(__name__)
 
@@ -122,12 +123,13 @@ class ProfileService:
             
         user_id_hex = str(user.id).replace('-', '')
         external_id = f"reg_fee_{user_id_hex}_{uuid.uuid4().hex[:8]}"
-        base_url = current_app.config.get('BACKEND_URL', 'https://mzansiserve.co.za')
+        backend_url = get_public_backend_base_url()
+        frontend_url = get_request_frontend_base_url()
         
         urls = {
-            'success_url': f"{base_url}/api/profile/payment-callback?callback_status=success&external_id={external_id}&provider={provider}",
-            'cancel_url': f"{base_url}/api/profile/payment-callback?callback_status=cancel&external_id={external_id}&provider={provider}",
-            'failure_url': f"{base_url}/api/payments/callback?external_id={external_id}" # Fallback
+            'success_url': f"{backend_url}/api/profile/payment-callback?callback_status=success&external_id={external_id}&provider={provider}&frontend_url={frontend_url}",
+            'cancel_url': f"{backend_url}/api/profile/payment-callback?callback_status=cancel&external_id={external_id}&provider={provider}&frontend_url={frontend_url}",
+            'failure_url': f"{backend_url}/api/profile/payment-callback?callback_status=failure&external_id={external_id}&provider={provider}&frontend_url={frontend_url}"
         }
         
         checkout = PaymentService.create_checkout(
@@ -209,34 +211,126 @@ class ProfileService:
 
     @staticmethod
     def _prepare_payload(user, data, files):
-        payload = {}
-        for key in ('phone', 'full_name', 'surname', 'next_of_kin', 'operating_areas', 'availability',
-                    'driver_services', 'professional_services', 'provider_services', 
-                    'highest_qualification', 'professional_body'):
-            if key in data and data[key] is not None:
-                payload[key] = data[key]
-                
-        if files:
-            upload_folder = current_app.config.get('UPLOAD_FOLDER')
-            for key, filename_prefix in [('proof_of_residence', 'proof_pending'), 
-                                       ('drivers_license_document', 'license_pending')]:
-                if key in files:
-                    file = files[key]
-                    if file and file.filename:
-                        ext = file.filename.rsplit('.', 1)[1].lower()
-                        unique = f"{str(user.id)}_{filename_prefix}_{uuid.uuid4().hex[:8]}.{ext}"
-                        file.save(os.path.join(upload_folder, unique))
-                        payload[f"{'driver_license' if 'license' in key else 'proof_of_residence'}_url"] = f"/uploads/{unique}"
-                        
-            if 'qualification_documents' in files:
-                qual_files = files.getlist('qualification_documents')
-                qual_urls = []
-                for file in qual_files:
-                    if file and file.filename:
-                        ext = file.filename.rsplit('.', 1)[1].lower()
-                        unique = f"{str(user.id)}_qual_pending_{uuid.uuid4().hex[:8]}.{ext}"
-                        file.save(os.path.join(upload_folder, unique))
-                        qual_urls.append(f"/uploads/{unique}")
-                if qual_urls:
-                    payload['qualification_urls'] = qual_urls
-        return payload
+      payload = {}
+
+      # =========================
+      # BASIC FIELD MAPPING (UNCHANGED)
+      # =========================
+      for key in (
+          'phone', 'full_name', 'surname', 'next_of_kin',
+          'operating_areas', 'availability',
+          'driver_services', 'professional_services', 'provider_services',
+          'highest_qualification', 'professional_body'
+      ):
+          if key in data and data[key] is not None:
+              payload[key] = data[key]
+
+      # =========================
+       # CLEAN AVAILABILITY STRUCTURE (UNCHANGED)
+      # =========================
+      if 'availability' in data and data['availability'] is not None:
+          availability = data['availability']
+
+          if isinstance(availability, dict):
+              payload['availability'] = {
+                  'is_online': bool(availability.get('is_online', False))
+              }
+
+      # =========================
+      # FILE HANDLING
+      # =========================
+      if files:
+          upload_folder = current_app.config.get('UPLOAD_FOLDER')
+  
+          # -------------------------
+          # EXISTING FILES (UNCHANGED)
+          # -------------------------
+          for key, filename_prefix in [
+              ('proof_of_residence', 'proof_pending'),
+              ('drivers_license_document', 'license_pending')
+          ]: 
+              if key in files:
+                  file = files[key]
+                  if file and file.filename:
+                      ext = file.filename.rsplit('.', 1)[1].lower()
+                      unique = f"{str(user.id)}_{filename_prefix}_{uuid.uuid4().hex[:8]}.{ext}"
+                      file.save(os.path.join(upload_folder, unique))
+ 
+                      payload[
+                          'driver_license_url' if 'license' in key else 'proof_of_residence_url'
+                      ] = f"/uploads/{unique}"
+  
+          # -------------------------
+          # QUALIFICATIONS (UNCHANGED)
+          # -------------------------
+          if 'qualification_documents' in files:
+              qual_files = files.getlist('qualification_documents')
+              qual_urls = []
+  
+              for file in qual_files:
+                  if file and file.filename:
+                      ext = file.filename.rsplit('.', 1)[1].lower()
+                      unique = f"{str(user.id)}_qual_pending_{uuid.uuid4().hex[:8]}.{ext}"
+                      file.save(os.path.join(upload_folder, unique))
+                      qual_urls.append(f"/uploads/{unique}")
+  
+              if qual_urls:
+                  payload['qualification_urls'] = qual_urls
+  
+          # =========================
+          # 🚗 NEW: VEHICLE FILE HANDLING
+          # =========================
+ 
+          # Get vehicles from payload (already coming from frontend)
+          driver_services = payload.get('driver_services', [])
+  
+          # Loop through each vehicle
+          for i, vehicle in enumerate(driver_services):
+  
+              # -------------------------
+              # 📸 HANDLE VEHICLE IMAGES
+              # -------------------------
+              images = []
+              img_index = 0
+  
+              # Loop until no more images found
+              while True:
+                  file_key = f"vehicles[{i}][images][{img_index}]"
+                  file = files.get(file_key)
+  
+                  if not file:
+                      break  # stop when no more images
+  
+                  if file and file.filename:
+                      ext = file.filename.rsplit('.', 1)[1].lower()
+                      unique = f"{str(user.id)}_vehicle_{i}_{uuid.uuid4().hex[:8]}.{ext}"
+                      filepath = os.path.join(upload_folder, unique)
+  
+                      file.save(filepath)
+                      images.append(f"/uploads/{unique}")
+  
+                  img_index += 1
+  
+              # Attach images to vehicle
+              if images:
+                  vehicle['images'] = images
+  
+              # -------------------------
+              # 📄 HANDLE VEHICLE DISK
+               # -------------------------
+              disk_file = files.get(f"vehicles[{i}][disk_document]")
+  
+              if disk_file and disk_file.filename:
+                  ext = disk_file.filename.rsplit('.', 1)[1].lower()
+                  unique = f"{str(user.id)}_disk_{i}_{uuid.uuid4().hex[:8]}.{ext}"
+                  filepath = os.path.join(upload_folder, unique)
+  
+                  disk_file.save(filepath)
+  
+                  # Attach disk to vehicle
+                  vehicle['disk_document'] = f"/uploads/{unique}"
+   
+          # Save updated vehicles back
+          payload['driver_services'] = driver_services
+  
+      return payload

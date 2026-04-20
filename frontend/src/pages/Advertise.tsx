@@ -216,7 +216,7 @@ const Advertise = () => {
                                                     window.location.href = "/dashboard/advertiser";
                                                 }}
                                             >
-                                                Go to Advertiser Dashboard
+                                                Go to Advertiser Account Management
                                             </Button>
                                         </div>
                                     )}

@@ -129,9 +129,9 @@ const ServiceProviderDashboard = () => {
                         <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>Complete these steps to start receiving service bookings:</Typography>
                         <Stack spacing={1}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                {user.email_verified ? <CheckCircleIcon sx={{ fontSize: 16, color: 'success.main' }} /> : <InfoIcon sx={{ fontSize: 16, color: 'warning.main' }} />}
-                                <Typography variant="caption" sx={{ color: user.email_verified ? 'success.main' : 'warning.main', fontWeight: 600 }}>
-                                    {user.email_verified ? "Email verified" : "Check your email for verification link"}
+                                {user.is_paid ? <CheckCircleIcon sx={{ fontSize: 16, color: 'success.main' }} /> : <InfoIcon sx={{ fontSize: 16, color: 'warning.main' }} />}
+                                <Typography variant="caption" sx={{ color: user.is_paid ? 'success.main' : 'warning.main', fontWeight: 600 }}>
+                                    {user.is_paid ? "Registration payment received" : "Complete your Yoco registration payment"}
                                 </Typography>
                             </Box>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -351,7 +351,7 @@ const ServiceProviderDashboard = () => {
 
     return (
         <DashboardLayout
-            title={activeTab === 'overview' ? 'Service HUB' : navItems.find(item => item.id === activeTab)?.label || 'Dashboard'}
+            title={activeTab === 'overview' ? 'Service HUB' : navItems.find(item => item.id === activeTab)?.label || 'Account Management'}
             activeTab={activeTab}
             onTabChange={setActiveTab}
             onLogout={handleLogout}

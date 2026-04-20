@@ -21,9 +21,47 @@ from backend.services.wallet_service import WalletService
 from backend.services.payment_service import PaymentService
 from backend.services.agent_service import AgentService
 from backend.services.auth_service import AuthService
+from backend.utils.url import get_callback_frontend_base_url, get_public_backend_base_url, get_request_frontend_base_url
 
 bp = Blueprint('auth', __name__)
 logger = logging.getLogger(__name__)
+
+REGISTRATION_FEE_AMOUNT = 10000  # R100.00 in cents
+
+
+def _create_registration_checkout_for_user(user, provider='yoco'):
+    """Create a one-time Yoco checkout for non-client registration."""
+    if user.role == 'client':
+        raise ValueError("Clients do not require registration payment.")
+
+    provider_name = (provider or 'yoco').strip().lower()
+    if provider_name != 'yoco':
+        raise ValueError("Registration payments are processed with Yoco only.")
+
+    user_id_hex = str(user.id).replace('-', '')
+    external_id = f"reg_fee_{user_id_hex}_{uuid.uuid4().hex[:8]}"
+
+    backend_url = get_public_backend_base_url()
+    frontend_url = get_request_frontend_base_url()
+    success_url = f"{backend_url}/api/auth/registration-callback?callback_status=success&external_id={external_id}&provider=yoco&frontend_url={frontend_url}"
+    cancel_url = f"{backend_url}/api/auth/registration-callback?callback_status=cancel&external_id={external_id}&provider=yoco&frontend_url={frontend_url}"
+    failure_url = f"{backend_url}/api/auth/registration-callback?callback_status=failure&external_id={external_id}&provider=yoco&frontend_url={frontend_url}"
+
+    checkout_result = PaymentService.create_checkout(
+        amount=REGISTRATION_FEE_AMOUNT,
+        currency='ZAR',
+        external_id=external_id,
+        success_url=success_url,
+        cancel_url=cancel_url,
+        failure_url=failure_url,
+        provider='yoco'
+    )
+
+    return {
+        'redirect_url': checkout_result['redirect_url'],
+        'checkout_id': checkout_result['checkout_id'],
+        'external_id': external_id
+    }
 
 # Validation Schemas
 class RegisterSchema(Schema):
@@ -103,9 +141,6 @@ def login():
             return error_response('INVALID_CREDENTIALS', 'Invalid email, password, or role combination', None, 401)
         if error == "ACCOUNT_INACTIVE":
             return error_response('ACCOUNT_INACTIVE', 'Account is inactive', None, 403)
-        if error == "EMAIL_NOT_VERIFIED":
-            return error_response('EMAIL_NOT_VERIFIED', 'Your email address is not verified. Please check your inbox or resend the verification email.', None, 403)
-            
         access_token = create_access_token(identity=str(user.id))
         return success_response({
             'user': user.to_dict(),
@@ -336,94 +371,26 @@ def verify_email():
 @bp.route('/initiate-registration-payment', methods=['POST'])
 @jwt_required()
 def initiate_registration_payment():
-    """Initiate registration payment for a verified user"""
+    """Initiate registration payment for a user whose account is still unpaid."""
     try:
         data = request.json or {}
-        provider = data.get('provider', 'paypal')  # PayPal as default
+        provider = data.get('provider', 'yoco')
         
         user_id = get_jwt_identity()
         user = User.query.get(user_id)
         if not user:
             return error_response('USER_NOT_FOUND', 'User not found', None, 404)
-        
-        if not user.email_verified:
-            return error_response('EMAIL_NOT_VERIFIED', 'Please verify your email address first', None, 403)
+
+        if user.role == 'client':
+            return error_response('PAYMENT_NOT_REQUIRED', 'Clients do not pay a registration fee.', None, 400)
             
         if user.is_paid:
             return error_response('ALREADY_PAID', 'Registration fee already paid', None, 400)
-            
-        # Generate external_id for payment
-        user_id_hex = str(user.id).replace('-', '')
-        external_id = f"reg_fee_{user_id_hex}_{uuid.uuid4().hex[:8]}"
-        
-        # Check if user needs a subscription
-        # Providers and Professionals pay a recurring fee (subscription)
-        needs_subscription = user.role in ('professional', 'service-provider')
-        
-        backend_url = current_app.config.get('BACKEND_URL', 'https://mzansiserve.co.za').rstrip('/')
-        success_url = f"{backend_url}/api/auth/registration-callback?callback_status=success&external_id={external_id}&provider={provider}"
-        cancel_url = f"{backend_url}/api/auth/registration-callback?callback_status=cancel&external_id={external_id}&provider={provider}"
-        
-        if provider == 'paypal' and needs_subscription:
-            from backend.models import SubscriptionPlan
-            # Handle subscription flow
-            plan_name = f"{user.role.title()} Subscription"
-            plan = SubscriptionPlan.query.filter_by(name=plan_name).first()
-            if not plan:
-                plan = SubscriptionPlan(
-                    name=plan_name,
-                    description=f"Monthly subscription fee for {user.role}",
-                    price=100.00,
-                    currency='ZAR',
-                    interval='month'
-                )
-                db.session.add(plan)
-                db.session.commit()
-            
-            # Sync with PayPal if needed
-            if not plan.paypal_plan_id:
-                try:
-                    pp_plan = PaymentService.create_subscription_plan(
-                        name=plan.name,
-                        description=plan.description,
-                        price=float(plan.price),
-                        currency=plan.currency,
-                        interval=plan.interval,
-                        provider='paypal'
-                    )
-                    plan.paypal_plan_id = pp_plan['plan_id']
-                    db.session.commit()
-                except Exception as e:
-                    logger.error("Failed to create PayPal plan: %s", e)
-                    return error_response('PAYMENT_ERROR', 'Could not initialize subscription plan', None, 500)
-            
-            checkout_result = PaymentService.create_subscription(
-                user_id=str(user.id),
-                plan_id=plan.paypal_plan_id,
-                success_url=success_url,
-                cancel_url=cancel_url,
-                provider='paypal',
-                external_id=external_id
-            )
-        else:
-            # One-time payment flow
-            REGISTRATION_FEE_AMOUNT = 10000  # R100.00 in cents
-            checkout_result = PaymentService.create_checkout(
-                amount=REGISTRATION_FEE_AMOUNT,
-                currency='ZAR',
-                external_id=external_id,
-                success_url=success_url,
-                cancel_url=cancel_url,
-                failure_url=f"{backend_url}/api/auth/registration-callback?callback_status=failure&external_id={external_id}&provider={provider}",
-                provider=provider
-            )
-        
-        logger.info("initiate_registration_payment: success user_id=%s external_id=%s", user.id, external_id)
-        return success_response({
-            'redirect_url': checkout_result['redirect_url'],
-            'checkout_id': checkout_result['checkout_id'],
-            'external_id': external_id
-        })
+
+        checkout_result = _create_registration_checkout_for_user(user, provider=provider)
+
+        logger.info("initiate_registration_payment: success user_id=%s external_id=%s", user.id, checkout_result['external_id'])
+        return success_response(checkout_result)
     except Exception as e:
         logger.exception("initiate_registration_payment: failed")
         return error_response('INTERNAL_ERROR', 'Failed to initiate payment', None, 500)
@@ -489,7 +456,7 @@ def list_agents():
 
 @bp.route('/register-with-payment', methods=['POST'])
 def register_with_payment():
-    """User registration with payment checkout"""
+    """Registration flow: clients complete immediately, other roles pay via Yoco."""
     try:
         logger.info("register_with_payment: request received")
         registration_data_str = request.form.get('registration_data')
@@ -503,15 +470,32 @@ def register_with_payment():
         
         if error == "USER_EXISTS":
             return error_response('USER_EXISTS', 'An account with this email and role already exists', None, 400)
+        if error == "EXISTING_UNPAID_USER":
+            checkout_result = _create_registration_checkout_for_user(user, provider='yoco')
+            return success_response({
+                'user': user.to_dict(),
+                **checkout_result,
+                'message': 'Your registration already exists and payment is still pending. Redirecting to Yoco.'
+            }, 'Existing unpaid registration found. Redirecting to payment.', 200)
         if error == "INVALID_AGENT":
             return error_response('INVALID_FIELDS', 'Invalid agent code format.', None, 400)
         if error:
             return error_response('REGISTRATION_FAILED', error, None, 400)
-            
+
+        if user.role == 'client':
+            access_token = create_access_token(identity=str(user.id))
+            return success_response({
+                'user': user.to_dict(),
+                'token': access_token,
+                'message': 'Registration completed successfully.'
+            }, 'Registration completed successfully.', 201)
+
+        checkout_result = _create_registration_checkout_for_user(user, provider='yoco')
         return success_response({
             'user': user.to_dict(),
-            'message': 'Registration successful. Please check your email to verify your account and complete payment.'
-        }, 'Registration successful. Check email for verification.', 201)
+            **checkout_result,
+            'message': 'Registration details captured. Continue to Yoco to complete payment.'
+        }, 'Registration created. Redirecting to payment.', 201)
     except json.JSONDecodeError:
         return error_response('INVALID_DATA', 'Invalid registration data format', None, 400)
     except Exception as e:
@@ -587,7 +571,7 @@ def registration_payment_callback():
         subscription_id = request.args.get('subscription_id')
         callback_status = request.args.get('callback_status')
         
-        frontend_url = current_app.config.get('FRONTEND_URL', 'https://mzansiserve.co.za')
+        frontend_url = get_callback_frontend_base_url()
         
         if callback_status == 'cancel':
             return current_app.make_response((
@@ -610,7 +594,7 @@ def registration_payment_callback():
             
     except Exception as e:
         logger.exception("registration_callback: failed")
-        frontend_url_fallback = current_app.config.get('FRONTEND_URL', 'https://mzansiserve.co.za')
+        frontend_url_fallback = get_callback_frontend_base_url()
         return current_app.make_response((
             f'<html><body><script>window.location.href="{frontend_url_fallback}/?payment=error";</script></body></html>',
             302
@@ -618,9 +602,8 @@ def registration_payment_callback():
         
     except Exception as e:
         logger.exception("registration_callback: failed")
-        frontend_url_fallback = current_app.config.get('FRONTEND_URL', 'https://mzansiserve.co.za')
+        frontend_url_fallback = get_callback_frontend_base_url()
         return current_app.make_response((
             f'<html><body><script>window.location.href="{frontend_url_fallback}/?payment=error";</script></body></html>',
             302
         ))
-

@@ -32,7 +32,7 @@ The MzansiServe backend is a Flask API serving a service ads (cabs, professional
 - **Auth:** JWT; register (with registration fee + Yoco), login (email + password + role), logout, forgot/reset password, verify email, `GET /api/auth/me`, `GET /api/auth/roles-for-email`, countries, service-types (by category).
 - **Profile:** Get/update profile (multipart for profile image and documents); ID document, proof of residence, driver’s license, CV/resume (professional); next of kin; addresses.
 - **Service requests:** Create (cab / professional / provider), list, get by id, accept, cancel; cab quote (distance + price); status lifecycle.
-- **Dashboard:** Role-based dashboard (wallet balance, recent orders, recent requests, driver/professional/provider earnings and available jobs).
+- **Account Management:** Role-based account management area (wallet balance, recent orders, recent requests, driver/professional/provider earnings and available jobs).
 - **Payments:** Yoco checkout (registration and shop), wallet balance, payment status; webhooks remain server-side.
 - **Shop:** Products, categories, cart/orders (as per existing API).
 - **Location:** Calculate distance (POST); countries and service-types for registration/requests.
@@ -66,7 +66,7 @@ The MzansiServe backend is a Flask API serving a service ads (cabs, professional
   - `lib/features/auth/` – login, register, forgot password, role selection.
   - `lib/features/profile/` – view/edit profile, documents, addresses.
   - `lib/features/requests/` – create request (cab/professional/provider), list, detail, accept/cancel, quote (cab).
-  - `lib/features/dashboard/` – wallet, recent orders/requests, role-specific tiles.
+  - `lib/features/dashboard/` – wallet, recent orders/requests, role-specific account management tiles.
   - `lib/features/shop/` – products, categories, cart, checkout (if in scope).
   - `lib/features/payments/` – registration fee flow (redirect to Yoco / in-app webview or browser), wallet display.
 - **API client:** Single module that:
@@ -94,12 +94,12 @@ The MzansiServe backend is a Flask API serving a service ads (cabs, professional
   - **Cab:** Pickup/dropoff (map or address), preferences (e.g. car type). Optional: use quote endpoint for price preview; then create request.
   - **Professional:** Select profession (from service-types), description, scheduling if supported by API.
   - **Provider:** Select service type(s), description, scheduling if supported.
-- **List and detail:** My requests (as client); for drivers/professionals/providers, “available” and “my jobs” as per dashboard/requests API.
+- **List and detail:** My requests (as client); for drivers/professionals/providers, “available” and “my jobs” as per account management/requests API.
 - **Actions:** Accept, cancel (per API rules and role).
 
-### 3.5 Dashboard and Wallet
+### 3.5 Account Management and Wallet
 
-- **Dashboard:** Single screen with role-based content from `GET /api/dashboard`: wallet balance, recent orders, recent requests; for driver/professional/provider add earnings summary and available jobs with deep links to request detail/accept.
+- **Account Management:** Single screen with role-based content from `GET /api/dashboard`: wallet balance, recent orders, recent requests; for driver/professional/provider add earnings summary and available jobs with deep links to request detail/accept.
 - **Wallet:** Display balance; any top-up or payment flows as per existing API (e.g. Yoco redirect).
 
 ### 3.6 Profile and Settings
@@ -120,7 +120,7 @@ The MzansiServe backend is a Flask API serving a service ads (cabs, professional
 
 ### 3.9 Offline and UX
 
-- **Offline:** Optional: cache dashboard and “my requests” for read-only offline viewing; write actions require network.
+- **Offline:** Optional: cache account management and “my requests” for read-only offline viewing; write actions require network.
 - **Loading and errors:** Consistent loading indicators and error messages; retry where appropriate.
 - **Deep linking:** Optional: support `mzansiserve://` for post-payment return and password reset.
 
@@ -145,8 +145,8 @@ The MzansiServe backend is a Flask API serving a service ads (cabs, professional
 
 | Week | Focus | Deliverables |
 |------|--------|--------------|
-| **1** | Setup, auth, profile, API client | Flutter project; login/register/forgot-password; role selection; profile view/edit and documents; token storage and dashboard shell. |
-| **2** | Requests, dashboard, payments | Create/list/detail for cab and professional/provider requests; accept/cancel; dashboard with wallet and role-specific content; registration fee flow (redirect/return). |
+| **1** | Setup, auth, profile, API client | Flutter project; login/register/forgot-password; role selection; profile view/edit and documents; token storage and account management shell. |
+| **2** | Requests, account management, payments | Create/list/detail for cab and professional/provider requests; accept/cancel; account management with wallet and role-specific content; registration fee flow (redirect/return). |
 | **3** | Shop (if in scope), polish, QA | Shop browse and checkout (or skip and use time for QA); error handling and loading states; testing on Android and iOS; handover and short doc. |
 
 ---
@@ -166,7 +166,7 @@ The MzansiServe backend is a Flask API serving a service ads (cabs, professional
 
 ### 7.1 Scope Summary
 
-- **In scope:** Flutter app (Android + iOS) with auth, registration (with fee), profile, service requests (cab + professional + provider), dashboard, wallet, addresses, and (optionally) shop. Uses existing MzansiServe API only.
+- **In scope:** Flutter app (Android + iOS) with auth, registration (with fee), profile, service requests (cab + professional + provider), account management, wallet, addresses, and (optionally) shop. Uses existing MzansiServe API only.
 - **Out of scope:** Admin app, backend feature work, push notifications, formal UX design phase.
 
 ### 7.2 Quote (Indicative)
@@ -182,7 +182,7 @@ The MzansiServe backend is a Flask API serving a service ads (cabs, professional
 ### 7.3 Payment Milestones (Example)
 
 - **40%** on kick-off (signed scope and access to API/staging).
-- **40%** at end of week 2 (auth, profile, requests, dashboard, registration fee working).
+- **40%** at end of week 2 (auth, profile, requests, account management, registration fee working).
 - **20%** on delivery (source code, build instructions, short user/install doc, and acceptance).
 
 ### 7.4 What You Get

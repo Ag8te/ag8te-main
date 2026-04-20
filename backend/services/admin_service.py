@@ -5,6 +5,7 @@ import uuid
 import logging
 from datetime import datetime
 from flask import current_app
+from sqlalchemy import and_, or_
 from backend.extensions import db
 from backend.models import User, ServiceRequest, ServiceType, UserSelectedService, Payment, PendingProfileUpdate, AppSetting, Agent
 from backend.services.email_service import EmailService
@@ -12,6 +13,21 @@ from backend.services.email_service import EmailService
 logger = logging.getLogger(__name__)
 
 class AdminService:
+    @staticmethod
+    def _countable_user_query():
+        """Users visible in admin growth/base metrics.
+
+        Clients count immediately because they do not pay a registration fee.
+        Non-client registrations only count after payment is completed.
+        """
+        return User.query.filter(
+            or_(
+                User.role == 'client',
+                User.role == 'admin',
+                and_(User.role.in_(['driver', 'professional', 'service-provider']), User.is_paid.is_(True))
+            )
+        )
+
     @staticmethod
     def list_users(filters=None, limit=50, offset=0):
         """List users with optional filters"""
@@ -162,7 +178,7 @@ class AdminService:
     @staticmethod
     def get_stats():
         """Retrieve dashboard statistics"""
-        total_users = User.query.count()
+        total_users = AdminService._countable_user_query().count()
         total_revenue = db.session.query(db.func.sum(Payment.amount)).filter(Payment.status == 'completed').scalar() or 0
         total_requests = ServiceRequest.query.count()
         pending_withdrawals = WithdrawalRequest.query.filter_by(status='pending').count()
@@ -233,7 +249,9 @@ class AdminService:
         from datetime import timedelta
         
         shop_revenue = db.session.query(func.sum(Order.total)).filter(Order.status == 'paid').scalar() or 0
-        service_revenue = db.session.query(func.sum(ServiceRequest.payment_amount)).filter(ServiceRequest.status == 'completed').scalar() or 0
+        service_revenue = db.session.query(func.sum(ServiceRequest.payment_amount)).filter(
+            ServiceRequest.payment_status == 'paid'
+        ).scalar() or 0
         total_revenue = float(shop_revenue) + float(service_revenue)
         
         seven_days_ago = datetime.utcnow() - timedelta(days=7)
@@ -242,15 +260,18 @@ class AdminService:
             day = seven_days_ago + timedelta(days=i+1)
             start_of_day = datetime(day.year, day.month, day.day)
             end_of_day = start_of_day + timedelta(days=1)
-            count = User.query.filter(User.created_at >= start_of_day, User.created_at < end_of_day).count()
+            count = AdminService._countable_user_query().filter(
+                User.created_at >= start_of_day,
+                User.created_at < end_of_day
+            ).count()
             user_growth.append({'date': start_of_day.strftime('%b %d'), 'count': count})
 
         return {
             'users': {
-                'total': User.query.count(),
-                'drivers': User.query.filter_by(role='driver').count(),
-                'professionals': User.query.filter_by(role='professional').count(),
-                'providers': User.query.filter_by(role='service-provider').count(),
+                'total': AdminService._countable_user_query().count(),
+                'drivers': User.query.filter_by(role='driver', is_paid=True).count(),
+                'professionals': User.query.filter_by(role='professional', is_paid=True).count(),
+                'providers': User.query.filter_by(role='service-provider', is_paid=True).count(),
                 'clients': User.query.filter_by(role='client').count(),
                 'growth': user_growth
             },
@@ -290,7 +311,7 @@ class AdminService:
             'yoco': yoco.value if yoco else {
                 'enabled': False,
                 'secret_key': '',
-                'api_url': 'https://payments.yoco.com'
+                'api_url': current_app.config.get('YOCO_API_URL', 'https://payments.yoco.com')
             }
         }, None
 

@@ -37,7 +37,7 @@ class Config:
     PAYPAL_API_URL = os.environ.get('PAYPAL_API_URL') or 'https://api-m.sandbox.paypal.com'
     PAYPAL_MODE = os.environ.get('PAYPAL_MODE') or 'sandbox'
     YOCO_SECRET_KEY = os.environ.get('YOCO_SECRET_KEY')
-    YOCO_API_URL = 'https://payments.yoco.com'
+    YOCO_API_URL = os.environ.get('YOCO_API_URL') or 'https://payments.yoco.com'
     
     # Upload
     UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'uploads')
@@ -47,8 +47,8 @@ class Config:
     FLASK_ENV = os.environ.get('FLASK_ENV') or 'development'
     FLASK_DEBUG = os.environ.get('FLASK_DEBUG') == '1'
 
-    FRONTEND_URL = os.environ.get('FRONTEND_URL') or 'https://mzansiserve.co.za'
-    BACKEND_URL = os.environ.get('BACKEND_URL') or 'https://mzansiserve.co.za'
+    FRONTEND_URL = os.environ.get('FRONTEND_URL') or ('https://mzansiserve.co.za' if FLASK_ENV == 'production' else 'http://localhost:8080')
+    BACKEND_URL = os.environ.get('BACKEND_URL') or ('https://mzansiserve.co.za' if FLASK_ENV == 'production' else 'http://localhost:5006')
 
     # Google Maps
     GOOGLE_MAPS_API_KEY = os.environ.get('GOOGLE_MAPS_API_KEY') or ''

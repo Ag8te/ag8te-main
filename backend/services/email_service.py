@@ -9,6 +9,7 @@ from email.header import Header
 from flask import current_app, render_template
 from backend.models import EmailQueue
 from backend.extensions import db
+from backend.utils.url import get_public_frontend_base_url
 from datetime import datetime
 
 def _first_name(user):
@@ -134,7 +135,7 @@ class EmailService:
     @staticmethod
     def send_verification_email(user, token):
         """Send email verification email"""
-        frontend_url = current_app.config.get('FRONTEND_URL', 'http://localhost').rstrip('/')
+        frontend_url = get_public_frontend_base_url()
         verification_url = f"{frontend_url}/verify-email?token={token}"
         first_name = _first_name(user)
         subject = "Verify Your Email Address - Welcome to MzansiServe"
@@ -175,7 +176,7 @@ www.mzansiserve.co.za"""
     @staticmethod
     def send_password_reset_email(user, token):
         """Send password reset email"""
-        frontend_url = current_app.config.get('FRONTEND_URL', 'http://localhost').rstrip('/')
+        frontend_url = get_public_frontend_base_url()
         reset_url = f"{frontend_url}/reset-password?token={token}"
         
         first_name = _first_name(user)
@@ -203,7 +204,7 @@ www.mzansiserve.co.za"""
     def send_registration_confirmation(user):
         """Send email informing user they have successfully registered."""
         first_name = _first_name(user)
-        frontend_url = current_app.config.get('FRONTEND_URL', 'http://localhost').rstrip('/')
+        frontend_url = get_public_frontend_base_url()
         login_url = f"{frontend_url}/login"
         subject = "Registration Successful - Welcome to MzansiServe!"
         body = f"""Hi {first_name},
@@ -248,31 +249,59 @@ MzansiServe Team"""
     
     @staticmethod
     def send_registration_payment_confirmation(user, payment_amount):
-        """Send registration payment confirmation email"""
+        """Send registration payment acknowledgement email."""
         first_name = _first_name(user)
         payment_date = datetime.utcnow().strftime('%Y-%m-%d')
         reference = getattr(user, 'tracking_number', None) or 'Registration'
-        subject = "Payment Received - Registration Confirmed"
-        body = f"""Hi {first_name},
+        if user.role == 'client':
+            subject = "Registration Completed - Welcome to MzansiServe"
+            body = f"""Hi {first_name},
 
-Thank you! We have successfully received your registration payment of:
+Thank you. Your registration has been completed successfully.
 
-Amount: R{payment_amount:.2f}
+Amount Paid: R{payment_amount:.2f}
 Date: {payment_date}
 Reference: {reference}
 
-Your subscription/registration is now fully confirmed, and your account remains active.
+Your account is active and ready to use.
 
 Regards,
 MzansiServe Billing Team
 billing@mzansiserve.co.za"""
-        body_html = f"""<html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333 text-align: left;">
+            body_html = f"""<html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333 text-align: left;">
 <p>Hi {first_name},</p>
-<p>Thank you! We have successfully received your registration payment of:</p>
-<p><strong>Amount:</strong> R{payment_amount:.2f}<br>
+<p>Thank you. Your registration has been completed successfully.</p>
+<p><strong>Amount Paid:</strong> R{payment_amount:.2f}<br>
 <strong>Date:</strong> {payment_date}<br>
 <strong>Reference:</strong> {reference}</p>
-<p>Your subscription/registration is now fully confirmed, and your account remains active.</p>
+<p>Your account is active and ready to use.</p>
+<p>Regards,<br>MzansiServe Billing Team<br><a href="mailto:billing@mzansiserve.co.za">billing@mzansiserve.co.za</a></p>
+</body></html>"""
+        else:
+            account_type = (user.role or 'member').replace('-', ' ').title()
+            subject = "Registration Payment Received - Pending Admin Approval"
+            body = f"""Hi {first_name},
+
+Thank you. We have received your registration payment and created your MzansiServe {account_type} account.
+
+Amount Paid: R{payment_amount:.2f}
+Date: {payment_date}
+Reference: {reference}
+Current Status: Pending admin approval
+
+Your registration is now awaiting review by the system administrator. You will receive another email as soon as your account has been approved.
+
+Regards,
+MzansiServe Billing Team
+billing@mzansiserve.co.za"""
+            body_html = f"""<html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333 text-align: left;">
+<p>Hi {first_name},</p>
+<p>Thank you. We have received your registration payment and created your MzansiServe <strong>{account_type}</strong> account.</p>
+<p><strong>Amount Paid:</strong> R{payment_amount:.2f}<br>
+<strong>Date:</strong> {payment_date}<br>
+<strong>Reference:</strong> {reference}<br>
+<strong>Current Status:</strong> Pending admin approval</p>
+<p>Your registration is now awaiting review by the system administrator. You will receive another email as soon as your account has been approved.</p>
 <p>Regards,<br>MzansiServe Billing Team<br><a href="mailto:billing@mzansiserve.co.za">billing@mzansiserve.co.za</a></p>
 </body></html>"""
         email = EmailService.queue_email(
@@ -453,7 +482,7 @@ MzansiServe Team
     def send_user_approval_notification(user):
         """Send user approval notification email"""
         first_name = _first_name(user)
-        frontend_url = current_app.config.get('FRONTEND_URL', 'http://localhost').rstrip('/')
+        frontend_url = get_public_frontend_base_url()
         dashboard_url = f"{frontend_url}/dashboard"
         account_type = (user.role or 'member').replace('-', ' ').title()
         subject = "Account Approved - Welcome to MzansiServe!"
@@ -520,4 +549,3 @@ MzansiServe Compliance Team"""
         )
         EmailService.send_email(email_id=email.id)
         return email
-

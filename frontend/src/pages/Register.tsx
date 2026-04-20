@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import { Link } from "react-router-dom";
 import { Autocomplete, TextField } from "@mui/material";
 import {
   Eye, EyeOff, Mail, Lock, Phone, ChevronRight, Check, AlertTriangle,
@@ -9,10 +9,17 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { apiFetch } from "@/lib/api";
-import { cn } from "@/lib/utils";
+import { TERMS_LAST_UPDATED, TERMS_SECTIONS } from "@/pages/Terms";
+import { PRIVACY_LAST_UPDATED, PRIVACY_SECTIONS } from "@/pages/Privacy";
+
+const REGISTRATION_DRAFT_KEY = "registrationDraft";
+
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const baseInput = "w-full bg-slate-50/50 border rounded-2xl py-4 text-[#222222] placeholder:text-slate-400 focus:outline-none focus:ring-4 transition-all font-medium h-14";
@@ -33,26 +40,71 @@ type FormFields = {
   nationality: string; id_number: string; role: string;
   nokName: string; nokPhone: string; nokEmail: string;
   highestQualification: string; professionalBody: string; agent_id: string;
+  // Driver fields
+carMake: string;
+carModel: string;
+carYear: string;
+carPlate: string;
+
+// Services
+serviceDescription: string;
+carColor: string;
 };
 
 type FieldErrors = Partial<Record<keyof FormFields, string>>;
-
-const phoneRegex = /^[\d\s+]+$/;
+//Updated phoneregex
+const phoneRegex = /^(?:\+27|0)[6-8][0-9]{8}$/;
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // ─── Field-level validators ───────────────────────────────────────────────────
 const validators: Partial<Record<keyof FormFields, (v: string, form?: FormFields) => string>> = {
-  name: (v) => !v.trim() ? "First name is required" : "",
-  surname: (v) => !v.trim() ? "Surname is required" : "",
+ //added name validation and surname validation also email for a valid email address
+  name: (v) =>!v.trim() ? "First name is required" : !/^[A-Za-z\s'-]+$/.test(v) ? "Name must contain only letters": "",
+  surname: (v) => !v.trim() ? "Surname is required" : !/^[A-Za-z\s'-]+$/.test(v) ? "Surname must contain only letters" : "",
   email: (v) => !v.trim() ? "Email is required" : !emailRegex.test(v) ? "Enter a valid email address" : "",
   password: (v) => !v ? "Password is required" : v.length < 8 ? "Password must be at least 8 characters" : "",
   confirmPassword: (v, f) => !v ? "Please confirm your password" : v !== f?.password ? "Passwords do not match" : "",
   phone: (v) => !v.trim() ? "Phone number is required" : !phoneRegex.test(v) ? "Use only digits, spaces or +" : "",
-  id_number: (v) => !v.trim() ? "ID / Passport number is required" : "",
+  id_number: (v, f) => {
+  if (!v.trim()) return "ID / Passport number is required";
+
+  if (f?.nationality === "South Africa") {
+    if (!/^\d{13}$/.test(v)) return "SA ID must be 13 digits";
+  } else {
+    if (v.length < 6) return "Invalid passport number";
+  }
+
+  return "";
+},
   gender: (v) => !v ? "Please select your gender" : "",
   nokName: (v) => !v.trim() ? "Next of Kin full name is required" : "",
   nokPhone: (v) => v.trim() && !phoneRegex.test(v) ? "Use only digits, spaces or +" : "",
   role: (v) => !v ? "Please select a role to register as" : "",
+  nationality: (v) => !v ? "Please select your nationality" : "",
+  nokEmail: (v) => v.trim() && !emailRegex.test(v) ? "Enter a valid email address" : "",
+  carMake: (v, f) =>
+  f?.role === "driver" && !v.trim() ? "Car make is required" : "",
+
+carModel: (v, f) =>
+  f?.role === "driver" && !v.trim() ? "Car model is required" : "",
+
+carYear: (v, f) =>
+  f?.role === "driver"
+    ? !/^\d{4}$/.test(v)
+      ? "Enter valid year"
+      : ""
+    : "",
+
+carPlate: (v, f) =>
+  f?.role === "driver" && !v.trim() ? "License plate is required" : "",
+
+serviceDescription: (v, f) =>
+  (f?.role === "professional" || f?.role === "service-provider") && !v.trim()
+    ? "Service description is required"
+    : "",
+    //Added new validation
+    carColor: (v, f) =>
+  f?.role === "driver" && !v.trim() ? "Car color is required" : "",
 };
 
 // ─── Country List ─────────────────────────────────────────────────────────────
@@ -116,10 +168,14 @@ const Register = () => {
     name: "", surname: "", email: "", phone: "", password: "", confirmPassword: "",
     gender: "", nationality: "", id_number: "", role: "",
     nokName: "", nokPhone: "", nokEmail: "",
-    highestQualification: "", professionalBody: "", agent_id: ""
+    highestQualification: "", professionalBody: "", agent_id: "",
+    carMake: "",
+carModel: "",
+carYear: "",
+carPlate: "",
+serviceDescription: "",
+carColor: "",
   });
-
-  const [selectedProvider, setSelectedProvider] = useState<"paypal" | "yoco">("paypal");
 
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [touched, setTouched] = useState<Partial<Record<keyof FormFields, boolean>>>({});
@@ -134,38 +190,28 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [legalModal, setLegalModal] = useState<"terms" | "privacy" | null>(null);
+  const [legalReviewed, setLegalReviewed] = useState<{ terms: boolean; privacy: boolean }>({ terms: false, privacy: false });
   const { register } = useAuth();
-  const navigate = useNavigate();
   const { toast } = useToast();
+  const termsConsentRef = useRef<HTMLButtonElement | null>(null);
 
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [serviceOptions, setServiceOptions] = useState<any[]>([]);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
-  const [enabledGateways, setEnabledGateways] = useState<{paypal: boolean, yoco: boolean}>({ paypal: true, yoco: true });
+  //Added new 
+  const [carImages, setCarImages] = useState<File[]>([]);
+  const [carPreviews, setCarPreviews] = useState<string[]>([]);
+  const [draftRestored, setDraftRestored] = useState(false);
 
-  useEffect(() => {
-    const fetchGateways = async () => {
-      try {
-        const response = await apiFetch("/api/public/payment-gateways");
-        if (response?.success && response.data) {
-          const gateways = {
-            paypal: response.data.paypal?.enabled ?? false,
-            yoco: response.data.yoco?.enabled ?? false
-          };
-          setEnabledGateways(gateways);
-          
-          if (!gateways.paypal && gateways.yoco) {
-            setSelectedProvider("yoco");
-          } else if (gateways.paypal && !gateways.yoco) {
-            setSelectedProvider("paypal");
-          }
-        }
-      } catch (error) {
-        console.error("Failed to fetch payment gateways:", error);
-      }
-    };
-    fetchGateways();
-  }, []);
+  const legalTab = legalModal ?? "terms";
+
+  const closeLegalModal = () => {
+    setLegalModal(null);
+    window.setTimeout(() => {
+      termsConsentRef.current?.focus();
+    }, 0);
+  };
 
   useEffect(() => {
     if (form.role === 'service-provider' || form.role === 'professional') {
@@ -178,24 +224,79 @@ const Register = () => {
   }, [form.role]);
 
   useEffect(() => {
+    const rawDraft = localStorage.getItem(REGISTRATION_DRAFT_KEY);
+    if (!rawDraft) {
+      setDraftRestored(true);
+      return;
+    }
+
+    try {
+      const draft = JSON.parse(rawDraft);
+      if (draft?.form) {
+        setForm((prev) => ({ ...prev, ...draft.form }));
+      }
+      if (Array.isArray(draft?.selectedServices)) {
+        setSelectedServices(draft.selectedServices);
+      }
+      if (typeof draft?.agreed === "boolean") {
+        setAgreed(draft.agreed);
+      }
+    } catch (error) {
+      console.error("Failed to restore registration draft:", error);
+    } finally {
+      setDraftRestored(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!draftRestored) return;
+
+    localStorage.setItem(
+      REGISTRATION_DRAFT_KEY,
+      JSON.stringify({
+        form,
+        selectedServices,
+        agreed,
+      })
+    );
+  }, [draftRestored, form, selectedServices, agreed]);
+
+  useEffect(() => {
     if (isSubmitted) {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   }, [isSubmitted]);
 
   // ─── Update field + clear its error ────────────────────────────────────────
+
   const update = (field: keyof FormFields, value: string) => {
-    setForm((f) => {
-      const next = { ...f, [field]: value };
-      // Re-validate live once the field has been touched
-      if (touched[field]) {
-        const validate = validators[field];
-        const msg = validate ? validate(value, next) : "";
-        setFieldErrors((prev) => ({ ...prev, [field]: msg }));
-      }
-      return next;
-    });
-  };
+
+  // Normalize
+  if (field === "email") value = value.toLowerCase().trim();
+  if (field === "password") value = value.trim();
+  if (field === "agent_id") value = value.toUpperCase();
+
+  setForm((f) => {
+    const next = { ...f, [field]: value };
+
+    if (touched[field]) {
+      const validate = validators[field];
+      const msg = validate ? validate(value, next) : "";
+      setFieldErrors((prev) => ({ ...prev, [field]: msg }));
+    }
+
+    //  Fix confirm password bug
+    if (field === "password" && next.confirmPassword) {
+      setFieldErrors(prev => ({
+        ...prev,
+        confirmPassword:
+          next.confirmPassword !== value ? "Passwords do not match" : ""
+      }));
+    }
+
+    return next;
+  });
+};
 
   // ─── Blur → mark touched + validate ────────────────────────────────────────
   const handleBlur = (field: keyof FormFields) => {
@@ -223,22 +324,64 @@ const Register = () => {
     const allTouched: Partial<Record<keyof FormFields, boolean>> = {};
     (Object.keys(form) as (keyof FormFields)[]).forEach((k) => { allTouched[k] = true; });
     setTouched(allTouched);
+
+    //Validating service and qualififcation
+
+    if (
+  (form.role === "professional" || form.role === "service-provider") &&
+  selectedServices.length === 0
+) {
+  setServerError("Please select at least one service");
+  return false;
+}
+
+// professional qualification
+if (form.role === "professional" && !form.highestQualification.trim()) {
+  errors.highestQualification = "Highest qualification is required";
+}
+
+if (form.role === "driver") {
+  if (!form.carMake || !form.carModel || !form.carYear || !form.carPlate) {
+    setServerError("Please complete all vehicle details");
+    return false;
+  }
+}
+
+// validate pictures
+if (form.role === "driver" && carImages.length < 3) {
+  setServerError("Please upload at least 3 car images");
+  return false;
+}
+
     return Object.keys(errors).length === 0;
   };
 
   // ─── File helpers ───────────────────────────────────────────────────────────
-  const validateFile = (file: File) => {
-    const maxSize = 5 * 1024 * 1024;
-    const allowed = ["image/jpeg", "image/png", "image/jpg", "application/pdf",
-      "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"];
-    if (file.size > maxSize) return "File too large. Max 5MB allowed.";
-    if (!allowed.includes(file.type)) return "Unsupported file type.";
-    return null;
+  //updated files uploading
+  const validateFile = (file: File, field?: string) => {
+  const maxSize = 5 * 1024 * 1024;
+
+  if (file.size > maxSize) return "File too large. Max 5MB allowed.";
+
+  const allowedTypes: Record<string, string[]> = {
+    profile_photo: ["image/jpeg", "image/png"],
+    id_document: ["image/jpeg", "image/png", "application/pdf"],
+    proof_of_residence: ["image/jpeg", "image/png", "application/pdf"],
+    drivers_license: ["image/jpeg", "image/png", "application/pdf"],
+    cv_resume: ["application/pdf"],
+    qualification_documents: ["image/jpeg", "image/png", "application/pdf"],
   };
+
+  if (field && allowedTypes[field] && !allowedTypes[field].includes(file.type)) {
+    return "Invalid file type for this document";
+  }
+
+  return null;
+};
 
   const updateFile = (field: string, file: File | null) => {
     if (file) {
-      const err = validateFile(file);
+      const err = validateFile(file, field);
       if (err) { toast({ title: "Upload Error", description: err, variant: "destructive" }); return; }
       if (file.type.startsWith("image/")) {
         setPreviews((p) => ({ ...p, [field]: URL.createObjectURL(file) }));
@@ -256,6 +399,29 @@ const Register = () => {
     return () => { Object.values(previews).forEach((url) => { if (url) URL.revokeObjectURL(url); }); };
   }, [previews]);
 
+  //Added new handlecar images
+  const handleCarImages = (files: FileList | null) => {
+  if (!files) return;
+
+  const newFiles = Array.from(files);
+
+  // Limit max images (optional: 6)
+  const updated = [...carImages, ...newFiles].slice(0, 6);
+
+  setCarImages(updated);
+
+  const previews = updated.map((file) => URL.createObjectURL(file));
+  setCarPreviews(previews);
+};
+
+//added new remove image function
+const removeCarImage = (index: number) => {
+  const updatedFiles = carImages.filter((_, i) => i !== index);
+  const updatedPreviews = carPreviews.filter((_, i) => i !== index);
+
+  setCarImages(updatedFiles);
+  setCarPreviews(updatedPreviews);
+};
   // ─── Password strength ──────────────────────────────────────────────────────
   const passwordStrength = (() => {
     const p = form.password;
@@ -275,6 +441,7 @@ const Register = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setServerError("");
+    
 
     if (!validateAll()) {
       setServerError("Please fix the highlighted fields before continuing.");
@@ -302,6 +469,20 @@ const Register = () => {
       const payloadServices = selectedServices.map(s => ({ name: s, description: "" }));
       const formData = new FormData();
       formData.append("registration_data", JSON.stringify({
+        car_details: form.role === "driver" ? {
+        make: form.carMake,
+        model: form.carModel,
+        year: form.carYear,
+        plate: form.carPlate,
+        color: form.carColor
+        }: null,
+
+
+
+        service_description:
+        (form.role === "professional" || form.role === "service-provider")
+        ? form.serviceDescription
+         : "",
         email: form.email, password: form.password, password_confirm: form.confirmPassword,
         role: form.role, full_name: form.name, surname: form.surname, phone: form.phone,
         gender: form.gender, nationality: form.nationality, id_number: form.id_number,
@@ -309,9 +490,11 @@ const Register = () => {
         highest_qualification: form.highestQualification, professional_body: form.professionalBody, agent_id: form.agent_id,
         professional_services: form.role === 'professional' ? payloadServices : [],
         provider_services: form.role === 'service-provider' ? payloadServices : [],
-        provider: selectedProvider
       }));
       if (files.profile_photo) formData.append("profile_photo", files.profile_photo);
+      carImages.forEach((file) => {
+        formData.append("car_images", file);
+      });
       if (files.id_document) formData.append("id_document", files.id_document);
       if (files.proof_of_residence) formData.append("proof_of_residence", files.proof_of_residence);
       if (files.drivers_license) formData.append("drivers_license", files.drivers_license);
@@ -320,16 +503,25 @@ const Register = () => {
 
       const result = await register(formData);
       if (result.success) {
-        toast({ title: "Verification Sent!", description: "Please check your email to verify and complete payment." });
+        if (result.data?.redirect_url) {
+          localStorage.setItem("registrationPaymentUser", JSON.stringify(result.data.user));
+          window.location.href = result.data.redirect_url;
+          return;
+        }
+
+        localStorage.removeItem(REGISTRATION_DRAFT_KEY);
+        toast({ title: "Registration Complete", description: "Your account has been created successfully." });
         setIsSubmitted(true);
       } else {
         setServerError(result.error || "Registration failed");
       }
-    } catch (err: unknown) {
+     } catch (err: unknown) {
       setServerError(err instanceof Error ? err.message : "An unexpected error occurred");
-    } finally {
+     } finally {
       setLoading(false);
-    }
+     }
+
+    
   };
 
   // ─── Shared input class helper ──────────────────────────────────────────────
@@ -421,19 +613,17 @@ const Register = () => {
                   <Check className="h-10 w-10" />
                 </div>
                 <h1 className="text-3xl font-bold text-[#222222] tracking-tight mb-3">
-                  Verification Sent!
+                  Registration Complete
                 </h1>
                 <p className="text-slate-600 text-base mb-8">
-                  Your registration details have been captured. Please check your inbox for a verification email. You'll be able to complete your registration payment once your email is verified.
+                  Your account has been created successfully. You can now sign in and start using MzansiServe.
                 </p>
                 <div className="space-y-3">
                   <Button asChild className="w-full h-14 rounded-2xl bg-primary hover:bg-primary/90 text-white font-bold text-base shadow-xl shadow-primary/10 transition-all active:scale-[0.98]">
-                    <a href="https://mail.google.com" target="_blank" rel="noopener noreferrer">
-                      <Mail className="mr-2 h-5 w-5" /> Open Email
-                    </a>
+                    <Link to="/login">Go to Login</Link>
                   </Button>
                   <Button asChild variant="ghost" className="w-full h-12 rounded-2xl text-slate-500">
-                    <Link to="/login">Go to Login</Link>
+                    <Link to="/">Return Home</Link>
                   </Button>
                 </div>
               </CardContent>
@@ -490,7 +680,7 @@ const Register = () => {
                 )}
               </AnimatePresence>
 
-              <form onSubmit={handleSubmit} className="space-y-10" noValidate>
+              <form onSubmit={handleSubmit} className="space-y-10" noValidate autoComplete="off">
 
                 {/* ── Account Details ── */}
                 <section className="space-y-5">
@@ -523,7 +713,7 @@ const Register = () => {
                           onChange={(e) => update("email", e.target.value)}
                           onBlur={() => handleBlur("email")}
                           className={ic("email", true)}
-                          autoComplete="email" />
+                          autoComplete="off" />
                       </div>
                       <FieldError msg={fieldErrors.email} />
                     </div>
@@ -539,7 +729,7 @@ const Register = () => {
                           onChange={(e) => update("password", e.target.value)}
                           onBlur={() => handleBlur("password")}
                           className={ic("password", true, true)}
-                          autoComplete="new-password" />
+                          autoComplete="off" />
                         <button type="button" onClick={() => setShowPassword(!showPassword)}
                           className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors">
                           {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -568,7 +758,7 @@ const Register = () => {
                           onChange={(e) => update("confirmPassword", e.target.value)}
                           onBlur={() => handleBlur("confirmPassword")}
                           className={ic("confirmPassword", true)}
-                          autoComplete="new-password" />
+                          autoComplete="off" />
                       </div>
                       <FieldError msg={fieldErrors.confirmPassword} />
                     </div>
@@ -627,6 +817,8 @@ const Register = () => {
                     <div className="space-y-1">
                       <label className={fieldLabel}>Nationality<Req /></label>
                       <Autocomplete
+                        autoHighlight={false}
+                        openOnFocus={false}
                         options={countries}
                         value={form.nationality}
                         onChange={(_, newValue) => {
@@ -638,6 +830,7 @@ const Register = () => {
                               {...params.inputProps}
                               placeholder="Search country..."
                               className={ic("nationality")}
+                              autoComplete="new-password"
                             />
                           </div>
                         )}
@@ -735,6 +928,18 @@ const Register = () => {
                 </AnimatePresence>
 
                 {/* ── Services Offered ── */}
+                {(form.role === "professional" || form.role === "service-provider") && (
+  <div className="space-y-1 mt-4">
+    <label className={fieldLabel}>Service Description<Req /></label>
+    <textarea
+      value={form.serviceDescription}
+      onChange={(e) => update("serviceDescription", e.target.value)}
+      onBlur={() => handleBlur("serviceDescription")}
+      className="w-full bg-slate-50 border rounded-2xl p-4 h-28"
+    />
+    <FieldError msg={fieldErrors.serviceDescription} />
+  </div>
+)}
                 <AnimatePresence>
                   {(form.role === "professional" || form.role === "service-provider") && (
                     <motion.section
@@ -749,6 +954,8 @@ const Register = () => {
                         <Autocomplete
                           multiple
                           freeSolo
+                          autoHighlight={false}
+                          openOnFocus={false}
                           options={serviceOptions.map((opt) => opt.name)}
                           value={selectedServices}
                           onChange={(_, newValue) => setSelectedServices(newValue as string[])}
@@ -758,6 +965,10 @@ const Register = () => {
                               variant="outlined"
                               placeholder="e.g. Electrical Maintenance"
                               className="bg-slate-50 border-slate-100 rounded-2xl"
+                              inputProps={{
+                                ...params.inputProps,
+                                autoComplete: "new-password",
+                              }}
                               sx={{
                                 '& .MuiOutlinedInput-root': {
                                   borderRadius: '16px',
@@ -776,6 +987,105 @@ const Register = () => {
                     </motion.section>
                   )}
                 </AnimatePresence>
+
+                {/* ── vehicle information ── */}
+                 
+                 <AnimatePresence>
+  {form.role === "driver" && (
+    <motion.section
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      className="space-y-5 pt-6 border-t border-slate-50"
+    >
+      <p className={sectionLabel}>Vehicle Information</p>
+
+      <div className="grid gap-5 sm:grid-cols-2">
+        <input
+          placeholder="Car Make"
+          value={form.carMake}
+          onChange={(e) => update("carMake", e.target.value)}
+          onBlur={() => handleBlur("carMake")}
+          className={ic("carMake")}
+        />
+        <FieldError msg={fieldErrors.carMake} />
+
+        <input
+          placeholder="Car Model"
+          value={form.carModel}
+          onChange={(e) => update("carModel", e.target.value)}
+          onBlur={() => handleBlur("carModel")}
+          className={ic("carModel")}
+        />
+        <FieldError msg={fieldErrors.carModel} />
+
+        <input
+          placeholder="Year"
+          value={form.carYear}
+          onChange={(e) => update("carYear", e.target.value)}
+          onBlur={() => handleBlur("carYear")}
+          className={ic("carYear")}
+        />
+        <FieldError msg={fieldErrors.carYear} />
+
+        <input
+          placeholder="License Plate"
+          value={form.carPlate}
+          onChange={(e) => update("carPlate", e.target.value)}
+          onBlur={() => handleBlur("carPlate")}
+          className={ic("carPlate")}
+        />
+        <FieldError msg={fieldErrors.carPlate} />
+
+        <input
+          placeholder="Car Color"
+          value={form.carColor}
+          onChange={(e) => update("carColor", e.target.value)}
+          onBlur={() => handleBlur("carColor")}
+          className={ic("carColor")}
+        />
+         <FieldError msg={fieldErrors.carColor} />
+
+      </div>
+
+      {/* Image Button */}
+
+      <div className="space-y-3">
+  <label className={fieldLabel}>
+    Car Images (Minimum 3)<Req />
+  </label>
+
+  {/* Upload Button */}
+  <input
+    type="file"
+    multiple
+    accept="image/*"
+    onChange={(e) => handleCarImages(e.target.files)}
+  />
+
+  {/* Preview */}
+  <div className="grid grid-cols-3 gap-3 mt-3">
+    {carPreviews.map((src, index) => (
+      <div key={index} className="relative">
+        <img
+          src={src}
+          className="w-full h-24 object-cover rounded-xl"
+        />
+        <button
+          type="button"
+          onClick={() => removeCarImage(index)}
+          className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 text-xs"
+        >
+          ✕
+        </button>
+      </div>
+    ))}
+  </div>
+</div>
+
+    </motion.section>
+  )}
+</AnimatePresence>
 
                 {/* ── Verification Documents ── */}
                 <section className="space-y-5 pt-6 border-t border-slate-50">
@@ -802,51 +1112,37 @@ const Register = () => {
                 <section className="pt-6 border-t border-slate-50 space-y-6">
                   <div className="flex items-start gap-3">
                     <Checkbox id="terms" checked={agreed} onCheckedChange={(c) => setAgreed(c === true)}
+                      ref={termsConsentRef}
                       className="mt-1 border-slate-300 data-[state=checked]:bg-primary data-[state=checked]:border-primary" />
                     <label htmlFor="terms" className="text-sm font-medium text-slate-600 leading-relaxed cursor-pointer">
                       I agree to the{" "}
-                      <Link to="/terms" className="font-bold text-[#222222] underline underline-offset-4 hover:text-primary transition-colors">Terms of Service</Link>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.preventDefault(); setLegalModal("terms"); }}
+                        className="font-bold text-[#222222] underline underline-offset-4 hover:text-primary transition-colors"
+                      >
+                        Terms of Service
+                      </button>
                       {" "}and{" "}
-                      <Link to="/privacy" className="font-bold text-[#222222] underline underline-offset-4 hover:text-primary transition-colors">Privacy Policy</Link>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.preventDefault(); setLegalModal("privacy"); }}
+                        className="font-bold text-[#222222] underline underline-offset-4 hover:text-primary transition-colors"
+                      >
+                        Privacy Policy
+                      </button>
                       <Req />
                     </label>
                   </div>
 
-                  {/* Payment Method Selection */}
-                  <div className="space-y-4 pt-4">
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">Payment Method</p>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                       {enabledGateways.paypal && (
-                         <div 
-                           onClick={() => setSelectedProvider("paypal")}
-                           className={cn(
-                             "cursor-pointer rounded-xl border-2 p-4 transition-all flex items-center justify-between",
-                             selectedProvider === "paypal" ? "border-primary bg-primary/5" : "border-slate-100 bg-white"
-                           )}
-                         >
-                           <span className="text-sm font-bold text-[#222222]">PayPal / Card</span>
-                           {selectedProvider === "paypal" && <Check className="w-4 h-4 text-primary" />}
-                         </div>
-                       )}
-                       {enabledGateways.yoco && (
-                         <div 
-                           onClick={() => setSelectedProvider("yoco")}
-                           className={cn(
-                             "cursor-pointer rounded-xl border-2 p-4 transition-all flex items-center justify-between",
-                             selectedProvider === "yoco" ? "border-primary bg-primary/5" : "border-slate-100 bg-white"
-                           )}
-                         >
-                           <span className="text-sm font-bold text-[#222222]">Yoco (Local)</span>
-                           {selectedProvider === "yoco" && <Check className="w-4 h-4 text-primary" />}
-                         </div>
-                       )}
-                       {!enabledGateways.paypal && !enabledGateways.yoco && (
-                         <div className="col-span-full p-4 bg-slate-50 rounded-xl border border-slate-100 text-center">
-                           <p className="text-slate-500 text-sm font-medium">No payment methods currently available.</p>
-                         </div>
-                       )}
+                  {form.role && form.role !== "client" && (
+                    <div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-4">
+                      <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2">Registration Payment</p>
+                      <p className="text-sm text-slate-600">
+                        Drivers, professionals, and service providers complete registration with a once-off Yoco payment of <span className="font-bold text-[#222222]">R100.00</span>.
+                      </p>
                     </div>
-                  </div>
+                  )}
 
                   <Button
                     id="register-submit-button"
@@ -858,7 +1154,7 @@ const Register = () => {
                       <Loader2 className="w-6 h-6 animate-spin mx-auto" />
                     ) : (
                       <span className="flex items-center justify-center gap-2">
-                        Pay & Create Account <ChevronRight className="w-5 h-5" />
+                        {form.role === "client" ? "Create Account" : "Pay & Complete Registration"} <ChevronRight className="w-5 h-5" />
                       </span>
                     )}
                   </Button>
@@ -877,6 +1173,111 @@ const Register = () => {
           </Card>
         </motion.div>
       </div>
+
+      <Dialog open={legalModal !== null} onOpenChange={(open) => { if (!open) closeLegalModal(); }}>
+        <DialogContent className="w-screen h-screen max-w-none rounded-none p-0 overflow-hidden border-0 bg-white shadow-2xl sm:w-[95vw] sm:max-w-5xl sm:h-[88vh] sm:rounded-lg sm:border sm:border-slate-200">
+          <Tabs value={legalTab} onValueChange={(value) => setLegalModal(value as "terms" | "privacy")} className="h-full flex flex-col">
+            <DialogHeader className="px-6 py-4 border-b border-slate-100 bg-slate-50 shrink-0">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <DialogTitle className="text-xl font-bold text-slate-900">
+                    Legal Information
+                  </DialogTitle>
+                  <p className="text-sm text-slate-500 mt-1">
+                    Review the Terms of Service and Privacy Policy without leaving your registration progress.
+                  </p>
+                </div>
+                <TabsList className="bg-white border border-slate-200 p-1 h-11">
+                  <TabsTrigger value="terms" className="px-4 font-semibold">Terms</TabsTrigger>
+                  <TabsTrigger value="privacy" className="px-4 font-semibold">Privacy</TabsTrigger>
+                </TabsList>
+              </div>
+            </DialogHeader>
+
+            <TabsContent value="terms" className="mt-0 flex-1 overflow-hidden">
+              <ScrollArea className="h-[calc(88vh-150px)] px-6 py-5">
+                <div className="max-w-3xl mx-auto space-y-6 pb-6">
+                  <div className="rounded-2xl border border-slate-100 bg-slate-50 px-5 py-4">
+                    <h3 className="text-xl font-bold text-slate-900">Terms of Service</h3>
+                    <p className="text-sm text-slate-500 mt-1">Last updated: {TERMS_LAST_UPDATED}</p>
+                  </div>
+                  {TERMS_SECTIONS.map((section, index) => (
+                    <section key={section.id} className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+                      <h4 className="text-base font-bold text-slate-900 mb-3">
+                        {index + 1}. {section.title}
+                      </h4>
+                      <div className="whitespace-pre-line text-sm leading-7 text-slate-600">
+                        {section.content}
+                      </div>
+                    </section>
+                  ))}
+                </div>
+              </ScrollArea>
+            </TabsContent>
+
+            <TabsContent value="privacy" className="mt-0 flex-1 overflow-hidden">
+              <ScrollArea className="h-[calc(88vh-150px)] px-6 py-5">
+                <div className="max-w-3xl mx-auto space-y-6 pb-6">
+                  <div className="rounded-2xl border border-slate-100 bg-slate-50 px-5 py-4">
+                    <h3 className="text-xl font-bold text-slate-900">Privacy Policy</h3>
+                    <p className="text-sm text-slate-500 mt-1">Last updated: {PRIVACY_LAST_UPDATED}</p>
+                  </div>
+                  {PRIVACY_SECTIONS.map((section, index) => (
+                    <section key={section.id} className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+                      <h4 className="text-base font-bold text-slate-900 mb-3">
+                        {index + 1}. {section.title}
+                      </h4>
+                      <div className="whitespace-pre-line text-sm leading-7 text-slate-600">
+                        {section.content}
+                      </div>
+                    </section>
+                  ))}
+                </div>
+              </ScrollArea>
+            </TabsContent>
+
+            <div className="shrink-0 border-t border-slate-100 bg-white px-6 py-4 flex flex-col-reverse gap-3 sm:flex-row sm:justify-between sm:items-center">
+              <div className="space-y-2">
+                <div className="flex items-start gap-3">
+                  <Checkbox
+                    id="legal-reviewed"
+                    checked={legalReviewed[legalTab]}
+                    onCheckedChange={(checked) => {
+                      const isChecked = checked === true;
+                      setLegalReviewed((prev) => ({ ...prev, [legalTab]: isChecked }));
+                    }}
+                    className="mt-1 border-slate-300 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                  />
+                  <label htmlFor="legal-reviewed" className="text-sm font-medium text-slate-600 leading-relaxed cursor-pointer">
+                    I have reviewed the {legalTab === "terms" ? "Terms of Service" : "Privacy Policy"}.
+                  </label>
+                </div>
+                <p className="text-xs text-slate-500">
+                  Closing this popup returns you to the same registration form with your information preserved.
+                </p>
+              </div>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={closeLegalModal}
+                  className="h-11 rounded-xl border-slate-200 font-bold px-5"
+                >
+                  Close
+                </Button>
+                <Button
+                  type="button"
+                  onClick={closeLegalModal}
+                  disabled={!legalReviewed[legalTab]}
+                  className="h-11 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold px-5 disabled:opacity-50"
+                >
+                  Accept and Close
+                </Button>
+              </div>
+            </div>
+          </Tabs>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 };
