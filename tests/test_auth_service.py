@@ -66,7 +66,7 @@ def test_login_user_invalid_credentials(db_session):
     assert logged_in_user is None
     assert error == "INVALID_CREDENTIALS"
 
-def test_login_user_unverified_email(db_session):
+def test_login_user_unverified_email_allowed(db_session):
     email = "test@example.com"
     password = "password123"
     role = "client"
@@ -78,5 +78,5 @@ def test_login_user_unverified_email(db_session):
     
     logged_in_user, error = AuthService.login_user(email, password, role)
     
-    assert logged_in_user is None
-    assert error == "EMAIL_NOT_VERIFIED"
+    assert error is None
+    assert logged_in_user.id == user.id

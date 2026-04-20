@@ -70,7 +70,7 @@ describe("Register Component", () => {
 
   it("shows validation errors on empty submission", async () => {
     renderRegister();
-    const submitButton = screen.getByRole("button", { name: /Pay & Create Account/i });
+    const submitButton = screen.getByRole("button", { name: /(Create Account|Pay & Complete Registration)/i });
     fireEvent.click(submitButton);
 
     await waitFor(() => {
