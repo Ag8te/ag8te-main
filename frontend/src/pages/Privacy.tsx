@@ -5,9 +5,9 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Link } from "react-router-dom";
 
-const LAST_UPDATED = "25 February 2026";
+export const PRIVACY_LAST_UPDATED = "25 February 2026";
 
-const sections = [
+export const PRIVACY_SECTIONS = [
     {
         id: "introduction",
         title: "Introduction",
@@ -165,7 +165,7 @@ const Privacy = () => {
                                 <h1 className="text-4xl md:text-5xl font-semibold text-[#222222] tracking-tight mb-2">
                                     Privacy Policy
                                 </h1>
-                                <p className="text-slate-500 font-normal">Last updated: {LAST_UPDATED} · Aligned with POPIA</p>
+                                <p className="text-slate-500 font-normal">Last updated: {PRIVACY_LAST_UPDATED} · Aligned with POPIA</p>
                             </div>
                         </div>
                     </motion.div>
@@ -181,7 +181,7 @@ const Privacy = () => {
                         <aside className="hidden lg:block shrink-0 w-56">
                             <div className="sticky top-28 space-y-1">
                                 <p className="text-[11px] font-medium text-slate-400 uppercase tracking-[0.15em] mb-4">Contents</p>
-                                {sections.map((s) => (
+                                {PRIVACY_SECTIONS.map((s) => (
                                     <button
                                         key={s.id}
                                         onClick={() => scrollToSection(s.id)}
@@ -195,7 +195,7 @@ const Privacy = () => {
 
                         {/* ── Content ─────────────────────────────────── */}
                         <div ref={contentRef} className="flex-1 space-y-8">
-                            {sections.map((s, i) => (
+                            {PRIVACY_SECTIONS.map((s, i) => (
                                 <motion.div
                                     key={s.id}
                                     id={s.id}

@@ -317,7 +317,7 @@ const DriverDashboard = () => {
 
     return (
         <DashboardLayout
-            title={activeTab === 'overview' ? 'Driver Console' : navItems.find(item => item.id === activeTab)?.label || 'Dashboard'}
+            title={activeTab === 'overview' ? 'Driver Console' : navItems.find(item => item.id === activeTab)?.label || 'Account Management'}
             activeTab={activeTab}
             onTabChange={setActiveTab}
             onLogout={handleLogout}

@@ -171,7 +171,7 @@ const Overview: React.FC<OverviewProps> = ({
             '&:hover': { boxShadow: `0 12px 20px ${alpha(theme.palette.primary.main, 0.3)}` }
           }}
         >
-          Refresh Dashboard
+          Refresh Account Management
         </Button>
       </Stack>
 

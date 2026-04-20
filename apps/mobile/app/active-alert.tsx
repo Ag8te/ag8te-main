@@ -30,7 +30,7 @@ export default function ActiveAlert() {
         return (
             <View style={styles.errorContainer}>
                 <Typography variant="h3">No Active Alert</Typography>
-                <Button title="Back to Dashboard" onPress={endAlert} style={{ marginTop: 20 }} />
+                <Button title="Back to Account Management" onPress={endAlert} style={{ marginTop: 20 }} />
             </View>
         );
     }

@@ -66,7 +66,7 @@ const Footer = () => {
       { label: "Login", to: "/login", show: !isAuthenticated },
       { label: "Register", to: "/register", show: !isAuthenticated },
       { label: "My Bookings", to: isAuthenticated ? "/my-bookings" : "/login", show: true },
-      { label: "Dashboard", to: isAuthenticated ? getDashboardPath(user?.role) : "/login", show: user?.role !== "client" },
+      { label: "Account Management", to: isAuthenticated ? getDashboardPath(user?.role) : "/login", show: user?.role !== "client" },
       { label: "Logout", to: "#", show: isAuthenticated, isLogout: true },
     ].filter(l => l.show),
     Company: [
