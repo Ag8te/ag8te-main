@@ -58,8 +58,8 @@ const Login = () => {
   };
 
   const navigateByRole = (u: any) => {
-    // If user is verified but not paid, redirect to verification page to complete payment
-    if (u.email_verified && !u.is_paid && u.role !== 'client' && u.role !== 'admin') {
+    if (!u.is_paid && u.role !== 'client' && u.role !== 'admin') {
+      localStorage.setItem("registrationPaymentUser", JSON.stringify(u));
       navigate(`/verify-email?status=pending_payment`);
       return;
     }

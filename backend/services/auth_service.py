@@ -6,7 +6,7 @@ from flask import current_app
 from werkzeug.utils import secure_filename
 from backend.models import User, Agent, VehicleImage, UserSelectedService, SubscriptionPlan
 from backend.extensions import db
-from backend.utils.auth import generate_tracking_number, create_email_verification_token
+from backend.utils.auth import generate_tracking_number
 from backend.services.email_service import EmailService
 from backend.services.wallet_service import WalletService
 from backend.services.payment_service import PaymentService
@@ -19,15 +19,17 @@ class AuthService:
         """Standard user registration."""
         if User.query.filter_by(email=email, role=role).first():
             return None, "USER_EXISTS"
+
+        is_client = role == 'client'
         
         user = User(
             email=email,
             role=role,
             is_admin=False,
-            is_paid=False,
+            is_paid=is_client,
             is_approved=False,
             is_active=True,
-            email_verified=False,
+            email_verified=True,
             tracking_number=generate_tracking_number()
         )
         user.set_password(password)
@@ -43,12 +45,12 @@ class AuthService:
         
         # Initialize dependencies
         WalletService.get_or_create_wallet(user.id)
-        token = create_email_verification_token(user.id)
-        
-        try:
-            EmailService.send_verification_email(user, token)
-        except Exception as e:
-            logger.warning(f"Failed to send verification email for user {user.id}: {e}")
+
+        if is_client:
+            try:
+                EmailService.send_registration_confirmation(user)
+            except Exception as e:
+                logger.warning(f"Failed to send registration confirmation email for user {user.id}: {e}")
             
         return user, None
 
@@ -61,9 +63,6 @@ class AuthService:
         
         if not user.is_active:
             return None, "ACCOUNT_INACTIVE"
-            
-        if not user.email_verified:
-            return None, "EMAIL_NOT_VERIFIED"
             
         return user, None
 
@@ -84,13 +83,19 @@ class AuthService:
         # Validation is mostly handled by the blueprint schema, but we do critical checks here
         email = registration_data.get('email', '').strip()
         role = registration_data.get('role')
+        password = registration_data.get('password') or ''
         
         # Ensure critical strings are trimmed
         for key in ['full_name', 'surname', 'phone', 'id_number']:
             if key in registration_data and isinstance(registration_data[key], str):
                 registration_data[key] = registration_data[key].strip()
         
-        if User.query.filter_by(email=email, role=role).first():
+        existing_user = User.query.filter_by(email=email, role=role).first()
+        if existing_user:
+            # If the same non-client user has not paid yet, resume the payment flow
+            # instead of blocking them with a duplicate-account message.
+            if role != 'client' and not existing_user.is_paid and existing_user.check_password(password):
+                return existing_user, "EXISTING_UNPAID_USER"
             return None, "USER_EXISTS"
 
         # Agent logic
@@ -106,20 +111,22 @@ class AuthService:
                 except (ValueError, TypeError):
                     return None, "INVALID_AGENT"
 
+        is_client = role == 'client'
+
         # Create user
         user = User(
             email=email,
             role=role,
             is_admin=False,
-            is_paid=False,
+            is_paid=is_client,
             is_approved=False,
             is_active=True,
-            email_verified=False,
+            email_verified=True,
             tracking_number=generate_tracking_number(),
             nationality=registration_data.get('nationality'),
             agent_id=agent_uuid,
         )
-        user.set_password(registration_data['password'])
+        user.set_password(password)
         
         # Build data JSONB
         user_data = {
@@ -144,6 +151,13 @@ class AuthService:
             user_data['professional_services'] = registration_data.get('professional_services', [])
         elif role == 'driver':
             user_data['driver_services'] = registration_data.get('driver_services', [])
+            if registration_data.get('car_details'):
+                user_data['car_details'] = registration_data.get('car_details')
+        elif role == 'service-provider':
+            user_data['provider_services'] = registration_data.get('provider_services', [])
+
+        if role in ('professional', 'service-provider') and registration_data.get('service_description'):
+            user_data['service_description'] = registration_data.get('service_description')
 
         user.data = user_data
 
@@ -191,24 +205,24 @@ class AuthService:
                         url = cls.handle_file_upload(f, 'vehicle', upload_folder)
                         if url:
                             db.session.add(VehicleImage(user_id=user.id, car_index=car_index, image_url=url))
+                elif key == 'car_images':
+                    for f in files.getlist(key):
+                        url = cls.handle_file_upload(f, 'vehicle', upload_folder)
+                        if url:
+                            db.session.add(VehicleImage(user_id=user.id, car_index=0, image_url=url))
         
-        # Handle subscription logic for service-provider
         if role == 'service-provider':
-            user_data['provider_services'] = registration_data.get('provider_services', [])
             user.data = user_data
 
         db.session.commit()
         logger.info(f"User {user.id} committed to DB in register_with_payment_logic")
         
-        # Send Verification Email
-        try:
-            token = create_email_verification_token(user.id)
-            logger.info(f"Generated verification token for user {user.id}")
-            EmailService.send_verification_email(user, token)
-            logger.info(f"Verification email sent for user {user.id}")
-        except Exception as e:
-            logger.error(f"CRITICAL: Failed to send verification email for user {user.id}: {e}")
-            logger.exception(e) # Log the full stack trace
+        if is_client:
+            try:
+                EmailService.send_registration_confirmation(user)
+                logger.info("Registration confirmation email sent for client %s", user.id)
+            except Exception as e:
+                logger.error("Failed to send registration confirmation email for client %s: %s", user.id, e)
             
         return user, None
 

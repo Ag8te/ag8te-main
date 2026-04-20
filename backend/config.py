@@ -37,7 +37,7 @@ class Config:
     PAYPAL_API_URL = os.environ.get('PAYPAL_API_URL') or 'https://api-m.sandbox.paypal.com'
     PAYPAL_MODE = os.environ.get('PAYPAL_MODE') or 'sandbox'
     YOCO_SECRET_KEY = os.environ.get('YOCO_SECRET_KEY')
-    YOCO_API_URL = 'https://payments.yoco.com'
+    YOCO_API_URL = os.environ.get('YOCO_API_URL') or 'https://payments.yoco.com'
     
     # Upload
     UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'uploads')
