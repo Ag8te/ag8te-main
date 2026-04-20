@@ -353,12 +353,13 @@ def delete_user(user_id):
 @bp.route('/requests', methods=['GET'])
 @require_admin
 def list_requests():
-    """List all service requests with optional filters: status, type"""
+    """List all service requests with optional filters: status, type, payment_status"""
     try:
         limit = int(request.args.get('limit', 50))
         offset = int(request.args.get('offset', 0))
         status = request.args.get('status', '').strip().lower()
         request_type = request.args.get('type', '').strip().lower()
+        payment_status = request.args.get('payment_status', '').strip().lower()
         
         query = ServiceRequest.query
         
@@ -366,6 +367,8 @@ def list_requests():
             query = query.filter(ServiceRequest.status == status)
         if request_type:
             query = query.filter(ServiceRequest.request_type == request_type)
+        if payment_status:
+            query = query.filter(ServiceRequest.payment_status == payment_status)
             
         total = query.count()
         requests = query.order_by(ServiceRequest.created_at.desc()).limit(limit).offset(offset).all()

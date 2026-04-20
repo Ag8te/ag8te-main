@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Autocomplete, TextField } from "@mui/material";
 import {
@@ -9,10 +9,15 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { apiFetch } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { TERMS_LAST_UPDATED, TERMS_SECTIONS } from "@/pages/Terms";
+import { PRIVACY_LAST_UPDATED, PRIVACY_SECTIONS } from "@/pages/Privacy";
 
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
@@ -186,9 +191,12 @@ carColor: "",
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [legalModal, setLegalModal] = useState<"terms" | "privacy" | null>(null);
+  const [legalReviewed, setLegalReviewed] = useState<{ terms: boolean; privacy: boolean }>({ terms: false, privacy: false });
   const { register } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const termsConsentRef = useRef<HTMLButtonElement | null>(null);
 
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [serviceOptions, setServiceOptions] = useState<any[]>([]);
@@ -197,6 +205,15 @@ carColor: "",
   //Added new 
   const [carImages, setCarImages] = useState<File[]>([]);
 const [carPreviews, setCarPreviews] = useState<string[]>([]);
+
+  const legalTab = legalModal ?? "terms";
+
+  const closeLegalModal = () => {
+    setLegalModal(null);
+    window.setTimeout(() => {
+      termsConsentRef.current?.focus();
+    }, 0);
+  };
 
   useEffect(() => {
     const fetchGateways = async () => {
@@ -1070,12 +1087,25 @@ const removeCarImage = (index: number) => {
                 <section className="pt-6 border-t border-slate-50 space-y-6">
                   <div className="flex items-start gap-3">
                     <Checkbox id="terms" checked={agreed} onCheckedChange={(c) => setAgreed(c === true)}
+                      ref={termsConsentRef}
                       className="mt-1 border-slate-300 data-[state=checked]:bg-primary data-[state=checked]:border-primary" />
                     <label htmlFor="terms" className="text-sm font-medium text-slate-600 leading-relaxed cursor-pointer">
                       I agree to the{" "}
-                      <Link to="/terms" className="font-bold text-[#222222] underline underline-offset-4 hover:text-primary transition-colors">Terms of Service</Link>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.preventDefault(); setLegalModal("terms"); }}
+                        className="font-bold text-[#222222] underline underline-offset-4 hover:text-primary transition-colors"
+                      >
+                        Terms of Service
+                      </button>
                       {" "}and{" "}
-                      <Link to="/privacy" className="font-bold text-[#222222] underline underline-offset-4 hover:text-primary transition-colors">Privacy Policy</Link>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.preventDefault(); setLegalModal("privacy"); }}
+                        className="font-bold text-[#222222] underline underline-offset-4 hover:text-primary transition-colors"
+                      >
+                        Privacy Policy
+                      </button>
                       <Req />
                     </label>
                   </div>
@@ -1145,6 +1175,111 @@ const removeCarImage = (index: number) => {
           </Card>
         </motion.div>
       </div>
+
+      <Dialog open={legalModal !== null} onOpenChange={(open) => { if (!open) closeLegalModal(); }}>
+        <DialogContent className="w-screen h-screen max-w-none rounded-none p-0 overflow-hidden border-0 bg-white shadow-2xl sm:w-[95vw] sm:max-w-5xl sm:h-[88vh] sm:rounded-lg sm:border sm:border-slate-200">
+          <Tabs value={legalTab} onValueChange={(value) => setLegalModal(value as "terms" | "privacy")} className="h-full flex flex-col">
+            <DialogHeader className="px-6 py-4 border-b border-slate-100 bg-slate-50 shrink-0">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <DialogTitle className="text-xl font-bold text-slate-900">
+                    Legal Information
+                  </DialogTitle>
+                  <p className="text-sm text-slate-500 mt-1">
+                    Review the Terms of Service and Privacy Policy without leaving your registration progress.
+                  </p>
+                </div>
+                <TabsList className="bg-white border border-slate-200 p-1 h-11">
+                  <TabsTrigger value="terms" className="px-4 font-semibold">Terms</TabsTrigger>
+                  <TabsTrigger value="privacy" className="px-4 font-semibold">Privacy</TabsTrigger>
+                </TabsList>
+              </div>
+            </DialogHeader>
+
+            <TabsContent value="terms" className="mt-0 flex-1 overflow-hidden">
+              <ScrollArea className="h-[calc(88vh-150px)] px-6 py-5">
+                <div className="max-w-3xl mx-auto space-y-6 pb-6">
+                  <div className="rounded-2xl border border-slate-100 bg-slate-50 px-5 py-4">
+                    <h3 className="text-xl font-bold text-slate-900">Terms of Service</h3>
+                    <p className="text-sm text-slate-500 mt-1">Last updated: {TERMS_LAST_UPDATED}</p>
+                  </div>
+                  {TERMS_SECTIONS.map((section, index) => (
+                    <section key={section.id} className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+                      <h4 className="text-base font-bold text-slate-900 mb-3">
+                        {index + 1}. {section.title}
+                      </h4>
+                      <div className="whitespace-pre-line text-sm leading-7 text-slate-600">
+                        {section.content}
+                      </div>
+                    </section>
+                  ))}
+                </div>
+              </ScrollArea>
+            </TabsContent>
+
+            <TabsContent value="privacy" className="mt-0 flex-1 overflow-hidden">
+              <ScrollArea className="h-[calc(88vh-150px)] px-6 py-5">
+                <div className="max-w-3xl mx-auto space-y-6 pb-6">
+                  <div className="rounded-2xl border border-slate-100 bg-slate-50 px-5 py-4">
+                    <h3 className="text-xl font-bold text-slate-900">Privacy Policy</h3>
+                    <p className="text-sm text-slate-500 mt-1">Last updated: {PRIVACY_LAST_UPDATED}</p>
+                  </div>
+                  {PRIVACY_SECTIONS.map((section, index) => (
+                    <section key={section.id} className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+                      <h4 className="text-base font-bold text-slate-900 mb-3">
+                        {index + 1}. {section.title}
+                      </h4>
+                      <div className="whitespace-pre-line text-sm leading-7 text-slate-600">
+                        {section.content}
+                      </div>
+                    </section>
+                  ))}
+                </div>
+              </ScrollArea>
+            </TabsContent>
+
+            <div className="shrink-0 border-t border-slate-100 bg-white px-6 py-4 flex flex-col-reverse gap-3 sm:flex-row sm:justify-between sm:items-center">
+              <div className="space-y-2">
+                <div className="flex items-start gap-3">
+                  <Checkbox
+                    id="legal-reviewed"
+                    checked={legalReviewed[legalTab]}
+                    onCheckedChange={(checked) => {
+                      const isChecked = checked === true;
+                      setLegalReviewed((prev) => ({ ...prev, [legalTab]: isChecked }));
+                    }}
+                    className="mt-1 border-slate-300 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                  />
+                  <label htmlFor="legal-reviewed" className="text-sm font-medium text-slate-600 leading-relaxed cursor-pointer">
+                    I have reviewed the {legalTab === "terms" ? "Terms of Service" : "Privacy Policy"}.
+                  </label>
+                </div>
+                <p className="text-xs text-slate-500">
+                  Closing this popup returns you to the same registration form with your information preserved.
+                </p>
+              </div>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={closeLegalModal}
+                  className="h-11 rounded-xl border-slate-200 font-bold px-5"
+                >
+                  Close
+                </Button>
+                <Button
+                  type="button"
+                  onClick={closeLegalModal}
+                  disabled={!legalReviewed[legalTab]}
+                  className="h-11 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold px-5 disabled:opacity-50"
+                >
+                  Accept and Close
+                </Button>
+              </div>
+            </div>
+          </Tabs>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 };

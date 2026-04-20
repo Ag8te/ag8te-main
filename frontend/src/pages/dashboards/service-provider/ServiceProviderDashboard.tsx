@@ -351,7 +351,7 @@ const ServiceProviderDashboard = () => {
 
     return (
         <DashboardLayout
-            title={activeTab === 'overview' ? 'Service HUB' : navItems.find(item => item.id === activeTab)?.label || 'Dashboard'}
+            title={activeTab === 'overview' ? 'Service HUB' : navItems.find(item => item.id === activeTab)?.label || 'Account Management'}
             activeTab={activeTab}
             onTabChange={setActiveTab}
             onLogout={handleLogout}

@@ -2,6 +2,7 @@
 Payment Service - Abstraction Layer for Multiple Providers
 """
 import logging
+import uuid
 from flask import current_app
 from typing import Dict, Any, Optional
 
@@ -14,6 +15,24 @@ logger = logging.getLogger(__name__)
 
 class PaymentService:
     """Service for payment processing with multiple providers"""
+
+    STATUS_MAP = {
+        'paid': 'completed',
+        'complete': 'completed',
+        'completed': 'completed',
+        'success': 'completed',
+        'successful': 'completed',
+        'succeeded': 'completed',
+        'processing': 'processing',
+        'pending': 'pending',
+        'cancel': 'cancelled',
+        'cancelled': 'cancelled',
+        'canceled': 'cancelled',
+        'failure': 'failed',
+        'failed': 'failed',
+        'error': 'failed',
+        'refunded': 'refunded',
+    }
     
     @staticmethod
     def _get_provider(provider_name: str = 'yoco'):
@@ -76,20 +95,35 @@ class PaymentService:
             return 'error'
 
     @staticmethod
+    def normalize_status(status: Optional[str]) -> str:
+        """Map provider-specific payment statuses to the local enum."""
+        normalized = (status or '').strip().lower()
+        return PaymentService.STATUS_MAP.get(normalized, normalized or 'pending')
+
+    @staticmethod
+    def _should_trust_success_callback(payment: Optional[Payment], callback_status: Optional[str]) -> bool:
+        """Allow Yoco redirects to complete local state before provider polling catches up."""
+        return (
+            payment is not None
+            and payment.payment_method == 'yoco'
+            and (callback_status or '').strip().lower() == 'success'
+        )
+
+    @staticmethod
     def update_payment_status(external_id, status, metadata=None):
         """Update payment status in database"""
         payment = Payment.query.filter_by(external_id=external_id).first()
         if payment:
-            payment.status = status
+            payment.status = PaymentService.normalize_status(status)
             if metadata:
                 payment.meta_data = metadata
             db.session.commit()
-            logger.info(f"Payment {external_id} updated to {status}")
+            logger.info(f"Payment {external_id} updated to {payment.status}")
             return True
         return False
 
     @staticmethod
-    def handle_order_payment(order_id, external_id):
+    def handle_order_payment(order_id, external_id, callback_status=None):
         """Process order completion after payment"""
         from backend.models import Order, Payment
         order = Order.query.get(order_id)
@@ -98,7 +132,12 @@ class PaymentService:
         if not order:
             return False, "ORDER_NOT_FOUND"
             
-        verified_status = PaymentService.get_payment_status(external_id)
+        verified_status = PaymentService.normalize_status(PaymentService.get_payment_status(external_id))
+        if verified_status != 'completed' and PaymentService._should_trust_success_callback(payment, callback_status):
+            logger.info("handle_order_payment: trusting Yoco success callback for %s", external_id)
+            verified_status = 'completed'
+            payment.status = 'completed'
+
         if verified_status == 'completed':
             if order.status != 'paid':
                 order.status = 'paid'
@@ -128,7 +167,7 @@ class PaymentService:
         return False, "VERIFICATION_FAILED"
 
     @staticmethod
-    def handle_wallet_topup(external_id):
+    def handle_wallet_topup(external_id, callback_status=None):
         """Process wallet top-up after payment"""
         from backend.models import Payment, User, Wallet
         from backend.services.wallet_service import WalletService
@@ -137,7 +176,10 @@ class PaymentService:
         if not payment:
             return False, "PAYMENT_NOT_FOUND"
             
-        verified_status = PaymentService.get_payment_status(external_id)
+        verified_status = PaymentService.normalize_status(PaymentService.get_payment_status(external_id))
+        if verified_status != 'completed' and PaymentService._should_trust_success_callback(payment, callback_status):
+            logger.info("handle_wallet_topup: trusting Yoco success callback for %s", external_id)
+            verified_status = 'completed'
         if verified_status != 'completed':
             return False, "VERIFICATION_FAILED"
             
@@ -179,7 +221,7 @@ class PaymentService:
         return payment.status == 'completed', "ALREADY_PROCESSED"
 
     @staticmethod
-    def handle_service_request_payment(request_id, external_id):
+    def handle_service_request_payment(request_id, external_id, callback_status=None):
         """Process service request payment"""
         from backend.models import ServiceRequest, Payment, User
         from backend.services.email_service import EmailService
@@ -190,7 +232,12 @@ class PaymentService:
         if not service_request:
             return False, "REQUEST_NOT_FOUND"
             
-        verified_status = PaymentService.get_payment_status(external_id)
+        verified_status = PaymentService.normalize_status(PaymentService.get_payment_status(external_id))
+        if verified_status != 'completed' and PaymentService._should_trust_success_callback(payment, callback_status):
+            logger.info("handle_service_request_payment: trusting Yoco success callback for %s", external_id)
+            verified_status = 'completed'
+            payment.status = 'completed'
+
         if verified_status == 'completed':
             if service_request.payment_status != 'paid':
                 service_request.payment_status = 'paid'

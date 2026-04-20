@@ -70,7 +70,7 @@ const NAV_STRUCTURE = [
     {
         type: "item",
         id: "overview",
-        label: "Dashboard",
+        label: "Account Management",
         icon: LayoutTemplate
     },
     {
@@ -267,7 +267,7 @@ useEffect(() => {
 
     return (
         <DashboardLayout
-            title={activeTab === "overview" ? "Dashboard Overview" : activeTab.replace(/([A-Z])/g, ' $1').replace("-", " ").trim()}
+            title={activeTab === "overview" ? "Account Management Overview" : activeTab.replace(/([A-Z])/g, ' $1').replace("-", " ").trim()}
             activeTab={activeTab}
             onTabChange={(tab) => setActiveTab(tab as TabKey)}
             onLogout={handleLogout}

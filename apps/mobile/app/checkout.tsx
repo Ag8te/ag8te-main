@@ -7,6 +7,8 @@ import { Typography } from '../components/UI/Typography';
 import { useCart } from '../contexts/CartContext';
 import { Button } from '../components/UI/Button';
 import { Input } from '../components/UI/Input';
+import * as Linking from 'expo-linking';
+import * as SecureStore from 'expo-secure-store';
 
 // Mock Image for PayPal Logo (since we don't have the asset)
 const PayPalLogo = () => (
@@ -18,19 +20,60 @@ const PayPalLogo = () => (
 
 export default function Checkout() {
     const router = useRouter();
-    const { total, clearCart } = useCart();
+    //const { total, clearCart } = useCart();
+    const { total, clearCart, cartItems } = useCart();
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState<'card' | 'paypal'>('card');
 
-    const handlePlaceOrder = () => {
-        // In a real app this would call an API
+    const handlePlaceOrder = async () => {
+    try {
         setLoading(true);
-        setTimeout(() => {
-            setLoading(false);
-            setSuccess(true);
-            clearCart();
-        }, 1500);
+
+        // GETTING REAL TOKEN
+        const token = await SecureStore.getItemAsync("token");
+
+        if (!token) {
+            throw new Error("You must be logged in to make a payment");
+        }
+
+        const response = await fetch('https://mzansiserve.co.za/api/payments/create-order', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                //items: [], // New one added by Thabang
+                shipping_address: "123 Nelson Mandela Blvd",
+                total: total,
+                provider: paymentMethod === 'paypal' ? 'paypal' : 'yoco'
+            })
+        });
+
+        const result = await response.json();
+
+        console.log("PAYMENT RESPONSE:", result); //VERY IMPORTANT
+
+        if (!response.ok) {
+            throw new Error(result.message || "Payment failed");
+        }
+
+        const redirectUrl = result?.data?.redirect_url;
+
+        if (!redirectUrl) {
+            throw new Error("No payment URL returned");
+        }
+
+        //  OPEN PAYMENT PAGE
+        await Linking.openURL(redirectUrl);
+
+    } catch (error: any) {
+        console.error("PAYMENT ERROR:", error);
+        Alert.alert("Payment Error", error.message);
+    } finally {
+        setLoading(false);
+    }
     };
 
     if (success) {

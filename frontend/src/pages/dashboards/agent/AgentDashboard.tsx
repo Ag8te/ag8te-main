@@ -279,7 +279,7 @@ const AgentDashboard = () => {
 
     return (
         <DashboardLayout
-            title={activeTab === 'overview' ? 'Affiliate HUB' : navItems.find(item => item.id === activeTab)?.label || 'Dashboard'}
+            title={activeTab === 'overview' ? 'Affiliate HUB' : navItems.find(item => item.id === activeTab)?.label || 'Account Management'}
             activeTab={activeTab}
             onTabChange={setActiveTab}
             onLogout={handleLogout}

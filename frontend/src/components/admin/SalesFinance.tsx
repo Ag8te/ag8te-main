@@ -105,6 +105,8 @@ export const SalesFinance = () => {
         payment.external_id?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    const isSuccessfulPayment = (status: string) => ['paid', 'completed', 'success', 'successful', 'succeeded'].includes(status.toLowerCase());
+
     const getStatusBadge = (status: string) => {
         const s = status.toLowerCase();
         if (['paid', 'completed', 'success', 'successful'].includes(s)) {
@@ -153,7 +155,7 @@ export const SalesFinance = () => {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-black text-slate-900">
-                            R {payments.reduce((acc, p) => p.status.toLowerCase().includes('success') ? acc + p.amount : acc, 0).toLocaleString()}
+                            R {payments.reduce((acc, p) => isSuccessfulPayment(p.status) ? acc + p.amount : acc, 0).toLocaleString()}
                         </div>
                         <p className="text-xs text-slate-400 mt-1 flex items-center">
                             <ArrowUpRight className="h-3 w-3 text-emerald-500 mr-1" />

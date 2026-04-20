@@ -18,6 +18,7 @@ interface ServiceRequest {
     request_type: string;
     requester_id?: string;
     status: string;
+    payment_status?: string;
     payment_amount?: number;
     created_at: string;
 }
@@ -30,6 +31,7 @@ export const RequestsManagement = () => {
     // Filters and pagination
     const [statusFilter, setStatusFilter] = useState("all");
     const [typeFilter, setTypeFilter] = useState("all");
+    const [paymentFilter, setPaymentFilter] = useState("all");
     const [page, setPage] = useState(1);
     const [totalRequests, setTotalRequests] = useState(0);
     const limit = 10;
@@ -43,6 +45,7 @@ export const RequestsManagement = () => {
             let url = `/api/admin/requests?limit=${limit}&offset=${offset}`;
             if (statusFilter !== "all") url += `&status=${statusFilter}`;
             if (typeFilter !== "all") url += `&type=${typeFilter}`;
+            if (paymentFilter !== "all") url += `&payment_status=${paymentFilter}`;
 
             const res = await apiFetch(url, { headers: adminHeaders });
             if (res?.success) {
@@ -58,7 +61,7 @@ export const RequestsManagement = () => {
         } finally {
             setLoading(false);
         }
-    }, [page, statusFilter, typeFilter, toast]);
+    }, [page, statusFilter, typeFilter, paymentFilter, toast]);
 
     useEffect(() => {
         fetchRequests();
@@ -74,6 +77,16 @@ export const RequestsManagement = () => {
             case 'cancelled': return 'bg-rose-50 text-rose-700 border-rose-100';
             case 'unpaid': return 'bg-slate-50 text-slate-700 border-slate-100';
             default: return 'bg-slate-50 text-slate-700 border-slate-100';
+        }
+    };
+
+    const getPaymentStyles = (status?: string) => {
+        switch ((status || "").toLowerCase()) {
+            case 'paid': return 'bg-emerald-50 text-emerald-700 border-emerald-100';
+            case 'refunded': return 'bg-rose-50 text-rose-700 border-rose-100';
+            case 'pending':
+            default:
+                return 'bg-amber-50 text-amber-700 border-amber-100';
         }
     };
 
@@ -131,9 +144,27 @@ export const RequestsManagement = () => {
                         </Select>
                     </div>
 
+                    <div className="flex-1 space-y-2">
+                        <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+                            <Filter className="w-3 h-3" />
+                            Payment Filter
+                        </label>
+                        <Select value={paymentFilter} onValueChange={(val) => { setPaymentFilter(val); setPage(1); }}>
+                            <SelectTrigger className="h-11 ">
+                                <SelectValue placeholder="All Payments" />
+                            </SelectTrigger>
+                            <SelectContent className=" border-slate-200">
+                                <SelectItem value="all">All Payments</SelectItem>
+                                <SelectItem value="paid">Paid</SelectItem>
+                                <SelectItem value="pending">Pending</SelectItem>
+                                <SelectItem value="refunded">Refunded</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
                     <Button
                         variant="outline"
-                        onClick={() => { setStatusFilter("all"); setTypeFilter("all"); setPage(1); }}
+                        onClick={() => { setStatusFilter("all"); setTypeFilter("all"); setPaymentFilter("all"); setPage(1); }}
                         className="h-11  border-slate-200 text-slate-600 hover:bg-slate-50 gap-2 shrink-0 md:w-auto w-full"
                     >
                         <RefreshCcw className="w-4 h-4" />
@@ -151,15 +182,16 @@ export const RequestsManagement = () => {
                                 <th className="px-6 py-4 text-left text-[11px] font-extrabold text-[#5e35b1] uppercase tracking-wider">Request ID</th>
                                 <th className="px-6 py-4 text-left text-[11px] font-extrabold text-[#5e35b1] uppercase tracking-wider">Service Type</th>
                                 <th className="px-6 py-4 text-left text-[11px] font-extrabold text-[#5e35b1] uppercase tracking-wider">Customer</th>
-                                <th className="px-6 py-4 text-left text-[11px] font-extrabold text-[#5e35b1] uppercase tracking-wider">Status</th>
-                                <th className="px-6 py-4 text-left text-[11px] font-extrabold text-[#5e35b1] uppercase tracking-wider">Amount</th>
-                                <th className="px-6 py-4 text-left text-[11px] font-extrabold text-[#5e35b1] uppercase tracking-wider">Date Created</th>
-                            </tr>
-                        </thead>
+                                        <th className="px-6 py-4 text-left text-[11px] font-extrabold text-[#5e35b1] uppercase tracking-wider">Request Status</th>
+                                        <th className="px-6 py-4 text-left text-[11px] font-extrabold text-[#5e35b1] uppercase tracking-wider">Payment</th>
+                                        <th className="px-6 py-4 text-left text-[11px] font-extrabold text-[#5e35b1] uppercase tracking-wider">Amount</th>
+                                        <th className="px-6 py-4 text-left text-[11px] font-extrabold text-[#5e35b1] uppercase tracking-wider">Date Created</th>
+                                    </tr>
+                                </thead>
                         <tbody className="divide-y divide-slate-50 bg-white">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-24 text-center">
+                                    <td colSpan={7} className="px-6 py-24 text-center">
                                         <div className="flex flex-col items-center gap-3">
                                             <div className="relative">
                                                 <div className="w-12 h-12 border-4 border-slate-100 border-t-[#5e35b1]  animate-spin" />
@@ -171,7 +203,7 @@ export const RequestsManagement = () => {
                                 </tr>
                             ) : requests.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-24 text-center">
+                                    <td colSpan={7} className="px-6 py-24 text-center">
                                         <div className="flex flex-col items-center gap-2 opacity-40">
                                             <ClipboardList className="w-12 h-12 text-slate-300" />
                                             <span className="text-sm font-semibold text-slate-500 uppercase tracking-widest">No requests matching your filters</span>
@@ -207,6 +239,11 @@ export const RequestsManagement = () => {
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <Badge variant="outline" className={cn(" border px-2.5 py-0.5 font-bold uppercase text-[10px] tracking-wider transition-all shadow-sm", getStatusStyles(req.status))}>
                                                 {req.status}
+                                            </Badge>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <Badge variant="outline" className={cn(" border px-2.5 py-0.5 font-bold uppercase text-[10px] tracking-wider transition-all shadow-sm", getPaymentStyles(req.payment_status))}>
+                                                {req.payment_status || "pending"}
                                             </Badge>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">

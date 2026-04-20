@@ -33,8 +33,8 @@ A service ads platform connecting users with vetted service providers (cabs, pro
 
 2. **Create environment file**
    ```bash
-   cp env.example .env
-   # Edit .env with your configuration (see ENV VARS below)
+   cp .env.production .env
+   # Edit .env with your configuration if needed (see ENV VARS below)
    ```
 
 3. **Start with Docker Compose**

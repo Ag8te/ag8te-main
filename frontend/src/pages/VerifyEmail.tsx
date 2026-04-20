@@ -15,10 +15,12 @@ const VerifyEmail = () => {
     const [errorMsg, setErrorMsg] = useState("");
     const { toast } = useToast();
     const navigate = useNavigate();
+    const pendingProvider = searchParams.get("provider");
+    const paymentState = searchParams.get("payment");
 
     const [userData, setUserData] = useState<any>(null);
     const [paying, setPaying] = useState(false);
-    const [selectedProvider, setSelectedProvider] = useState<"paypal" | "yoco">("yoco");
+    const [selectedProvider, setSelectedProvider] = useState<"paypal" | "yoco" | null>(null);
     const [enabledGateways, setEnabledGateways] = useState<{paypal: boolean, yoco: boolean}>({ paypal: true, yoco: true });
 
     useEffect(() => {
@@ -31,11 +33,17 @@ const VerifyEmail = () => {
                         yoco: response.data.yoco?.enabled ?? false
                     };
                     setEnabledGateways(gateways);
-                    
-                    if (!gateways.paypal && gateways.yoco) {
+
+                    if (pendingProvider === "paypal" && gateways.paypal) {
+                        setSelectedProvider("paypal");
+                    } else if (pendingProvider === "yoco" && gateways.yoco) {
+                        setSelectedProvider("yoco");
+                    } else if (!gateways.paypal && gateways.yoco) {
                         setSelectedProvider("yoco");
                     } else if (gateways.paypal && !gateways.yoco) {
                         setSelectedProvider("paypal");
+                    } else {
+                        setSelectedProvider(null);
                     }
                 }
             } catch (error) {
@@ -43,14 +51,14 @@ const VerifyEmail = () => {
             }
         };
         fetchGateways();
-    }, []);
+    }, [pendingProvider]);
 
     useEffect(() => {
         const queryStatus = searchParams.get("status");
         if (token) {
             verifyEmail();
         } else if (queryStatus === "pending_payment") {
-            const savedUser = localStorage.getItem("user");
+            const savedUser = localStorage.getItem("registrationPaymentUser") || localStorage.getItem("user");
             if (savedUser) {
                 setUserData(JSON.parse(savedUser));
                 setStatus("success");
@@ -77,6 +85,7 @@ const VerifyEmail = () => {
             if (result.success) {
                 setStatus("success");
                 setUserData(result.data.user);
+                localStorage.setItem("registrationPaymentUser", JSON.stringify(result.data.user));
                 // Store token for payment initiation
                 if (result.data.token) {
                     localStorage.setItem("token", result.data.token);
@@ -94,6 +103,14 @@ const VerifyEmail = () => {
     };
 
     const initiatePayment = async () => {
+        if (!selectedProvider) {
+            toast({
+                title: "Choose payment method",
+                description: "Please select PayPal or Yoco before continuing.",
+                variant: "destructive"
+            });
+            return;
+        }
         setPaying(true);
         try {
             const result = await apiFetch("/api/auth/initiate-registration-payment", {
@@ -154,10 +171,20 @@ const VerifyEmail = () => {
                                     className="w-full h-14 rounded-2xl font-bold bg-primary shadow-xl shadow-primary/10 text-base transition-all active:scale-[0.98]"
                                     onClick={() => navigate("/login")}
                                 >
-                                    Login to Dashboard
+                                    Login to Account Management
                                 </Button>
                             ) : (
                                 <div className="space-y-4">
+                                    {(paymentState === "cancel" || paymentState === "error") && (
+                                        <div className="rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-left">
+                                            <p className="text-sm font-semibold text-amber-900">
+                                                {paymentState === "cancel"
+                                                    ? "Payment was cancelled. You can choose the same gateway again or switch to a different one."
+                                                    : "Payment did not complete. Please choose a payment method below and try again."}
+                                            </p>
+                                        </div>
+                                    )}
+
                                     <div className="grid gap-4 sm:grid-cols-2 mb-8 text-left">
                                         {enabledGateways.paypal && (
                                             <div 
@@ -217,12 +244,14 @@ const VerifyEmail = () => {
                                     <Button
                                         className="w-full h-14 rounded-2xl font-bold bg-primary shadow-xl shadow-primary/10 text-base transition-all active:scale-[0.98]"
                                         onClick={initiatePayment}
-                                        disabled={paying}
+                                        disabled={paying || !selectedProvider}
                                     >
                                         {paying ? (
                                             <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Redirecting...</>
                                         ) : (
-                                            `Pay Registration Fee (R100) via ${selectedProvider === 'paypal' ? 'PayPal' : 'Yoco'}`
+                                            selectedProvider
+                                                ? `Pay Registration Fee (R100) via ${selectedProvider === 'paypal' ? 'PayPal' : 'Yoco'}`
+                                                : "Select PayPal or Yoco to continue"
                                         )}
                                     </Button>
                                     <p className="text-xs text-slate-400">

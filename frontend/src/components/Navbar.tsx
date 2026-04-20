@@ -30,6 +30,18 @@ const Navbar = () => {
 
  const getNavLinks = () => {
   const links = [...navLinks];
+  const getNavLinks = () => {
+    const links = [...navLinks];
+    if (isAuthenticated) {
+      if (user?.role === "client") links.push({ label: "My Bookings", to: "/my-bookings", requiresAuth: true });
+      else if (user?.role === "driver") links.push({ label: "Account Management", to: "/dashboard/driver", requiresAuth: true });
+      else if (user?.role === "professional") links.push({ label: "Account Management", to: "/dashboard/professional", requiresAuth: true });
+      else if (user?.role === "service-provider") links.push({ label: "Account Management", to: "/dashboard/provider", requiresAuth: true });
+      else if (user?.role === "agent") links.push({ label: "Account Management", to: "/dashboard/agent", requiresAuth: true });
+      else if (user?.role === "admin") links.push({ label: "Admin Console", to: "/admin", requiresAuth: true });
+    }
+    return links;
+  };
 
   if (isAuthenticated) {
 

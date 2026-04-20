@@ -36,9 +36,9 @@ This document serves as the master checklist to ensure that the Expo/Android app
 - [ ] **Ad Details:** View specific ad details with contact info.
 - [ ] **Post Ad:** Auth-protected CTA to upload images and description for a new ad.
 
-## 6. Role-Specific Dashboards
-- [ ] **Driver Dashboard:** View assigned trips/transport requests.
-- [ ] **Professional/Provider Dashboard:** View bookings and manage availability.
+## 6. Role-Specific Account Management
+- [ ] **Driver Account Management:** View assigned trips/transport requests.
+- [ ] **Professional/Provider Account Management:** View bookings and manage availability.
 - [ ] **Agent/Advertiser:** View specialized metrics as per web frontend.
 
 ## 7. UI/UX & Native Polish

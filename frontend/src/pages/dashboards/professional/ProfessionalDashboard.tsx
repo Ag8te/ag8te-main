@@ -352,7 +352,7 @@ const ProfessionalDashboard = () => {
 
     return (
         <DashboardLayout
-            title={activeTab === 'overview' ? 'Expert Console' : navItems.find(item => item.id === activeTab)?.label || 'Dashboard'}
+            title={activeTab === 'overview' ? 'Expert Console' : navItems.find(item => item.id === activeTab)?.label || 'Account Management'}
             activeTab={activeTab}
             onTabChange={setActiveTab}
             onLogout={handleLogout}

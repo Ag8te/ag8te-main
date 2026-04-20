@@ -10,6 +10,7 @@ from backend.extensions import db
 from backend.models import User, PendingProfileUpdate, Payment
 from backend.services.payment_service import PaymentService
 from backend.services.agent_service import AgentService
+from backend.utils.url import get_public_backend_base_url, get_request_frontend_base_url
 
 logger = logging.getLogger(__name__)
 
@@ -122,12 +123,13 @@ class ProfileService:
             
         user_id_hex = str(user.id).replace('-', '')
         external_id = f"reg_fee_{user_id_hex}_{uuid.uuid4().hex[:8]}"
-        base_url = current_app.config.get('BACKEND_URL', 'https://mzansiserve.co.za')
+        backend_url = get_public_backend_base_url()
+        frontend_url = get_request_frontend_base_url()
         
         urls = {
-            'success_url': f"{base_url}/api/profile/payment-callback?callback_status=success&external_id={external_id}&provider={provider}",
-            'cancel_url': f"{base_url}/api/profile/payment-callback?callback_status=cancel&external_id={external_id}&provider={provider}",
-            'failure_url': f"{base_url}/api/payments/callback?external_id={external_id}" # Fallback
+            'success_url': f"{backend_url}/api/profile/payment-callback?callback_status=success&external_id={external_id}&provider={provider}&frontend_url={frontend_url}",
+            'cancel_url': f"{backend_url}/api/profile/payment-callback?callback_status=cancel&external_id={external_id}&provider={provider}&frontend_url={frontend_url}",
+            'failure_url': f"{backend_url}/api/profile/payment-callback?callback_status=failure&external_id={external_id}&provider={provider}&frontend_url={frontend_url}"
         }
         
         checkout = PaymentService.create_checkout(

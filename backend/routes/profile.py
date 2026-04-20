@@ -13,6 +13,7 @@ from backend.extensions import db
 from backend.utils.response import success_response, error_response
 from backend.utils.decorators import require_auth
 from backend.utils.auth import validate_sa_id
+from backend.utils.url import get_callback_frontend_base_url
 from backend.services.profile_service import ProfileService
 
 bp = Blueprint('profile', __name__)
@@ -349,7 +350,7 @@ def pay_registration_fee():
 def payment_callback():
     try:
         external_id = request.args.get('external_id')
-        frontend_url = current_app.config.get('FRONTEND_URL', 'https://mzansiserve.co.za')
+        frontend_url = get_callback_frontend_base_url()
         
         success, error = ProfileService.handle_payment_callback(external_id)
         
@@ -366,7 +367,7 @@ def payment_callback():
             
     except Exception as e:
         current_app.logger.error(f"Payment callback error: {str(e)}")
-        frontend_url = current_app.config.get('FRONTEND_URL', 'https://mzansiserve.co.za')
+        frontend_url = get_callback_frontend_base_url()
         return current_app.make_response((
             f'<html><body><script>window.location.href="{frontend_url}/profile?payment=error";</script></body></html>',
             302
@@ -374,9 +375,8 @@ def payment_callback():
         
     except Exception as e:
         current_app.logger.error(f"Payment callback error: {str(e)}")
-        frontend_url = current_app.config.get('FRONTEND_URL', 'https://mzansiserve.co.za')
+        frontend_url = get_callback_frontend_base_url()
         return current_app.make_response((
             f'<html><body><script>window.location.href="{frontend_url}/profile?payment=error";</script></body></html>',
             302
         ))
-
