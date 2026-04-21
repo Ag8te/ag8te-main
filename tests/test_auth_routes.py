@@ -1,6 +1,7 @@
 import pytest
 import json
 from backend.models import User
+from unittest.mock import patch
 
 def test_register_route_success(client, db_session):
     data = {
@@ -45,6 +46,38 @@ def test_login_route_success(client, db_session):
     res_data = response.get_json()
     assert res_data['success'] is True
     assert 'token' in res_data['data']
+
+def test_login_route_unpaid_non_client_redirects_to_payment(client, db_session):
+    email = "driver-login@example.com"
+    password = "password123"
+    role = "driver"
+
+    user = User(email=email, role=role, is_active=True, email_verified=True, is_paid=False)
+    user.set_password(password)
+    db_session.session.add(user)
+    db_session.session.commit()
+
+    data = {
+        "email": email,
+        "password": password,
+        "role": role
+    }
+
+    with patch("backend.routes.auth._create_registration_checkout_for_user", return_value={
+        "redirect_url": "https://c.yoco.com/checkout/test",
+        "checkout_id": "ch_test",
+        "external_id": "reg_fee_test"
+    }):
+        response = client.post('/api/auth/login',
+                               data=json.dumps(data),
+                               content_type='application/json')
+
+    assert response.status_code == 200
+    res_data = response.get_json()
+    assert res_data['success'] is True
+    assert res_data['data']['payment_required'] is True
+    assert res_data['data']['redirect_url'] == "https://c.yoco.com/checkout/test"
+    assert 'token' not in res_data['data']
 
 def test_register_route_validation_error(client, db_session):
     # Missing password

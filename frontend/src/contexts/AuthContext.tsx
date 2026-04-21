@@ -69,6 +69,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
 
       if (result.success) {
+        if (result.data?.payment_required) {
+          localStorage.setItem("registrationPaymentUser", JSON.stringify(result.data.user));
+          return { success: true, data: result.data };
+        }
+
         localStorage.setItem("token", result.data.token);
         localStorage.setItem("user", JSON.stringify(result.data.user));
         setUser(result.data.user);

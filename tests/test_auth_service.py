@@ -80,3 +80,18 @@ def test_login_user_unverified_email_allowed(db_session):
     
     assert error is None
     assert logged_in_user.id == user.id
+
+def test_login_user_unpaid_non_client_requires_payment(db_session):
+    email = "driver@example.com"
+    password = "password123"
+    role = "driver"
+
+    user = User(email=email, role=role, is_active=True, email_verified=True, is_paid=False)
+    user.set_password(password)
+    db_session.session.add(user)
+    db_session.session.commit()
+
+    logged_in_user, error = AuthService.login_user(email, password, role)
+
+    assert error == "PAYMENT_REQUIRED"
+    assert logged_in_user.id == user.id

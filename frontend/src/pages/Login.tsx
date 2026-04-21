@@ -144,6 +144,12 @@ const Login = () => {
     try {
       const result = await login(email, password, role);
       if (result.success) {
+        if (result.data?.payment_required && result.data?.redirect_url) {
+          localStorage.setItem("registrationPaymentUser", JSON.stringify(result.data.user));
+          window.location.href = result.data.redirect_url;
+          return;
+        }
+
         toast({ title: "Welcome back!", description: "You've been logged in successfully." });
         navigateByRole(result.data.user);
       } else {
