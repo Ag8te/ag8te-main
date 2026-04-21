@@ -9,9 +9,12 @@ import {
   MapPin, Navigation, Car, Users, Clock, Loader2, PlaySquare, Calendar, Star,
   CheckCircle2, AlertCircle, ChevronRight, PhoneCall, Wallet, Check, Search
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { apiFetch } from "@/lib/api";
 import { useJsApiLoader, Autocomplete, GoogleMap, Marker } from "@react-google-maps/api";
+import { formatUTCtoSAST, getMinBookableTimeSAST } from "@/lib/dateUtils";
+import { useSearchParams } from "react-router-dom";
 
 type Step = 1 | 2 | 3;
 
@@ -26,6 +29,14 @@ const VEHICLE_TYPES = [
   { id: "suv", name: "SUV", desc: "Spacious for groups", icon: Users, capacity: 6, multiplier: 1.8, details: "Plenty of room for luggage" },
   { id: "luxury", name: "Luxury", desc: "Travel in style", icon: Star, capacity: 4, multiplier: 2.5, details: "Premium high-end vehicles" },
 ];
+
+/** Local calendar date as YYYY-MM-DD (avoids UTC day-shift from `toISOString()`). */
+function formatLocalDateYYYYMMDD(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
 
 const mapStyles = [
   {
@@ -124,6 +135,8 @@ const SA_CENTER = { lat: -26.2041, lng: 28.0473 }; // Johannesburg
 
 const Transport = () => {
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   const { isLoaded, loadError } = useJsApiLoader({
     id: 'google-map-script',
@@ -136,18 +149,22 @@ const Transport = () => {
   const [dropoff, setDropoff] = useState("");
   const [pickupCoords, setPickupCoords] = useState<{ lat: number, lng: number } | null>(null);
   const [dropoffCoords, setDropoffCoords] = useState<{ lat: number, lng: number } | null>(null);
+  const [pickupValid, setPickupValid] = useState(false);
+  const [dropoffValid, setDropoffValid] = useState(false);
 
   const [distanceKm, setDistanceKm] = useState<number | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
 
   const [selectedVehicle, setSelectedVehicle] = useState<string | null>(null);
   const [scheduleType, setScheduleType] = useState<"now" | "later">("now");
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(() => formatLocalDateYYYYMMDD(new Date()));
   const [time, setTime] = useState("12:00");
   const [driverPref, setDriverPref] = useState("");
 
   const [quote, setQuote] = useState<{ amount: number, rate: number } | null>(null);
   const [isRequesting, setIsRequesting] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
+
 
   // Refs for focusing and controlling Autocomplete
   const pickupInputRef = useRef<HTMLInputElement>(null);
@@ -162,7 +179,96 @@ const Transport = () => {
     }
   }, [loadError, toast]);
 
+  useEffect (() => {
+    if (searchParams.get("payment") === "cancelled") {
+      const timer = setTimeout(() => {
+        toast({
+          variant: "destructive",
+          title: "Payment Cancelled",
+          description: "Your payment process was cancelled. Please try booking again.",
+        });
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [searchParams, toast]);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (step > 1) {
+        //Browser back arrow pressed mid-flow - go back a step, don't checkout
+        setStep((prev) => (prev - 1) as Step);
+        window.history.pushState(null, "", window.location.href);
+      }
+    };
+    window.history.pushState(null, "", window.location.href);
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [step]);
+
+
   const [nearbyDrivers, setNearbyDrivers] = useState<any[]>([]);
+
+  const handleUseCurrentLocation = async () => {
+    if (!navigator.geolocation) {
+      toast({
+        variant: "destructive",
+        title: "Geolocation not supported",
+        description: "Your browser does not support location access. Please use a different browser.",
+      });
+      return;
+    }
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        if (!window.google) {
+          setIsLocating(false);
+          return;
+        }
+        const geocoder = new google.maps.Geocoder();
+        geocoder.geocode(
+         { location: {lat: latitude, lng: longitude}},
+         (results, status) => {
+          setIsLocating(false);
+          if (status === 'OK' && results && results[0]) {
+            const place = results[0];
+            const components = place.address_components || [];
+            const hasStreet = components.some((c: any) => 
+              c.types.includes("street_number") || c.types.includes("route")
+            );
+            if (!hasStreet) {
+              toast({
+                variant: "destructive",
+                title: "Invalid Location",
+                description: "Please select a valid street address.",
+              });
+              return;
+            }
+            setPickup(place.formatted_address || "");
+            setPickupCoords({ lat: latitude, lng: longitude });
+            setPickupValid(true);
+          } else {
+            toast({
+              variant: "destructive",
+              title: "Location Error",
+              description: `Could not determine your address. Please enter it manually.`
+            });
+          }
+        
+        });
+      },
+      (error) => {
+        setIsLocating(false);
+        toast({
+          variant: "destructive",
+          title: "Location Denied",
+          description: `Could not determine your address. Please enter it manually.`
+        });
+      
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
 
   const handleSetRoute = async () => {
     if (!pickup || !dropoff || !pickupCoords || !dropoffCoords) {
@@ -245,12 +351,46 @@ const Transport = () => {
     fetchFare();
   }, [distanceKm, selectedVehicle]);
 
+  const minSelectableDate = formatLocalDateYYYYMMDD(new Date());
+  const isToday = date === minSelectableDate;
+
+  useEffect(() => {
+    if (scheduleType === "later" && isToday) {
+      const min = getMinBookableTimeSAST();
+      if (time < min) {
+        setTime(min);
+      }
+    }
+  }, [date, scheduleType]);
+
+
   const handleRequestRide = async () => {
     if (!quote || !selectedVehicle) return;
 
     if (scheduleType === "later" && (!date || !time)) {
       toast({ variant: "destructive", title: "Missing Schedule", description: "Please provide both date and time for scheduled rides." });
       return;
+    }
+
+    if (scheduleType === "later") {
+      const todayLocal = formatLocalDateYYYYMMDD(new Date());
+      if (date < todayLocal) {
+        toast({
+          variant: "destructive",
+          title: "Invalid date",
+          description: "Please choose today or a future date.",
+        });
+        return;
+      }
+      const scheduled = new Date(`${date}T${time}:00`);
+      if (Number.isNaN(scheduled.getTime()) || scheduled.getTime() <= Date.now()) {
+        toast({
+          variant: "destructive",
+          title: "Invalid schedule",
+          description: "Pick a date and time in the future.",
+        });
+        return;
+      }
     }
 
     setIsRequesting(true);
@@ -266,6 +406,7 @@ const Transport = () => {
           lat: dropoffCoords?.lat,
           lng: dropoffCoords?.lng
         },
+        schedule_type: scheduleType,
         date,
         time,
         preferences: {
@@ -307,6 +448,14 @@ const Transport = () => {
   const onMapLoad = (map: google.maps.Map) => {
     console.log("Map Loaded");
   };
+
+  const timeSlots = Array.from({ length:48 }, (_, i) => {
+    const hh = String(Math.floor(i / 2)).padStart(2, "0");
+    const mm = i % 2 === 0 ? "00" : "30";
+    return `${hh}:${mm}`;
+  });
+  
+  const minBookableTime = isToday && scheduleType === "later" ? getMinBookableTimeSAST() : null;
 
   return (
     <main className="min-h-screen bg-white flex flex-col">
@@ -368,6 +517,12 @@ const Transport = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
                     <div className="space-y-10">
                       <div>
+                        <button
+                          onClick={() => navigate(-1)}
+                          className="flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-primary mb-4 transition-colors"
+                        >
+                          <ChevronRight className="h-4 w-4 rotate-180"/> Back
+                        </button>
                         <h2 className="text-3xl font-bold text-[#222222] mb-4">Select your route</h2>
                         <p className="text-lg text-slate-500 font-normal">Pick-up and drop-off points for your journey.</p>
                       </div>
@@ -376,6 +531,17 @@ const Transport = () => {
                           <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Pick-up Location</label>
                           <div className="relative">
                             <MapPin className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-primary transition-colors" />
+                            <button
+                              type="button"
+                              onClick={handleUseCurrentLocation}
+                              className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-xl text-slate-400 hover:text-primary hover:bg-primary/10 transition-all z-10"
+                              title="Use current location"
+                            >
+                              {isLocating
+                                ? <Loader2 className="h-5 w-5 animate-spin" />
+                                : <Navigation className="h-5 w-5" />
+                              }
+                            </button>
                             {isLoaded ? (
                               <Autocomplete
                                 onLoad={ref => pickupAutocompleteRef.current = ref}
@@ -383,11 +549,27 @@ const Transport = () => {
                                   if (pickupAutocompleteRef.current) {
                                     const place = pickupAutocompleteRef.current.getPlace();
                                     if (place && place.geometry && place.geometry.location) {
+                                      const components = place.address_components || [];
+                                      const hasStreet = components.some((c: any) => 
+                                        c.types.includes("street_number") || c.types.includes("route")
+                                    );
+                                      if (!hasStreet) {
+                                        toast({
+                                          variant: "destructive",
+                                          title: "Invalid Pickup Location",
+                                          description: "Please enter a valid street address. Not just a city or region.",
+                                        });
+                                        setPickup("");
+                                        setPickupCoords(null);
+                                        setPickupValid(false);
+                                        return;
+                                      }
                                       setPickup(place.formatted_address || place.name || "");
                                       setPickupCoords({
                                         lat: place.geometry.location.lat(),
                                         lng: place.geometry.location.lng()
                                       });
+                                      setPickupValid(true);
                                     }
                                   }
                                 }}
@@ -395,9 +577,13 @@ const Transport = () => {
                                 <input
                                   type="text"
                                   value={pickup}
-                                  onChange={(e) => setPickup(e.target.value)}
+                                  onChange={(e) => {
+                                    setPickup(e.target.value);
+                                    setPickupValid(false);
+                                    setPickupCoords(null);
+                                  }}
                                   placeholder="Enter origin address"
-                                  className="w-full h-16 pl-16 pr-6 bg-slate-50 rounded-2xl border-transparent focus:bg-white focus:border-primary/20 outline-none text-[#222222] font-medium text-lg transition-all"
+                                  className="w-full h-16 pl-16 pr-14 bg-slate-50 rounded-2xl border-transparent focus:bg-white focus:border-primary/20 outline-none text-[#222222] font-medium text-lg transition-all"
                                 />
                               </Autocomplete>
                             ) : (
@@ -417,11 +603,26 @@ const Transport = () => {
                                   if (dropoffAutocompleteRef.current) {
                                     const place = dropoffAutocompleteRef.current.getPlace();
                                     if (place && place.geometry && place.geometry.location) {
+                                      const components = place.address_components || [];
+                                      const hasStreet = components.some((c: any) => c.types.includes("street_number") || c.types.includes("route")
+                                      );
+                                      if (!hasStreet) {
+                                        toast({
+                                          variant: "destructive",
+                                          title: "Invalid Dropoff Location",
+                                          description: "Please enter a valid street address. Not just a city or region.",
+                                        });
+                                        setDropoff("");
+                                        setDropoffCoords(null);
+                                        setDropoffValid(false);
+                                        return;
+                                      }
                                       setDropoff(place.formatted_address || place.name || "");
                                       setDropoffCoords({
                                         lat: place.geometry.location.lat(),
                                         lng: place.geometry.location.lng()
                                       });
+                                      setDropoffValid(true);
                                     }
                                   }
                                 }}
@@ -429,7 +630,11 @@ const Transport = () => {
                                 <input
                                   type="text"
                                   value={dropoff}
-                                  onChange={(e) => setDropoff(e.target.value)}
+                                  onChange={(e) => {
+                                    setDropoff(e.target.value);
+                                    setDropoffValid(false);
+                                    setDropoffCoords(null);
+                                  }}
                                   placeholder="Enter destination address"
                                   className="w-full h-16 pl-16 pr-6 bg-slate-50 rounded-2xl border-transparent focus:bg-white focus:border-primary/20 outline-none text-[#222222] font-medium text-lg transition-all"
                                 />
@@ -444,7 +649,7 @@ const Transport = () => {
                       <Button
                         className="w-full h-16 rounded-2xl bg-[#FF385C] hover:bg-[#D90B3E] text-white font-bold text-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 active:scale-95"
                         onClick={handleSetRoute}
-                        disabled={!pickup || !dropoff || isCalculating}
+                        disabled={!pickupValid || !dropoffValid || isCalculating}
                       >
                         {isCalculating ? <Loader2 className="animate-spin h-6 w-6" /> : "Find Rides"}
                       </Button>
@@ -559,7 +764,11 @@ const Transport = () => {
                           <Button
                             variant={scheduleType === "later" ? "default" : "outline"}
                             className={cn("h-14 px-8 rounded-2xl font-bold", scheduleType === "later" ? "bg-[#222222]" : "border-slate-100 text-slate-500 hover:bg-slate-50")}
-                            onClick={() => setScheduleType("later")}
+                            onClick={() => {
+                              setScheduleType("later");
+                              const min = formatLocalDateYYYYMMDD(new Date());
+                              setDate((d) => (d < min ? min : d));
+                            }}
                           >
                             <Calendar className="mr-2 h-5 w-5" /> Schedule for later
                           </Button>
@@ -567,8 +776,34 @@ const Transport = () => {
 
                         {scheduleType === "later" && (
                           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-6 flex flex-wrap gap-4">
-                            <input type="date" value={date} onChange={e => setDate(e.target.value)} className="h-14 px-6 rounded-2xl bg-slate-50 border-none outline-none font-bold text-[#222222]" />
-                            <input type="time" value={time} onChange={e => setTime(e.target.value)} className="h-14 px-6 rounded-2xl bg-slate-50 border-none outline-none font-bold text-[#222222]" />
+                            <input
+                              type="date"
+                              min={minSelectableDate}
+                              value={date}
+                              onChange={(e) => setDate(e.target.value)}
+                              className="h-14 px-6 rounded-2xl bg-slate-50 border-none outline-none font-bold text-[#222222]"
+                            />
+                            <div className="relative">
+                              <select
+                                value={time}
+                                onChange={(e) => setTime(e.target.value)}
+                                className="h-14 px-6 rounded-2xl bg-slate-50 border-none outline-none font-bold text-[#222222] appearance-none cursor-pointer"
+                              >
+                                {timeSlots.map((slot) => {
+                                  const isDisabled = minBookableTime !== null && slot < minBookableTime;
+                                  return (
+                                    <option 
+                                      key={slot}
+                                      value={slot}
+                                      disabled={isDisabled}
+                                      className={isDisabled ? "text-slate-300" : "text-[#222222]"}
+                                    >
+                                      {slot}
+                                    </option>
+                                  );
+                                })}
+                              </select>
+                            </div>
                           </motion.div>
                         )}
                       </div>
@@ -647,7 +882,7 @@ const Transport = () => {
                       </div>
                       <div>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Schedule</p>
-                        <p className="font-bold text-[#222222]">{scheduleType === "now" ? "Immediate" : `${date} at ${time}`}</p>
+                        <p className="font-bold text-[#222222]">{scheduleType === "now" ? "Immediate" : `${date} ${time}`}</p>
                       </div>
                     </div>
                     <div className="pt-6 border-t border-slate-200 flex items-center justify-between">

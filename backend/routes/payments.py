@@ -388,6 +388,7 @@ def wallet_topup_callback():
 def request_payment_callback():
     """Handle cab service request payment callback"""
     try:
+        callback_status = request.args.get('callback_status')
         external_id = request.args.get('external_id')
         request_id = request.args.get('request_id')
         callback_status = request.args.get('callback_status')

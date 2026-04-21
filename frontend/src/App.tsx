@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import PrivateRoute from "@/components/PrivateRoute";
+import ScrollToTop from "@/components/ScrollToTop";
 
 import Index from "./pages/Index";
 import Login from "./pages/Login";
@@ -52,6 +53,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <ScrollToTop />
         <AuthProvider>
           <CartProvider>
             <Routes>

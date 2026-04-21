@@ -18,6 +18,7 @@ import { RatingModal } from "@/components/dashboards/RatingModal";
 import { ProviderReviewModal } from "@/components/dashboards/ProviderReviewModal";
 import { BookingDetailsModal } from "@/components/dashboards/BookingDetailsModal";
 import { cn } from "@/lib/utils";
+import { formatUTCtoSAST } from "@/lib/dateUtils";
 
 type Tab = 'services' | 'rides' | 'orders';
 
@@ -266,7 +267,7 @@ const MyBookings = () => {
                             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">#{req.id.slice(-8)}</span>
                           </div>
                           <h3 className="text-2xl font-bold text-[#222222] tracking-tight">Cab Ride</h3>
-                          <p className="text-sm text-slate-500 mt-1">{new Date(req.scheduled_date).toLocaleDateString()} at {req.scheduled_time}</p>
+                          <p className="text-sm text-slate-500 mt-1">{formatUTCtoSAST(req.scheduled_date, req.scheduled_time)}</p>
                         </div>
                       </div>
                       <div className="flex flex-wrap gap-3">
@@ -641,7 +642,7 @@ const ServiceCard = ({
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Scheduled</p>
           <p className="text-lg font-bold text-[#222222] flex items-center gap-2">
             <Calendar className="h-4 w-4 text-slate-300" />
-            {new Date(req.scheduled_date).toLocaleDateString()} at {req.scheduled_time}
+            {req.request_type === 'cab' ? formatUTCtoSAST(req.scheduled_date, req.scheduled_time) : `${req.scheduled_date} at ${req.scheduled_time}`}
           </p>
         </div>
         <div className="space-y-2">
