@@ -13,7 +13,16 @@ def generate_token():
     return secrets.token_urlsafe(32)
 
 def create_password_reset_token(user_id):
-    """Create a password reset token for user"""
+    """Create a password reset token for user.
+
+    Any older unused reset links for the same user are invalidated first so
+    only the latest email link remains usable.
+    """
+    PasswordResetToken.query.filter_by(user_id=user_id, used=False).update(
+        {"used": True},
+        synchronize_session=False
+    )
+
     token = generate_token()
     expires_at = datetime.utcnow() + timedelta(hours=24)
     
@@ -87,4 +96,3 @@ def validate_sa_id(id_number):
 def generate_tracking_number():
     """Generate a unique tracking number"""
     return f"TRK-{uuid.uuid4().hex[:12].upper()}"
-

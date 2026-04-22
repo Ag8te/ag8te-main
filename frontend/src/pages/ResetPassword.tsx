@@ -45,7 +45,7 @@ const ResetPassword = () => {
                 setError(typeof result.error === 'string' ? result.error : "Failed to reset password");
             }
         } catch (err) {
-            setError("An unexpected error occurred. Please try again.");
+            setError(err instanceof Error ? err.message : "An unexpected error occurred. Please try again.");
         } finally {
             setLoading(false);
         }

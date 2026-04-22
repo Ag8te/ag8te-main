@@ -1,5 +1,11 @@
 # Flutter Mobile App – MzansiServe
 
+> Note as of April 22, 2026:
+> The active mobile implementation in this repository lives in `apps/mobile` and is an Expo React Native app.
+> This document remains useful as historical scope guidance, but admin is confirmed web-only and mobile parity planning should follow:
+> - `apps/mobile/FUNCTIONALITY_CHECKLIST.md`
+> - `apps/mobile/WEB_PARITY_PLAN.md`
+
 Technical specification and project quote for a Flutter app that mirrors the existing MzansiServe web application and consumes the current backend API.
 
 ---
