@@ -66,6 +66,8 @@ def test_1_2_3_registration_approval_login(client, app, db_session):
             u = User.query.get(user_id)
             if u:
                 u.email_verified = True
+                if role != 'client':
+                    u.is_paid = True
                 if role == 'professional':
                     u.data = {"professional_services": [{"name": "Web Design", "hourly_rate": 500}]}
                 elif role == 'service-provider':
@@ -126,6 +128,7 @@ def test_12_wallet_withdrawal(client, app, db_session):
     with app.app_context():
         u = User.query.get(user_id)
         u.email_verified = True
+        u.is_paid = True
         db_session.session.commit()
     client.patch(f'/api/admin/users/{user_id}/approve', headers=admin_headers)
     
@@ -269,6 +272,7 @@ def test_7_19_booking_reject_certificate(client, app, db_session):
         p_user = User.query.filter_by(email=prof_email).first()
         c_user.email_verified = True
         p_user.email_verified = True
+        p_user.is_paid = True
         p_user.is_approved = True
         db_session.session.commit()
         p_id = p_user.id
