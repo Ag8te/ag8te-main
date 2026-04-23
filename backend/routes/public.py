@@ -236,10 +236,18 @@ def get_drivers_nearby():
                 nearby.append({
                     'id': str(d.id),
                     'name': d_data.get('full_name', 'Driver'),
+                    'phone': d_data.get('phone', ''),
                     'location': {'lat': d_lat, 'lng': d_lng},
                     'distance_km': round(dist, 2),
                     'car_types': list(set(car_types)),
-                    'profile_image_url': d.profile_image_url
+                    'profile_image_url': d.profile_image_url,
+                    'vehicle': {
+                        'make': (d_data.get('car_details') or {}).get('make', ''),
+                        'model': (d_data.get('car_details') or {}).get('model', ''),
+                        'license_plate': (d_data.get('car_details') or {}).get('plate', ''),
+                        'color': (d_data.get('car_details') or {}).get('color', ''),
+                        'year': (d_data.get('car_details') or {}).get('year', ''),
+                    }
                 })
         
         # Sort by distance

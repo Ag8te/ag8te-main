@@ -65,6 +65,7 @@ class CabCheckoutSchema(Schema):
     provider = fields.Str(validate=validate.OneOf(['yoco', 'paypal']), load_default='yoco')
     notes = fields.Str()
     schedule_type = fields.Str(validate=validate.OneOf(['now', 'later']), load_default='now')
+    selected_driver_id = fields.UUID(load_default=None)
 
 
 class ProfessionalCheckoutSchema(Schema):
