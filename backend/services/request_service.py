@@ -103,6 +103,8 @@ class RequestService:
             location_data = {'pickup': data['pickup'], 'dropoff': data['dropoff']}
             payment_amount = float(data['payment_amount'])
             distance_km = data.get('distance_km') or RequestService._haversine_distance_km(data['pickup'], data['dropoff'])
+            request_details = dict(data.get('preferences', {}))
+            selected_driver_id = data.get('selected_driver_id')
             
             schedule_type = data.get('schedule_type', 'now')
             now = datetime.utcnow()
@@ -127,6 +129,19 @@ class RequestService:
             
             scheduled_date = scheduled_dt.strftime("%Y-%m-%d")
             scheduled_time = scheduled_dt.strftime("%H:%M")
+
+            assigned_driver = None
+            if selected_driver_id:
+                assigned_driver, error = RequestService._validate_selected_driver(
+                    selected_driver_id,
+                    request_details.get('car_type'),
+                    data['pickup'],
+                )
+                if error:
+                    return None, error
+
+                request_details['selected_driver_id'] = str(assigned_driver.id)
+                request_details['selected_driver'] = RequestService._build_driver_snapshot(assigned_driver)
             
             service_request = ServiceRequest(
                 id=request_id,
@@ -136,11 +151,13 @@ class RequestService:
                 scheduled_time=scheduled_time,
                 location_data=location_data,
                 distance_km=distance_km,
-                details=data.get('preferences', {}),
+                details=request_details,
                 payment_amount=payment_amount,
                 payment_status='pending',
                 status='unpaid'
             )
+            if assigned_driver:
+                service_request.provider_id = assigned_driver.id
         else: # professional or provider
             location_data = {'location': data['location']}
             payment_amount = RequestService._resolve_payment_amount(data)
@@ -215,6 +232,83 @@ class RequestService:
             'redirect_url': checkout['redirect_url'],
             'external_id': external_id
         }, None
+
+    @staticmethod
+    def _validate_selected_driver(driver_id, requested_car_type, pickup):
+        """Validate that a suggested driver is still eligible for this cab request."""
+        driver = User.query.filter_by(
+            id=driver_id,
+            role='driver',
+            is_active=True,
+            is_approved=True,
+            is_paid=True,
+        ).first()
+        if not driver:
+            return None, "DRIVER_NOT_AVAILABLE"
+
+        driver_data = driver.data or {}
+        current_location = driver_data.get('current_location') or {}
+        updated_at = current_location.get('updated_at')
+        if not updated_at:
+            return None, "DRIVER_OFFLINE"
+
+        try:
+            last_seen = datetime.fromisoformat(updated_at.replace('Z', '+00:00'))
+        except Exception:
+            return None, "DRIVER_OFFLINE"
+
+        if (datetime.utcnow() - last_seen.replace(tzinfo=None)) > timedelta(minutes=15):
+            return None, "DRIVER_OFFLINE"
+
+        driver_car_types = set()
+        for service in driver_data.get('driver_services', []) or []:
+            car_type = (service or {}).get('car_type')
+            if car_type:
+                driver_car_types.add(str(car_type).strip().lower())
+
+        fallback_car_type = ((driver_data.get('car_details') or {}).get('car_type') or '').strip().lower()
+        if fallback_car_type:
+            driver_car_types.add(fallback_car_type)
+
+        normalized_requested_car_type = (requested_car_type or '').strip().lower()
+        if normalized_requested_car_type and normalized_requested_car_type not in driver_car_types:
+            return None, "DRIVER_RIDE_TYPE_MISMATCH"
+
+        try:
+            pickup_lat = float(pickup.get('lat'))
+            pickup_lng = float(pickup.get('lng'))
+            driver_lat = float(current_location.get('lat'))
+            driver_lng = float(current_location.get('lng'))
+        except (TypeError, ValueError):
+            return None, "DRIVER_OFFLINE"
+
+        distance_km = RequestService._haversine_distance_km(
+            {'lat': pickup_lat, 'lng': pickup_lng},
+            {'lat': driver_lat, 'lng': driver_lng},
+        )
+        if distance_km is None or distance_km > 10:
+            return None, "DRIVER_TOO_FAR"
+
+        return driver, None
+
+    @staticmethod
+    def _build_driver_snapshot(driver):
+        """Capture the assigned driver and vehicle details for rider-facing flows."""
+        driver_data = driver.data or {}
+        car_details = driver_data.get('car_details') or {}
+        return {
+            'id': str(driver.id),
+            'name': driver.full_name or driver.email,
+            'phone': driver_data.get('phone'),
+            'vehicle': {
+                'make': car_details.get('make'),
+                'model': car_details.get('model'),
+                'license_plate': car_details.get('plate'),
+                'color': car_details.get('color'),
+                'year': car_details.get('year'),
+                'car_type': car_details.get('car_type'),
+            }
+        }
 
     @staticmethod
     def check_provider_availability(provider_id, date_str, time_str):
