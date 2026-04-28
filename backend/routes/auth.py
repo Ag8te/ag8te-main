@@ -141,6 +141,14 @@ def login():
             return error_response('INVALID_CREDENTIALS', 'Invalid email, password, or role combination', None, 401)
         if error == "ACCOUNT_INACTIVE":
             return error_response('ACCOUNT_INACTIVE', 'Account is inactive', None, 403)
+        if error == "PAYMENT_REQUIRED":
+            checkout_result = _create_registration_checkout_for_user(user, provider='yoco')
+            return success_response({
+                'user': user.to_dict(),
+                **checkout_result,
+                'payment_required': True,
+                'message': 'Registration payment is still pending. Redirecting to Yoco.'
+            }, 'Registration payment required.', 200)
         access_token = create_access_token(identity=str(user.id))
         return success_response({
             'user': user.to_dict(),

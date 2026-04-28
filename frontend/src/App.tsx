@@ -115,9 +115,7 @@ const App = () => (
                 </PrivateRoute>
               } />
               <Route path="/payment-status" element={
-                <PrivateRoute>
-                  <PaymentStatus />
-                </PrivateRoute>
+                <PaymentStatus />
               } />
               <Route path="/profile" element={
                 <PrivateRoute>
