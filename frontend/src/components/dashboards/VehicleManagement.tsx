@@ -63,9 +63,14 @@ export const VehicleManagement = ({ initialVehicles }: VehicleManagementProps) =
     };
 
 
-    const removeVehicle = (index: number) => {
-        setVehicles(vehicles.filter((_, i) => i !== index));
-    };
+   const removeVehicle = (index: number) => {
+    const newVehicles = [...vehicles];
+
+    // cleanup preview URLs
+    newVehicles[index].preview_images?.forEach((url) => URL.revokeObjectURL(url));
+
+    setVehicles(newVehicles.filter((_, i) => i !== index));
+};
 
     const updateVehicle = (index: number, field: keyof Vehicle, value: any) => {
         const newVehicles = [...vehicles];
@@ -121,11 +126,12 @@ export const VehicleManagement = ({ initialVehicles }: VehicleManagementProps) =
             formData.append(`vehicles[${index}][registration_number]`, v.registration_number);
             formData.append(`vehicles[${index}][car_type]`, v.car_type);
             formData.append(`vehicles[${index}][color]`, v.color);
-
-            // 📸 Append images
-            v.images.forEach((img: File, i: number) => {
-                formData.append(`vehicles[${index}][images][${i}]`, img);
+             //  Append images
+             v.images.forEach((img: File) => {
+            formData.append(`vehicles[${index}][images]`, img);
             });
+            
+            
 
             //Append disk document
             if (v.disk_document) {
@@ -307,8 +313,9 @@ export const VehicleManagement = ({ initialVehicles }: VehicleManagementProps) =
                                               const previews = files.map(file => URL.createObjectURL(file));
                                               const updatedVehicle = {
                                                 ...vehicle,
-                                                images: files,
-                                                preview_images: previews
+                                                images: [...(vehicle.images || []), ...files],
+                                                preview_images: [...(vehicle.preview_images || []), ...previews]
+                
                                               };
 
                                               const newVehicles = [...vehicles];
@@ -317,24 +324,54 @@ export const VehicleManagement = ({ initialVehicles }: VehicleManagementProps) =
                                               }}
                                               />
                                          </Button>
-                                                  {vehicle.preview_images && (
-                                                  <Box sx={{ display: 'flex', gap: 1, mt: 2, flexWrap: 'wrap' }}>
-                                                  {vehicle.preview_images.map((img, i) => (
-                                                  <Box
-                                                   key={i}
-                                                    component="img"
-                                                    src={img}
-                                                    sx={{
-                                                    width: 80,
-                                                    height: 80,
-                                                    objectFit: 'cover',
-                                                     borderRadius: 2,
-                                                     border: '1px solid #ddd'
-                                                     }}
-                                                      />
-                                                        ))}
-                                                  </Box>
-                                                   )}
+                                                  {vehicle.preview_images?.map((img, i) => (
+  <Box
+    key={i}
+    sx={{
+      position: 'relative',
+      width: 80,
+      height: 80
+    }}
+  >
+    <Box
+      component="img"
+      src={img}
+      sx={{
+        width: '100%',
+        height: '100%',
+        objectFit: 'cover',
+        borderRadius: 2,
+        border: '1px solid #ddd'
+      }}
+    />
+
+    {/*  REMOVE BUTTON */}
+    <IconButton
+      size="small"
+      onClick={() => {
+        const newVehicles = [...vehicles];
+
+         const removedPreview = newVehicles[index].preview_images?.[i];
+          if (removedPreview) URL.revokeObjectURL(removedPreview);
+        // remove image + preview
+        newVehicles[index].images = newVehicles[index].images.filter((_, idx) => idx !== i);
+        newVehicles[index].preview_images = newVehicles[index].preview_images?.filter((_, idx) => idx !== i);
+
+        setVehicles(newVehicles);
+      }}
+      sx={{
+        position: 'absolute',
+        top: -8,
+        right: -8,
+        bgcolor: 'error.main',
+        color: 'white',
+        '&:hover': { bgcolor: 'error.dark' }
+      }}
+    >
+      <TrashIcon fontSize="small" />
+    </IconButton>
+  </Box>
+))}
                                            </Grid>
 
                                          
@@ -364,10 +401,33 @@ export const VehicleManagement = ({ initialVehicles }: VehicleManagementProps) =
                                              />
                                                  </Button>
                                                  {vehicle.disk_preview && (
-                                                 <Typography variant="caption" sx={{ mt: 1, display: 'block' }}>
-                                                 {vehicle.disk_preview}
-                                                 </Typography>
-                                                 )}
+  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
+    
+    <Typography variant="caption">
+      {vehicle.disk_preview}
+    </Typography>
+
+    <IconButton
+      size="small"
+      onClick={() => {
+        const newVehicles = [...vehicles];
+
+        newVehicles[index].disk_document = null;
+        newVehicles[index].disk_preview = "";
+
+        setVehicles(newVehicles);
+      }}
+      sx={{
+        bgcolor: 'error.main',
+        color: 'white',
+        '&:hover': { bgcolor: 'error.dark' }
+      }}
+    >
+      <TrashIcon fontSize="small" />
+    </IconButton>
+
+  </Box>
+)}
                                          </Grid>
     
                                     </Grid>
@@ -411,8 +471,13 @@ export const VehicleManagement = ({ initialVehicles }: VehicleManagementProps) =
                     {saving ? "Saving changes..." : "Submit for Approval"}
                 </Button>
             </Box>
+
+
+
         </Paper>
     );
 };
+
+
 
 export default VehicleManagement;
