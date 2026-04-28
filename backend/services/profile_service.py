@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 REGISTRATION_FEE_AMOUNT = 10000  # R100.00
 
-ALLOWED_AFTER_APPROVAL_COMMON = {'phone', 'next_of_kin', 'full_name', 'surname', 'gender'}
+ALLOWED_AFTER_APPROVAL_COMMON = {'phone', 'next_of_kin'}
 ALLOWED_AFTER_APPROVAL_BY_ROLE = {
     'driver': {'driver_services', 'proof_of_residence_url', 'driver_license_url', 'operating_areas', 'availability'},
     'service-provider': {'provider_services', 'proof_of_residence_url', 'driver_license_url', 'operating_areas', 'availability'},
@@ -28,22 +28,60 @@ ALLOWED_AFTER_APPROVAL_BY_ROLE = {
 }
 
 class ProfileService:
+    
     @staticmethod
     def get_profile_info(user_id):
-        """Fetch comprehensive profile information for a user"""
+        """Fetch comprehensive profile information for a user WITH pending diff preview"""
+
         user = User.query.get(user_id)
         if not user:
             return None, "USER_NOT_FOUND"
-            
+
+    # -------------------------
+    # Existing logic (UNCHANGED)
+    # -------------------------
         id_document_url = None
         if user.file_urls and isinstance(user.file_urls, list) and len(user.file_urls) > 0:
             id_document_url = user.file_urls[0]
-            
+
         selected_agent_id = user.agent.agent_id if user.agent else None
+
         pending = PendingProfileUpdate.query.filter_by(
             user_id=user.id, status='pending'
         ).order_by(PendingProfileUpdate.created_at.desc()).first()
-        
+
+    # -------------------------
+    # NEW: Build pending preview (DIFF)
+    # -------------------------
+        pending_data = None
+
+        if pending:
+            current_data = user.data or {}
+            payload = pending.payload or {}
+
+            diff = ProfileService.build_profile_diff(user, payload)
+            
+        if key == "next_of_kin":
+            current_nok = current_data.get("next_of_kin", {})
+
+            diff["next_of_kin"] = {
+            "old": current_nok,
+            "new": new_value
+            }
+        else:
+                diff[key] = {
+                "old": current_data.get(key),
+                "new": new_value
+        }
+
+        pending_data = {
+        **pending.to_dict(),
+        "diff": diff
+            }
+ 
+    # -------------------------
+    # Final response (UNCHANGED STRUCTURE)
+    # -------------------------
         return {
             'user': user.to_dict(),
             'profile_data': user.data or {},
@@ -52,7 +90,7 @@ class ProfileService:
             'id_rejection_reason': user.id_rejection_reason,
             'id_document_url': id_document_url,
             'selected_agent_id': selected_agent_id,
-            'pending_profile_update': pending.to_dict() if pending else None
+            'pending_profile_update': pending_data
         }, None
 
     @staticmethod
@@ -78,16 +116,6 @@ class ProfileService:
         if not payload:
             return None, "NO_CHANGES"
             
-        if user.role == 'client':
-            user_data = user.data or {}
-            for k, v in payload.items():
-                if k == 'next_of_kin':
-                    user_data['next_of_kin'] = v
-                else:
-                    user_data[k] = v
-            user.data = user_data
-            db.session.commit()
-            return user.to_dict(), None
             
         pending = PendingProfileUpdate(user_id=user.id, payload=payload, status='pending')
         db.session.add(pending)
@@ -212,6 +240,7 @@ class ProfileService:
     @staticmethod
     def _prepare_payload(user, data, files):
       payload = {}
+      
 
       # =========================
       # BASIC FIELD MAPPING (UNCHANGED)
@@ -241,7 +270,8 @@ class ProfileService:
       # =========================
       if files:
           upload_folder = current_app.config.get('UPLOAD_FOLDER')
-  
+          print("FILES RECEIVED:", list(files.keys()))
+       
           # -------------------------
           # EXISTING FILES (UNCHANGED)
           # -------------------------
@@ -276,10 +306,10 @@ class ProfileService:
   
               if qual_urls:
                   payload['qualification_urls'] = qual_urls
-  
-          # =========================
-          # 🚗 NEW: VEHICLE FILE HANDLING
-          # =========================
+        
+             # =========================
+             #  NEW: VEHICLE FILE HANDLING
+             # =========================
  
           # Get vehicles from payload (already coming from frontend)
           driver_services = payload.get('driver_services', [])
@@ -288,35 +318,24 @@ class ProfileService:
           for i, vehicle in enumerate(driver_services):
   
               # -------------------------
-              # 📸 HANDLE VEHICLE IMAGES
+              # HANDLE VEHICLE IMAGES
               # -------------------------
               images = []
-              img_index = 0
-  
-              # Loop until no more images found
-              while True:
-                  file_key = f"vehicles[{i}][images][{img_index}]"
-                  file = files.get(file_key)
-  
-                  if not file:
-                      break  # stop when no more images
-  
-                  if file and file.filename:
-                      ext = file.filename.rsplit('.', 1)[1].lower()
-                      unique = f"{str(user.id)}_vehicle_{i}_{uuid.uuid4().hex[:8]}.{ext}"
-                      filepath = os.path.join(upload_folder, unique)
-  
-                      file.save(filepath)
-                      images.append(f"/uploads/{unique}")
-  
-                  img_index += 1
+              image_files = files.getlist(f"vehicles[{i}][images]")
+              for img_file in image_files:
+                    if img_file and img_file.filename:
+                        ext = img_file.filename.rsplit('.', 1)[1].lower()
+                        unique = f"{str(user.id)}_vehicle_{i}_{uuid.uuid4().hex[:8]}.{ext}"
+                        filepath = os.path.join(upload_folder, unique)
+                        img_file.save(filepath)
+                        images.append(f"/uploads/{unique}")
   
               # Attach images to vehicle
               if images:
                   vehicle['images'] = images
   
               # -------------------------
-              # 📄 HANDLE VEHICLE DISK
+              #  HANDLE VEHICLE DISK
                # -------------------------
               disk_file = files.get(f"vehicles[{i}][disk_document]")
   
@@ -332,5 +351,27 @@ class ProfileService:
    
           # Save updated vehicles back
           payload['driver_services'] = driver_services
+        
   
       return payload
+  
+    @staticmethod
+    def build_profile_diff(user, payload):
+        current_data = user.data or {}
+        diff = {}
+
+        for key, new_value in payload.items():
+            if key == "next_of_kin":
+                current_nok = current_data.get("next_of_kin", {})
+
+                diff["next_of_kin"] = {
+                    "old": current_nok,
+                    "new": new_value
+                }
+            else:
+                diff[key] = {
+                    "old": current_data.get(key),
+                    "new": new_value
+                }
+
+        return diff

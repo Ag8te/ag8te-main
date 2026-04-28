@@ -12,7 +12,7 @@ from backend.models.service import ServiceType
 from backend.extensions import db
 from backend.utils.response import success_response, error_response
 from backend.services.pricing_service import PricingService
-from datetime import datetime
+from datetime import datetime, timedelta
 
 bp = Blueprint('public', __name__)
 
@@ -183,8 +183,13 @@ def get_drivers_nearby():
         if lat is None or lng is None:
             return error_response('INVALID_INPUT', 'Coordinates are required', None, 400)
 
-        # Basic filtering for active, approved drivers
-        drivers = User.query.filter_by(role='driver', is_approved=True, is_active=True).all()
+        # Only live, approved, paid drivers should be considered for nearby ride suggestions.
+        drivers = User.query.filter_by(
+            role='driver',
+            is_approved=True,
+            is_active=True,
+            is_paid=True
+        ).all()
         
         nearby = []
         for d in drivers:
@@ -196,23 +201,53 @@ def get_drivers_nearby():
             
             d_lat = loc.get('lat')
             d_lng = loc.get('lng')
+            updated_at_raw = loc.get('updated_at')
             if d_lat is None or d_lng is None:
                 continue
+
+            # Ignore stale locations so we don't advertise unavailable drivers as nearby.
+            if updated_at_raw:
+                try:
+                    updated_at = datetime.fromisoformat(updated_at_raw.replace('Z', '+00:00'))
+                    if updated_at.tzinfo is not None:
+                        updated_at = updated_at.replace(tzinfo=None)
+                    if updated_at < datetime.utcnow() - timedelta(minutes=15):
+                        continue
+                except ValueError:
+                    continue
             
             # Simple Haversine for filtering
             dist = _calculate_haversine(lat, lng, d_lat, d_lng)
             if dist <= radius:
                 # Include driver details and car types
                 services = d_data.get('driver_services', [])
-                car_types = [s.get('car_type', '').lower() for s in services if s.get('car_type')]
-                
+                car_types = []
+                for service in services:
+                    if isinstance(service, dict) and service.get('car_type'):
+                        car_types.append(str(service.get('car_type')).lower())
+                    elif isinstance(service, str):
+                        car_types.append(service.lower())
+
+                if not car_types and isinstance(d_data.get('car_details'), dict):
+                    fallback_type = d_data['car_details'].get('car_type')
+                    if fallback_type:
+                        car_types.append(str(fallback_type).lower())
+
                 nearby.append({
                     'id': str(d.id),
                     'name': d_data.get('full_name', 'Driver'),
+                    'phone': d_data.get('phone', ''),
                     'location': {'lat': d_lat, 'lng': d_lng},
                     'distance_km': round(dist, 2),
                     'car_types': list(set(car_types)),
-                    'profile_image_url': d.profile_image_url
+                    'profile_image_url': d.profile_image_url,
+                    'vehicle': {
+                        'make': (d_data.get('car_details') or {}).get('make', ''),
+                        'model': (d_data.get('car_details') or {}).get('model', ''),
+                        'license_plate': (d_data.get('car_details') or {}).get('plate', ''),
+                        'color': (d_data.get('car_details') or {}).get('color', ''),
+                        'year': (d_data.get('car_details') or {}).get('year', ''),
+                    }
                 })
         
         # Sort by distance

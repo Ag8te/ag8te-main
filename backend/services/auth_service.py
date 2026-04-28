@@ -63,6 +63,9 @@ class AuthService:
         
         if not user.is_active:
             return None, "ACCOUNT_INACTIVE"
+
+        if role != 'client' and role != 'admin' and not user.is_paid:
+            return user, "PAYMENT_REQUIRED"
             
         return user, None
 
