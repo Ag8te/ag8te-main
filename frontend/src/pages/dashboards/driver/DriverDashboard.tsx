@@ -45,6 +45,8 @@ const DriverDashboard = () => {
     const [data, setData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [selectedJobForRating, setSelectedJobForRating] = useState<{ id: string, client_name?: string } | null>(null);
+    const [locationStatus, setLocationStatus] = useState<"syncing" | "online" | "permission_denied" | "unavailable" | "error">("syncing");
+    const [lastLocationSyncAt, setLastLocationSyncAt] = useState<Date | null>(null);
 
     const navItems = [
         { id: "overview", label: "Overview", icon: LayoutTemplate },
@@ -74,6 +76,55 @@ const DriverDashboard = () => {
     useEffect(() => {
         fetchData();
     }, [fetchData]);
+
+    useEffect(() => {
+        if (authUser?.role !== "driver" || !navigator.geolocation) {
+            setLocationStatus("unavailable");
+            return;
+        }
+
+        let cancelled = false;
+
+        const syncLocation = () => {
+            setLocationStatus((current) => (current === "online" ? current : "syncing"));
+            navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                    if (cancelled) return;
+                    try {
+                        await apiFetch('/api/location/current', {
+                            method: 'POST',
+                            data: {
+                                lat: position.coords.latitude,
+                                lng: position.coords.longitude,
+                            },
+                        });
+                        setLocationStatus("online");
+                        setLastLocationSyncAt(new Date());
+                    } catch (err) {
+                        console.error("Failed to sync driver location:", err);
+                        setLocationStatus("error");
+                    }
+                },
+                (error) => {
+                    console.error("Driver geolocation unavailable:", error);
+                    if (error.code === error.PERMISSION_DENIED) {
+                        setLocationStatus("permission_denied");
+                    } else {
+                        setLocationStatus("error");
+                    }
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+            );
+        };
+
+        syncLocation();
+        const intervalId = window.setInterval(syncLocation, 60000);
+
+        return () => {
+            cancelled = true;
+            window.clearInterval(intervalId);
+        };
+    }, [authUser?.role]);
 
     const handleLogout = () => {
         logout();
@@ -144,6 +195,60 @@ const DriverDashboard = () => {
             </Paper>
         ) : null;
 
+        const locationBanner = (
+            <Paper
+                sx={{
+                    mb: 4,
+                    p: 3,
+                    borderRadius: 4,
+                    bgcolor: alpha(
+                        locationStatus === 'online' ? theme.palette.success.main : theme.palette.info.main,
+                        0.05
+                    ),
+                    border: '1px solid',
+                    borderColor: alpha(
+                        locationStatus === 'online' ? theme.palette.success.main : theme.palette.info.main,
+                        0.2
+                    )
+                }}
+            >
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, gap: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
+                    <Box>
+                        <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
+                            {locationStatus === 'online' ? 'You are visible for nearby rides' : 'Location sharing status'}
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                            {locationStatus === 'online' && lastLocationSyncAt
+                                ? `Live location sharing is active. Last synced at ${lastLocationSyncAt.toLocaleTimeString()}.`
+                                : locationStatus === 'permission_denied'
+                                    ? 'Allow browser location access so clients can see you as a nearby driver.'
+                                    : locationStatus === 'unavailable'
+                                        ? 'This device does not support location sharing.'
+                                        : locationStatus === 'error'
+                                            ? 'We could not update your location just now. Please keep location enabled and stay on this page.'
+                                            : 'Checking your current location so you can appear in nearby ride suggestions.'}
+                        </Typography>
+                    </Box>
+                    <Chip
+                        label={
+                            locationStatus === 'online'
+                                ? 'Online'
+                                : locationStatus === 'permission_denied'
+                                    ? 'Permission needed'
+                                    : locationStatus === 'unavailable'
+                                        ? 'Unavailable'
+                                        : locationStatus === 'error'
+                                            ? 'Sync issue'
+                                            : 'Syncing...'
+                        }
+                        color={locationStatus === 'online' ? 'success' : locationStatus === 'permission_denied' || locationStatus === 'error' ? 'warning' : 'info'}
+                        variant={locationStatus === 'online' ? 'filled' : 'outlined'}
+                        sx={{ fontWeight: 700 }}
+                    />
+                </Box>
+            </Paper>
+        );
+
         if (loading && !data) return (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 10 }}>
                 <CircularProgress />
@@ -155,6 +260,7 @@ const DriverDashboard = () => {
                 return (
                     <Box sx={{ animation: 'fadeIn 0.5s' }}>
                         {onboardingBanner}
+                        {locationBanner}
                         <Grid container spacing={3} sx={{ mb: 4 }}>
                             <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                                 <StatCard

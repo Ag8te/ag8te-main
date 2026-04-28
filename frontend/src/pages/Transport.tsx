@@ -134,6 +134,16 @@ const mapStyles = [
 
 const SA_CENTER = { lat: -26.2041, lng: 28.0473 }; // Johannesburg
 
+const getDriversForVehicle = (drivers: any[], vehicleId: string | null) => {
+  if (!vehicleId) return [];
+  return drivers.filter((driver) => Array.isArray(driver.car_types) && driver.car_types.includes(vehicleId));
+};
+
+const pickRandomDriver = (drivers: any[]) => {
+  if (!drivers.length) return null;
+  return drivers[Math.floor(Math.random() * drivers.length)];
+};
+
 const Transport = () => {
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
@@ -208,6 +218,7 @@ const Transport = () => {
 
 
   const [nearbyDrivers, setNearbyDrivers] = useState<any[]>([]);
+  const [suggestedDriver, setSuggestedDriver] = useState<any | null>(null);
 
   const handleUseCurrentLocation = async () => {
     getCurrentLocationAddress(
@@ -303,6 +314,11 @@ const Transport = () => {
     fetchFare();
   }, [distanceKm, selectedVehicle]);
 
+  useEffect(() => {
+    const matchingDrivers = getDriversForVehicle(nearbyDrivers, selectedVehicle);
+    setSuggestedDriver(pickRandomDriver(matchingDrivers));
+  }, [nearbyDrivers, selectedVehicle]);
+
   const minSelectableDate = formatLocalDateYYYYMMDD(new Date());
   const isToday = date === minSelectableDate;
 
@@ -365,6 +381,7 @@ const Transport = () => {
           car_type: selectedVehicle,
           driver_preference: driverPref
         },
+        selected_driver_id: suggestedDriver?.id || null,
         payment_amount: quote.amount,
         distance_km: distanceKm
       };
@@ -684,11 +701,11 @@ const Transport = () => {
                             <p className={cn("text-sm font-normal mb-1", selectedVehicle === v.id ? "text-slate-400" : "text-slate-500")}>
                               {v.capacity} seats • {v.details}
                             </p>
-                            {nearbyDrivers.some(d => d.car_types.includes(v.id)) ? (
+                            {getDriversForVehicle(nearbyDrivers, v.id).length > 0 ? (
                               <div className="flex items-center gap-1.5 mt-2">
                                 <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
                                 <span className={cn("text-[10px] font-bold uppercase tracking-wider", selectedVehicle === v.id ? "text-emerald-400" : "text-emerald-600")}>
-                                  Available • {Math.min(...nearbyDrivers.filter(d => d.car_types.includes(v.id)).map(d => Math.round(d.distance_km * 2)))} min away
+                                  {getDriversForVehicle(nearbyDrivers, v.id).length} cars nearby • {Math.min(...getDriversForVehicle(nearbyDrivers, v.id).map(d => Math.max(1, Math.round(d.distance_km * 2))))} min away
                                 </span>
                               </div>
                             ) : (
@@ -704,6 +721,49 @@ const Transport = () => {
                       </div>
 
                       <div className="pt-8 border-t border-slate-50">
+                        <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6">Suggested Driver</h3>
+                        {selectedVehicle && suggestedDriver ? (
+                          <div className="mb-8 rounded-3xl border border-slate-100 bg-slate-50/70 p-6">
+                            <div className="flex items-start justify-between gap-4">
+                              <div>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Closest match</p>
+                                <h4 className="text-xl font-bold text-[#222222]">{suggestedDriver.name}</h4>
+                                <p className="mt-1 flex items-center gap-2 text-sm font-medium text-slate-500">
+                                  <PhoneCall className="h-4 w-4 text-primary" />
+                                  {suggestedDriver.phone || "Phone number unavailable"}
+                                </p>
+                              </div>
+                              <div className="rounded-2xl bg-emerald-50 px-3 py-2 text-right">
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-600">Approx</p>
+                                <p className="text-sm font-bold text-emerald-700">{Math.max(1, Math.round((suggestedDriver.distance_km || 0) * 2))} min away</p>
+                              </div>
+                            </div>
+                            <div className="mt-6 grid grid-cols-2 gap-4 text-sm">
+                              <div>
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Car make</p>
+                                <p className="font-bold text-[#222222]">{suggestedDriver.vehicle?.make || "Not provided"}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Car model</p>
+                                <p className="font-bold text-[#222222]">{suggestedDriver.vehicle?.model || "Not provided"}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">License plate</p>
+                                <p className="font-bold text-[#222222]">{suggestedDriver.vehicle?.license_plate || "Not provided"}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Car color</p>
+                                <p className="font-bold text-[#222222]">{suggestedDriver.vehicle?.color || "Not provided"}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ) : selectedVehicle ? (
+                          <div className="mb-8 rounded-3xl border border-slate-100 bg-slate-50/70 p-6">
+                            <p className="text-sm font-bold text-slate-500">No matching online drivers nearby for this ride type yet.</p>
+                          </div>
+                        ) : null}
+
+                        <div className="pt-2">
                         <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6">Ride Options</h3>
                         <div className="flex flex-wrap gap-4">
                           <Button
@@ -758,6 +818,7 @@ const Transport = () => {
                             </div>
                           </motion.div>
                         )}
+                        </div>
                       </div>
                     </div>
 
@@ -787,6 +848,18 @@ const Transport = () => {
 
                         {quote ? (
                           <div className="space-y-6 pt-6 border-t border-slate-50">
+                            {selectedVehicle && (
+                              <div className="space-y-2 rounded-2xl bg-slate-50 p-4">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-sm font-bold text-slate-500">Cars nearby</span>
+                                  <span className="text-sm font-bold text-[#222222]">{getDriversForVehicle(nearbyDrivers, selectedVehicle).length}</span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                  <span className="text-sm font-bold text-slate-500">Suggested driver</span>
+                                  <span className="text-sm font-bold text-[#222222]">{suggestedDriver?.name || "Waiting for match"}</span>
+                                </div>
+                              </div>
+                            )}
                             <div className="flex items-center justify-between">
                               <span className="text-sm font-bold text-slate-500">Estimated Total</span>
                               <span className="text-3xl font-bold text-[#222222]">R{quote.amount.toFixed(2)}</span>
@@ -826,8 +899,8 @@ const Transport = () => {
                     <p className="text-lg text-slate-500 font-normal">Please review your trip details before confirming.</p>
                   </div>
 
-                  <div className="bg-slate-50/50 rounded-3xl p-8 space-y-6 mb-10 text-left border border-slate-50">
-                    <div className="grid grid-cols-2 gap-8">
+                    <div className="bg-slate-50/50 rounded-3xl p-8 space-y-6 mb-10 text-left border border-slate-50">
+                      <div className="grid grid-cols-2 gap-8">
                       <div>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Vehicle</p>
                         <p className="font-bold text-[#222222]">{VEHICLE_TYPES.find(v => v.id === selectedVehicle)?.name}</p>
@@ -837,6 +910,37 @@ const Transport = () => {
                         <p className="font-bold text-[#222222]">{scheduleType === "now" ? "Immediate" : `${date} ${time}`}</p>
                       </div>
                     </div>
+                    {suggestedDriver && (
+                      <div className="rounded-3xl border border-slate-100 bg-white p-6">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Assigned preview</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Driver name</p>
+                            <p className="font-bold text-[#222222]">{suggestedDriver.name}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Cellphone</p>
+                            <p className="font-bold text-[#222222]">{suggestedDriver.phone || "Phone number unavailable"}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Car make</p>
+                            <p className="font-bold text-[#222222]">{suggestedDriver.vehicle?.make || "Not provided"}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Car model</p>
+                            <p className="font-bold text-[#222222]">{suggestedDriver.vehicle?.model || "Not provided"}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">License plate</p>
+                            <p className="font-bold text-[#222222]">{suggestedDriver.vehicle?.license_plate || "Not provided"}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Car color</p>
+                            <p className="font-bold text-[#222222]">{suggestedDriver.vehicle?.color || "Not provided"}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                     <div className="pt-6 border-t border-slate-200 flex items-center justify-between">
                       <span className="text-slate-500 font-bold">Total Quote</span>
                       <span className="text-2xl font-bold text-primary">R{quote?.amount.toFixed(2)}</span>

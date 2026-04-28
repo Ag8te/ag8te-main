@@ -26,6 +26,28 @@ def _normalize_local_dev_url(value: str | None, fallback: str) -> str | None:
     return cleaned
 
 
+def _prefer_configured_public_url(value: str | None, config_key: str) -> str | None:
+    """In production, never leak localhost callback URLs when a public URL is configured."""
+    cleaned = _strip_trailing_slash(value)
+    if not cleaned:
+        return None
+
+    parsed = urlparse(cleaned)
+    configured = _strip_trailing_slash(current_app.config.get(config_key))
+    configured_parsed = urlparse(configured) if configured else None
+
+    if (
+        current_app.config.get("FLASK_ENV") == "production"
+        and parsed.hostname in {"localhost", "127.0.0.1"}
+        and configured_parsed
+        and configured_parsed.scheme
+        and configured_parsed.netloc
+    ):
+        return configured
+
+    return cleaned
+
+
 def _config_default_frontend() -> str:
     if current_app.config.get("FLASK_ENV") == "production":
         return "https://mzansiserve.co.za"
@@ -68,8 +90,8 @@ def _request_backend_base_url() -> str | None:
 def get_public_frontend_base_url() -> str:
     """Frontend URL for emails and other out-of-band links."""
     return _normalize_local_dev_url(
-        _request_origin_base_url()
-        or current_app.config.get("FRONTEND_URL")
+        current_app.config.get("FRONTEND_URL")
+        or _prefer_configured_public_url(_request_origin_base_url(), "FRONTEND_URL")
         or _config_default_frontend(),
         _config_default_frontend()
     )
@@ -78,7 +100,7 @@ def get_public_frontend_base_url() -> str:
 def get_public_backend_base_url() -> str:
     """Backend URL for server-side callbacks and out-of-band links."""
     return _normalize_local_dev_url(
-        _request_backend_base_url()
+        _prefer_configured_public_url(_request_backend_base_url(), "BACKEND_URL")
         or current_app.config.get("BACKEND_URL")
         or _config_default_backend(),
         _config_default_backend()
@@ -88,7 +110,7 @@ def get_public_backend_base_url() -> str:
 def get_request_frontend_base_url() -> str:
     """Best frontend base URL for the current browser-initiated request."""
     return _normalize_local_dev_url(
-        _request_origin_base_url() or get_public_frontend_base_url(),
+        _prefer_configured_public_url(_request_origin_base_url(), "FRONTEND_URL") or get_public_frontend_base_url(),
         _config_default_frontend()
     )
 
@@ -96,6 +118,6 @@ def get_request_frontend_base_url() -> str:
 def get_callback_frontend_base_url() -> str:
     """Frontend URL for payment callbacks, preferring the encoded source URL."""
     return _normalize_local_dev_url(
-        request.args.get("frontend_url") or get_request_frontend_base_url(),
+        _prefer_configured_public_url(request.args.get("frontend_url"), "FRONTEND_URL") or get_request_frontend_base_url(),
         _config_default_frontend()
     )

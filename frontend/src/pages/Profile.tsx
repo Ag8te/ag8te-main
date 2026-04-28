@@ -29,8 +29,10 @@ const Profile = () => {
     const [loading, setLoading] = useState(false);
     const [photoLoading, setPhotoLoading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
-
     const isProvider = ['driver', 'professional', 'service-provider'].includes(user?.role || "");
+    const isDriver = user?.role === "driver";
+    const isProfessional = ["professional", "service-provider"].includes(user?.role || "");
+    const [submitted, setSubmitted] = useState(false);
 
     const [formData, setFormData] = useState<any>({
         full_name: user?.data?.full_name || "",
@@ -44,9 +46,17 @@ const Profile = () => {
         },
         operating_areas: user?.data?.operating_areas || [],
         availability: user?.data?.availability || {
-           is_online: false
-
-        }
+        is_online: false, // for driver
+        schedule: {
+        monday: true,
+        tuesday: true,
+        wednesday: true,
+        thursday: true,
+        friday: true,
+        saturday: false,
+        sunday: false
+    }
+}
     });
 
     
@@ -119,40 +129,59 @@ const Profile = () => {
    
 
      const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+ e.preventDefault();
     setLoading(true);
 
     try {
         const cleanedData = {
-            phone: formData.phone,
-        };
-
-        console.log("Sending FIXED data:", cleanedData);
-
+       phone: formData.phone,
+       next_of_kin: formData.next_of_kin,
+      availability: formData.availability   //ADDED THIS
+     };
         const res = await apiFetch('/api/profile', {
             method: 'PATCH',
             data: cleanedData
         });
 
         if (res.success) {
+            setSubmitted(true);
             toast({
-                title: "Profile Updated",
-                description: "Your profile has been updated."
+                title: "Submitted",
+                description: "Your changes are pending admin approval"
             });
         }
 
     } catch (error: any) {
-        console.error("Update error:", error);
-
         toast({
             title: "Update Failed",
-            description: error.message || "An unexpected error occurred",
+            description: error.message || "Something went wrong",
             variant: "destructive"
         });
     } finally {
         setLoading(false);
     }
+
 };
+
+const ToggleSwitch = ({ enabled, onToggle }: { enabled: boolean; onToggle: () => void }) => {
+    return (
+        <button
+            type="button"
+            onClick={onToggle}
+            className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors duration-300 ${
+                enabled ? "bg-emerald-500" : "bg-slate-300"
+            }`}
+        >
+            <span
+                className={`inline-block h-6 w-6 transform rounded-full bg-white shadow-md transition-transform duration-300 ${
+                    enabled ? "translate-x-7" : "translate-x-1"
+                }`}
+            />
+        </button>
+    );
+};
+
+
 
     return (
         <main className="min-h-screen bg-slate-50/50 flex flex-col">
@@ -224,6 +253,13 @@ const Profile = () => {
 
             <section className="py-12 flex-1">
                 <div className="container mx-auto px-6 max-w-5xl">
+
+    {submitted && (
+    <div className="bg-yellow-100 text-yellow-800 p-4 rounded-xl mb-4">
+        Your changes are pending admin approval.
+    </div>
+)}
+
                     <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-10">
 
                         {/* Left Column: Info Sections */}
@@ -246,7 +282,8 @@ const Profile = () => {
                                             value={formData.full_name}
                                             onChange={handleInputChange}
                                             placeholder="John"
-                                            className="h-14 rounded-2xl bg-slate-50/50 border-slate-100 focus:bg-white transition-all font-semibold"
+                                            disabled
+                                            className="bg-slate-100 cursor-not-allowed"
                                         />
                                     </div>
                                     <div className="space-y-2">
@@ -256,7 +293,8 @@ const Profile = () => {
                                             value={formData.surname}
                                             onChange={handleInputChange}
                                             placeholder="Doe"
-                                            className="h-14 rounded-2xl bg-slate-50/50 border-slate-100 focus:bg-white transition-all font-semibold"
+                                            disabled
+                                            className="bg-slate-100 cursor-not-allowed"
                                         />
                                     </div>
                                     <div className="space-y-2">
@@ -270,12 +308,22 @@ const Profile = () => {
                                         />
                                     </div>
                                     <div className="space-y-2">
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Email Address</label>
+                                        <Input
+                                            name="Email Address"
+                                            value={user?.email}
+                                            disabled
+                                            className="bg-slate-100 cursor-not-allowed"
+                                                                                    />
+                                    </div>
+                                    <div className="space-y-2">
                                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Gender</label>
                                         <select
                                             name="gender"
                                             value={formData.gender}
                                             onChange={handleInputChange}
-                                            className="w-full h-14 rounded-2xl bg-slate-50/50 border border-slate-100 px-4 outline-none focus:bg-white focus:ring-2 focus:ring-primary/10 transition-all font-semibold"
+                                             disabled
+                                            className="bg-slate-100 cursor-not-allowed"
                                         >
                                             <option value="">Select Gender</option>
                                             <option value="male">Male</option>
@@ -285,6 +333,7 @@ const Profile = () => {
                                     </div>
                                 </div>
                             </div>
+
 
                             {/* Provider Specific: Operating Areas */}
                             {isProvider && (
@@ -336,25 +385,18 @@ const Profile = () => {
                             )}
 
                             {/* Provider Availability (Simplified) */}
-{isProvider && (
-    <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 sm:p-10 shadow-sm relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-2 h-full bg-emerald-400" />
+{isDriver && (
+    <div className="bg-white rounded-[2.5rem] border p-8 shadow-sm">
+        <h3 className="text-xl font-bold mb-6">Driver Status</h3>
 
-        <h3 className="text-xl font-bold text-[#222222] mb-6 flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
-                <Clock size={20} />
-            </div>
-            Driver Status
-        </h3>
-
-        <div className="flex items-center justify-between p-6 rounded-2xl border bg-slate-50">
-            <span className="font-bold text-lg">
-                {formData.availability.is_online ? "Online (Working)" : "Offline"}
+        <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 border">
+            <span className="font-semibold">
+                {formData.availability.is_online ? "Online" : "Offline"}
             </span>
 
-            <button
-                type="button"
-                onClick={() =>
+            <ToggleSwitch
+                enabled={formData.availability.is_online}
+                onToggle={() =>
                     setFormData((prev: any) => ({
                         ...prev,
                         availability: {
@@ -363,20 +405,45 @@ const Profile = () => {
                         }
                     }))
                 }
-                className={`w-16 h-8 rounded-full relative transition-colors duration-300 ${
-                    formData.availability.is_online ? "bg-emerald-500" : "bg-slate-300"
-                }`}
-            >
-                <div
-                    className={`h-7 w-7 bg-white rounded-full absolute top-0.5 transition-all duration-300 ${
-                        formData.availability.is_online ? "left-8" : "left-0.5"
-                    }`}
-                />
-            </button>
+            />
         </div>
     </div>
 )}
 
+{isProfessional && (
+    <div className="bg-white rounded-[2.5rem] border p-8 shadow-sm">
+        <h3 className="text-xl font-bold mb-6">Weekly Availability</h3>
+
+        <div className="space-y-3">
+            {Object.entries(formData.availability.schedule).map(([day, value]) => (
+                <div
+                    key={day}
+                    className="flex items-center justify-between p-4 rounded-xl bg-slate-50 border"
+                >
+                    <span className="capitalize font-semibold">
+                        {day} (09:00 - 17:00)
+                    </span>
+
+                    <ToggleSwitch
+                        enabled={value as boolean}
+                        onToggle={() =>
+                            setFormData((prev: any) => ({
+                                ...prev,
+                                availability: {
+                                    ...prev.availability,
+                                    schedule: {
+                                        ...prev.availability.schedule,
+                                        [day]: !value
+                                    }
+                                }
+                            }))
+                        }
+                    />
+                </div>
+            ))}
+        </div>
+    </div>
+)}
                             {/* Next of Kin */}
                             <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 sm:p-10 shadow-sm relative overflow-hidden">
                                 <div className="absolute top-0 left-0 w-2 h-full bg-amber-400" />
@@ -474,13 +541,8 @@ const Profile = () => {
                                 </div>
 
                                 <div className="mt-10 space-y-4">
-                                    <Button
-                                        type="submit"
-                                        disabled={loading}
-                                        className="w-full h-14 rounded-2xl bg-primary hover:bg-primary/90 text-white font-bold shadow-lg shadow-primary/20"
-                                    >
-                                        {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Save className="mr-2 h-5 w-5" />}
-                                        Save Changes
+                                   <Button type="submit" disabled={submitted || loading}>
+                                         {submitted ? "Pending Approval" : "Save Changes"}
                                     </Button>
 
                                     {user?.role !== 'client' && (
