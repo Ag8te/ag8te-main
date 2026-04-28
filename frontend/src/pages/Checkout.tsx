@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, CreditCard, Lock, Check, ShieldCheck, ChevronRight } from "lucide-react";
+import { ArrowLeft, CreditCard, Lock, Check, ShieldCheck, ChevronRight,Navigation,Loader2 } from "lucide-react";
+import { useJsApiLoader } from "@react-google-maps/api";
+import { getCurrentLocationAddress } from "@/lib/locationUtils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +14,9 @@ import Footer from "@/components/Footer";
 import { apiFetch } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
+const LIBRARIES: ("places")[] = ["places"];
+const GOOGLE_MAPS_API_KEY = "AIzaSyBtXh26PcILBqis4Ad66wPetvU_wUKMNRs";
+
 const Checkout = () => {
     const { items, total, count, clearCart } = useCart();
     const { user } = useAuth();
@@ -20,6 +25,13 @@ const Checkout = () => {
     const [isProcessing, setIsProcessing] = useState(false);
     const [selectedProvider, setSelectedProvider] = useState<"paypal" | "yoco">("yoco");
     const [enabledGateways, setEnabledGateways] = useState<{paypal: boolean, yoco: boolean}>({ paypal: true, yoco: true });
+    const [isLocating, setIsLocating] = useState(false);
+
+    const { isLoaded } = useJsApiLoader({
+        id: 'google-map-script',
+        googleMapsApiKey: GOOGLE_MAPS_API_KEY,
+        libraries: LIBRARIES,
+    });
 
     useEffect(() => {
         const fetchGateways = async () => {
@@ -66,14 +78,49 @@ const Checkout = () => {
         const { name, value } = e.target;
         setFormData((prev) => ({ ...prev, [name]: value }));
     };
+    const validateForm = (): boolean => {
+        const { firstName, lastName, email, phone, address, city, postalCode } = formData;
 
+        if (!firstName.trim() || firstName.trim().length < 2) {
+            toast({ variant: "destructive", title: "Invalid First Name", description: "First name must be at least 2 characters." });
+            return false;
+        }
+        if (!lastName.trim() || lastName.trim().length < 2) {
+            toast({ variant: "destructive", title: "Invalid Last Name", description: "Last name must be at least 2 characters." });
+            return false;
+        }
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!email.trim() || !emailRegex.test(email.trim())) {
+            toast({ variant: "destructive", title: "Invalid Email", description: "Please enter a valid email address." });
+            return false;
+        }
+        const phoneRegex = /^0[0-9]{9}$/;
+        if (!phone.trim() || !phoneRegex.test(phone.trim().replace(/\s/g, ''))) {
+            toast({ variant: "destructive", title: "Invalid Phone Number", description: "Please enter a valid 10-digit SA phone number starting with 0." });
+            return false;
+        }
+        if (!address.trim() || address.trim().length < 5) {
+            toast({ variant: "destructive", title: "Invalid Address", description: "Please enter a valid street address." });
+            return false;
+        }
+        if (!city.trim() || city.trim().length < 2) {
+            toast({ variant: "destructive", title: "Invalid City", description: "Please enter a valid city name." });
+            return false;
+        }
+        const postalRegex = /^[0-9]{4}$/;
+        if (!postalCode.trim() || !postalRegex.test(postalCode.trim())) {
+            toast({ variant: "destructive", title: "Invalid Postal Code", description: "Please enter a valid 4-digit SA postal code." });
+            return false;
+        }
+        return true;
+    };
     const handleCheckout = async (e: React.FormEvent) => {
         e.preventDefault();
         if (items.length === 0) {
             toast({ title: "Cart is empty", description: "Add some items before checking out.", variant: "destructive" });
             return;
         }
-
+        if (!validateForm()) return;
         setIsProcessing(true);
 
         try {
@@ -115,6 +162,17 @@ const Checkout = () => {
         }
     };
 
+    const handleUseCurrentLocation = () => {
+      getCurrentLocationAddress(
+        (address, city, _coords, postalCode) => {
+          setFormData(prev => ({ ...prev, address, city, postalCode }));
+        },
+        (title, description) => toast({ variant: "destructive", title, description }),
+        setIsLocating,
+        'full_address'
+      );
+    };
+
     return (
         <main className="min-h-screen bg-white flex flex-col">
             <Navbar />
@@ -151,7 +209,8 @@ const Checkout = () => {
                                                 value={formData.firstName}
                                                 onChange={handleInputChange}
                                                 required
-                                                className="h-16 px-6 bg-slate-50 rounded-2xl border-transparent focus:bg-white focus:border-primary/20 outline-none text-[#222222] font-medium text-lg transition-all"
+                                                disabled={isProcessing}
+                                                className="h-16 px-6 bg-slate-50 rounded-2xl border-transparent focus:bg-white focus:border-primary/20 outline-none text-[#222222] font-medium text-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                             />
                                         </div>
                                         <div className="relative group">
@@ -162,7 +221,8 @@ const Checkout = () => {
                                                 value={formData.lastName}
                                                 onChange={handleInputChange}
                                                 required
-                                                className="h-16 px-6 bg-slate-50 rounded-2xl border-transparent focus:bg-white focus:border-primary/20 outline-none text-[#222222] font-medium text-lg transition-all"
+                                                disabled={isProcessing}
+                                                className="h-16 px-6 bg-slate-50 rounded-2xl border-transparent focus:bg-white focus:border-primary/20 outline-none text-[#222222] font-medium text-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                             />
                                         </div>
                                     </div>
@@ -177,7 +237,8 @@ const Checkout = () => {
                                                 value={formData.email}
                                                 onChange={handleInputChange}
                                                 required
-                                                className="h-16 px-6 bg-slate-50 rounded-2xl border-transparent focus:bg-white focus:border-primary/20 outline-none text-[#222222] font-medium text-lg transition-all"
+                                                disabled={isProcessing}
+                                                className="h-16 px-6 bg-slate-50 rounded-2xl border-transparent focus:bg-white focus:border-primary/20 outline-none text-[#222222] font-medium text-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                             />
                                         </div>
                                         <div className="relative group">
@@ -189,22 +250,37 @@ const Checkout = () => {
                                                 value={formData.phone}
                                                 onChange={handleInputChange}
                                                 required
-                                                className="h-16 px-6 bg-slate-50 rounded-2xl border-transparent focus:bg-white focus:border-primary/20 outline-none text-[#222222] font-medium text-lg transition-all"
+                                                disabled={isProcessing}
+                                                className="h-16 px-6 bg-slate-50 rounded-2xl border-transparent focus:bg-white focus:border-primary/20 outline-none text-[#222222] font-medium text-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                             />
                                         </div>
                                     </div>
 
                                     <div className="relative group">
                                         <Label htmlFor="address" className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 ml-1">Street Address</Label>
+                                        <div className="relative">
                                         <Input
                                             id="address"
                                             name="address"
                                             value={formData.address}
                                             onChange={handleInputChange}
                                             required
+                                            disabled={isProcessing}
                                             placeholder="123 Main St"
-                                            className="h-16 px-6 bg-slate-50 rounded-2xl border-transparent focus:bg-white focus:border-primary/20 outline-none text-[#222222] font-medium text-lg transition-all"
+                                            className="h-16 px-6 pr-14 bg-slate-50 rounded-2xl border-transparent focus:bg-white focus:border-primary/20 outline-none text-[#222222] font-medium text-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                         />
+                                        <button
+                                            type="button"
+                                            onClick={handleUseCurrentLocation}
+                                            className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-xl text-slate-400 hover:text-primary hover:bg-primary/10 transition-all z-10"
+                                            title="Use current location"
+                                          >
+                                            {isLocating
+                                             ? <Loader2 className="h-5 w-5 animate-spin" /> 
+                                             : <Navigation className="h-5 w-5" />
+                                            }
+                                          </button>
+                                        </div>
                                     </div>
 
                                     <div className="grid gap-8 sm:grid-cols-2">
@@ -216,7 +292,8 @@ const Checkout = () => {
                                                 value={formData.city}
                                                 onChange={handleInputChange}
                                                 required
-                                                className="h-16 px-6 bg-slate-50 rounded-2xl border-transparent focus:bg-white focus:border-primary/20 outline-none text-[#222222] font-medium text-lg transition-all"
+                                                disabled={isProcessing}
+                                                className="h-16 px-6 bg-slate-50 rounded-2xl border-transparent focus:bg-white focus:border-primary/20 outline-none text-[#222222] font-medium text-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                             />
                                         </div>
                                         <div className="relative group">
@@ -227,7 +304,8 @@ const Checkout = () => {
                                                 value={formData.postalCode}
                                                 onChange={handleInputChange}
                                                 required
-                                                className="h-16 px-6 bg-slate-50 rounded-2xl border-transparent focus:bg-white focus:border-primary/20 outline-none text-[#222222] font-medium text-lg transition-all"
+                                                disabled={isProcessing}
+                                                className="h-16 px-6 bg-slate-50 rounded-2xl border-transparent focus:bg-white focus:border-primary/20 outline-none text-[#222222] font-medium text-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                             />
                                         </div>
                                     </div>

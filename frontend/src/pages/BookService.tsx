@@ -19,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import { useJsApiLoader, Autocomplete } from "@react-google-maps/api";
+import { getCurrentLocationAddress } from "@/lib/locationUtils";
 import BookingStepWizard from "@/components/BookingStepWizard";
 import { cn } from "@/lib/utils";
 
@@ -228,62 +229,14 @@ const BookService = () => {
   };
 
   const handleUseCurrentLocation = () => {
-    if (!navigator.geolocation) {
-      toast({
-        variant: "destructive",
-        title: "Not Supported",
-        description: "Your browser does not support location access. Please use a different browser.",
-      });
-      return;
-    }
-    setIsLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        if (!window.google) {
-          setIsLocating(false);
-          return;
-        }
-
-      const geocoder = new google.maps.Geocoder();
-      geocoder.geocode(
-        { location: { lat: latitude, lng: longitude } },
-        (results, status) => {
-          setIsLocating(false);
-          if (status === 'OK' && results && results[0]) {
-            const place = results[0];
-            const components = place.address_components || [];
-            const hasStreet = components.some((c: any) => 
-              c.types.includes("street_number") || c.types.includes("route")
-            );
-            if (!hasStreet) {
-              toast({
-                variant: "destructive",
-                title: "Location Too Vague",
-                description: "Could not determine your address. Please enter it manually.",
-              });
-              return;
-            }
-            setLocation(place.formatted_address ||"");
-            setCoords({ lat: latitude, lng: longitude });
-          } else {
-            toast({
-              variant: "destructive",
-              title: "Location Error",
-              description: `Could not determine your address. Please enter it manually.`,
-            });
-          }
-        });
+    getCurrentLocationAddress(
+      (address, _city, coords, _postalCode) => {
+        setLocation(address);
+        setCoords(coords);
       },
-      () => {
-        setIsLocating(false);
-        toast({
-          variant: "destructive",
-          title: "Location Denied",
-          description: `Could not determine your address. Please enter it manually.`,
-        });
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
+      (title, description) => toast({ variant: "destructive", title, description }),
+      setIsLocating,
+      'full_address'
     );
   };
   const handleSubmit = () => {

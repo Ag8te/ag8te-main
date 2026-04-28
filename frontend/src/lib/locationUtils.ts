@@ -1,0 +1,86 @@
+/**
+ * Shared location utility for getting the user's current location
+ * via browser Geolocation API + Google Maps reverse geocoding.
+ *
+ * mode: 'full_address' — validates street level, returns full address + coords
+ *       'city_only'    — extracts city name only (used by Shop)
+ */
+export function getCurrentLocationAddress(
+  onSuccess: (address: string, city: string, coords: { lat: number; lng: number }, postalCode: string) => void,
+  onError: (title: string, description: string) => void,
+  onLoadingChange: (loading: boolean) => void,
+  mode: 'full_address' | 'city_only' = 'full_address'
+) {
+  if (!navigator.geolocation) {
+    onError("Not Supported", "Your browser does not support location access. Please use a different browser.");
+    return;
+  }
+
+  if (!window.google) {
+    onError("Maps Not Loaded", "Google Maps is not loaded yet. Please try again in a moment.");
+    return;
+  }
+
+  onLoadingChange(true);
+
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      const { latitude, longitude } = position.coords;
+      const geocoder = new google.maps.Geocoder();
+
+      geocoder.geocode(
+        { location: { lat: latitude, lng: longitude } },
+        (results, status) => {
+          onLoadingChange(false);
+
+          if (status === 'OK' && results && results[0]) {
+            const place = results[0];
+            const components = place.address_components || [];
+
+            if (mode === 'full_address') {
+              const hasStreet = components.some((c: any) =>
+                c.types.includes("street_number") || c.types.includes("route")
+              );
+              if (!hasStreet) {
+                onError("Location Too Vague", "Could not determine your exact street address. Please enter it manually.");
+                return;
+              }
+              const cityComp = components.find((c: any) => c.types.includes("postal_town"))
+              || components.find((c: any) => c.types.includes("locality"))
+              || components.find((c: any) => c.types.includes("administrative_area_level_2"));
+              const postalComp = components.find((c: any) => c.types.includes("postal_code"));
+              onSuccess(
+                place.formatted_address || "",
+                cityComp?.long_name || "",
+                { lat: latitude, lng: longitude },
+                postalComp?.long_name || ""
+              );
+            } else {
+              // city_only mode
+              const cityComp = components.find((c: any) => c.types.includes("postal_town"))
+               || components.find((c: any) => c.types.includes("locality"))
+               || components.find((c: any) => c.types.includes("administrative_area_level_2"));
+              if (!cityComp) {
+                onError("Location Too Vague", "Could not determine your city. Please enter it manually.");
+                return;
+              }
+              onSuccess(
+                cityComp.long_name,
+                cityComp.long_name,
+                { lat: latitude, lng: longitude },
+                ""
+              );
+            }
+          } else {
+            onError("Location Error", "Could not determine your address. Please enter it manually.");
+          }
+        }
+      );
+    },
+    () => {
+      onLoadingChange(false);
+      onError("Location Denied", "Please allow location access or enter your address manually.");
+    },
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+}
