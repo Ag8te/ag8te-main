@@ -240,7 +240,7 @@ class ProfileService:
     @staticmethod
     def _prepare_payload(user, data, files):
       payload = {}
-      print("PAYLOAD:", payload)
+      
 
       # =========================
       # BASIC FIELD MAPPING (UNCHANGED)
@@ -270,7 +270,8 @@ class ProfileService:
       # =========================
       if files:
           upload_folder = current_app.config.get('UPLOAD_FOLDER')
-  
+          print("FILES RECEIVED:", list(files.keys()))
+       
           # -------------------------
           # EXISTING FILES (UNCHANGED)
           # -------------------------
@@ -305,7 +306,7 @@ class ProfileService:
   
               if qual_urls:
                   payload['qualification_urls'] = qual_urls
-  
+        
              # =========================
              #  NEW: VEHICLE FILE HANDLING
              # =========================
@@ -320,25 +321,14 @@ class ProfileService:
               # HANDLE VEHICLE IMAGES
               # -------------------------
               images = []
-              img_index = 0
-  
-              # Loop until no more images found
-              while True:
-                  file_key = f"vehicles[{i}][images][{img_index}]"
-                  file = files.get(file_key)
-  
-                  if not file:
-                      break  # stop when no more images
-  
-                  if file and file.filename:
-                      ext = file.filename.rsplit('.', 1)[1].lower()
-                      unique = f"{str(user.id)}_vehicle_{i}_{uuid.uuid4().hex[:8]}.{ext}"
-                      filepath = os.path.join(upload_folder, unique)
-  
-                      file.save(filepath)
-                      images.append(f"/uploads/{unique}")
-  
-                  img_index += 1
+              image_files = files.getlist(f"vehicles[{i}][images]")
+              for img_file in image_files:
+                    if img_file and img_file.filename:
+                        ext = img_file.filename.rsplit('.', 1)[1].lower()
+                        unique = f"{str(user.id)}_vehicle_{i}_{uuid.uuid4().hex[:8]}.{ext}"
+                        filepath = os.path.join(upload_folder, unique)
+                        img_file.save(filepath)
+                        images.append(f"/uploads/{unique}")
   
               # Attach images to vehicle
               if images:
@@ -361,6 +351,7 @@ class ProfileService:
    
           # Save updated vehicles back
           payload['driver_services'] = driver_services
+        
   
       return payload
   
