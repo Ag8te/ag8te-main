@@ -33,6 +33,8 @@ const errorSelect = `${selectBase} border-red-300 bg-red-50/30 focus:ring-red-10
 const fieldLabel = "text-[13px] font-bold text-[#222222] tracking-wide ml-1";
 const sectionLabel = "text-[11px] font-bold text-primary uppercase tracking-[0.2em] mb-6 flex items-center gap-2";
 
+
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 type FormFields = {
   name: string; surname: string; email: string; phone: string;
@@ -65,12 +67,63 @@ const validators: Partial<Record<keyof FormFields, (v: string, form?: FormFields
   password: (v) => !v ? "Password is required" : v.length < 8 ? "Password must be at least 8 characters" : "",
   confirmPassword: (v, f) => !v ? "Please confirm your password" : v !== f?.password ? "Passwords do not match" : "",
   phone: (v) => !v.trim() ? "Phone number is required" : !phoneRegex.test(v) ? "Use only digits, spaces or +" : "",
+  //Full SA ID check including date validation
   id_number: (v, f) => {
   if (!v.trim()) return "ID / Passport number is required";
 
+  // ─── SOUTH AFRICA LOGIC ───
   if (f?.nationality === "South Africa") {
+
     if (!/^\d{13}$/.test(v)) return "SA ID must be 13 digits";
-  } else {
+
+    // Extract date
+    const year = parseInt(v.substring(0, 2));
+    const month = parseInt(v.substring(2, 4));
+    const day = parseInt(v.substring(4, 6));
+
+    const fullYear = year > 50 ? 1900 + year : 2000 + year;
+
+    const date = new Date(fullYear, month - 1, day);
+
+    if (
+      date.getFullYear() !== fullYear ||
+      date.getMonth() + 1 !== month ||
+      date.getDate() !== day
+    ) {
+      return "Invalid birth date in ID";
+    }
+
+    // ─── GENDER CHECK ───
+    const genderDigits = parseInt(v.substring(6, 10));
+    const idGender = genderDigits >= 5000 ? "male" : "female";
+
+    if (f?.gender && f.gender !== idGender) {
+      return `ID indicates ${idGender}, but selected gender is ${f.gender}`;
+    }
+
+    // ─── CHECKSUM (LUHN) ───
+    let sum = 0;
+    let alternate = false;
+
+    for (let i = v.length - 1; i >= 0; i--) {
+      let n = parseInt(v[i]);
+
+      if (alternate) {
+        n *= 2;
+        if (n > 9) n -= 9;
+      }
+
+      sum += n;
+      alternate = !alternate;
+    }
+
+    if (sum % 10 !== 0) {
+      return "Invalid SA ID (checksum failed)";
+    }
+  }
+
+  // ─── PASSPORT ───
+  else {
     if (v.length < 6) return "Invalid passport number";
   }
 
@@ -106,6 +159,27 @@ serviceDescription: (v, f) =>
     carColor: (v, f) =>
   f?.role === "driver" && !v.trim() ? "Car color is required" : "",
 };
+const serviceOptions1 = [
+  { name: "Electrical Installation" },
+  { name: "Electrical Maintenance" },
+  { name: "Plumbing" },
+  { name: "Carpentry" },
+  { name: "Welding" },
+  { name: "Cleaning Services" },
+  { name: "Gardening" },
+  { name: "Painting" },
+  { name: "IT Support" },
+  { name: "Web Development" },
+];
+
+const professionOptions1 = [
+  { name: "Electrician" },
+  { name: "Plumber" },
+  { name: "Carpenter" },
+  { name: "Welder" },
+  { name: "Software Developer" },
+  { name: "Mechanic" },
+];
 
 // ─── Country List ─────────────────────────────────────────────────────────────
 const countries = [
@@ -164,6 +238,7 @@ const RequiredLegend = () => (
 );
 
 const Register = () => {
+  const [selectedProfessions, setSelectedProfessions] = useState<string[]>([]);
   const [form, setForm] = useState<FormFields>({
     name: "", surname: "", email: "", phone: "", password: "", confirmPassword: "",
     gender: "", nationality: "", id_number: "", role: "",
@@ -199,10 +274,12 @@ carColor: "",
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [serviceOptions, setServiceOptions] = useState<any[]>([]);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
+  const [professionOptions, setProfessionOptions] = useState<any[]>([]);
   //Added new 
   const [carImages, setCarImages] = useState<File[]>([]);
   const [carPreviews, setCarPreviews] = useState<string[]>([]);
   const [draftRestored, setDraftRestored] = useState(false);
+  
 
   const legalTab = legalModal ?? "terms";
 
@@ -217,7 +294,8 @@ carColor: "",
     if (form.role === 'service-provider' || form.role === 'professional') {
       apiFetch(`/api/public/service-options?category=${form.role}`).then((res: any) => {
         if (res?.success && res.data?.services) {
-          setServiceOptions(res.data.services);
+          setServiceOptions(res.data.services || []);
+          setProfessionOptions(res.data.professions || []);
         }
       });
     }
@@ -257,11 +335,20 @@ carColor: "",
         form,
         selectedServices,
         agreed,
+        profession_offered: selectedProfessions,
+        service_offered: selectedServices,
       })
     );
   }, [draftRestored, form, selectedServices, agreed]);
 
   useEffect(() => {
+     const professionOptionsList = Array.isArray(professionOptions)
+     ? professionOptions.map((opt: any) => opt.name || opt)
+     : [];
+
+     const serviceOptionsList = Array.isArray(serviceOptions)
+     ? serviceOptions.map((opt: any) => opt.name || opt)
+     : [];
     if (isSubmitted) {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
@@ -278,6 +365,13 @@ carColor: "",
 
   setForm((f) => {
     const next = { ...f, [field]: value };
+     // ─── AUTO-DETECT GENDER FROM SA ID ───
+ if (field === "id_number" && value.length === 13) {
+   const genderDigits = parseInt(value.substring(6, 10));
+   const idGender = genderDigits >= 5000 ? "male" : "female";
+
+   next.gender = idGender; //auto-set gender
+ }
 
     if (touched[field]) {
       const validate = validators[field];
@@ -490,6 +584,7 @@ const removeCarImage = (index: number) => {
         highest_qualification: form.highestQualification, professional_body: form.professionalBody, agent_id: form.agent_id,
         professional_services: form.role === 'professional' ? payloadServices : [],
         provider_services: form.role === 'service-provider' ? payloadServices : [],
+        professions_offered: selectedProfessions,
       }));
       if (files.profile_photo) formData.append("profile_photo", files.profile_photo);
       carImages.forEach((file) => {
@@ -541,7 +636,9 @@ const removeCarImage = (index: number) => {
     const file = files[field];
     const preview = previews[field];
     const isImage = file?.type.startsWith("image/");
+     
 
+    
     return (
       <div className="space-y-2">
         <div className="flex items-center justify-between ml-1">
@@ -928,7 +1025,88 @@ const removeCarImage = (index: number) => {
                 </AnimatePresence>
 
                 {/* ── Services Offered ── */}
-                {(form.role === "professional" || form.role === "service-provider") && (
+               
+                <AnimatePresence>
+  {(form.role === "professional" || form.role === "service-provider") && (
+    <motion.section
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: "auto" }}
+      exit={{ opacity: 0, height: 0 }}
+      className="overflow-hidden space-y-5 pt-6 border-t border-slate-50"
+    >
+      <p className={sectionLabel}>
+        <UserCircle className="w-4 h-4" /> Profession & Services Offered
+      </p>
+
+    {form.role === "professional" && (
+  <div className="space-y-1">
+    <label className={fieldLabel}>
+      Select or Add Profession
+      <span className="text-slate-400 font-normal"> (Multiple allowed)</span>
+    </label>
+
+    <Autocomplete
+      multiple
+      freeSolo
+      options={professionOptions1.map(opt =>
+        typeof opt === "string" ? opt : opt.name
+      )}
+      value={selectedProfessions}
+      onChange={(_, newValue) =>
+        setSelectedProfessions(newValue as string[])
+      }
+      renderInput={(params) => (
+        <TextField
+          {...params}
+          placeholder="e.g. Electrician"
+          sx={{
+            "& .MuiOutlinedInput-root": {
+              borderRadius: "14px", //  rounded input
+              backgroundColor: "#f8fafc"
+            }
+          }}
+        />
+      )}
+    />
+  </div>
+)}
+
+
+{form.role === "service-provider" && (
+  <div className="space-y-1">
+    <label className={fieldLabel}>
+      Select or Add Service
+      <span className="text-slate-400 font-normal"> (Multiple allowed)</span>
+    </label>
+
+    <Autocomplete
+      multiple
+      freeSolo
+      options={serviceOptions1.map(opt =>
+        typeof opt === "string" ? opt : opt.name
+      )}
+      value={selectedServices}
+      onChange={(_, newValue) =>
+        setSelectedServices(newValue as string[])
+      }
+      renderInput={(params) => (
+        <TextField
+          {...params}
+          placeholder="e.g. Electrical Maintenance"
+          sx={{
+            "& .MuiOutlinedInput-root": {
+              borderRadius: "14px", //  rounded input
+              backgroundColor: "#f8fafc"
+            }
+          }}
+        />
+      )}
+    />
+  </div>
+)}
+    </motion.section>
+                  )}
+                   {(form.role === "professional" || form.role === "service-provider") && (
   <div className="space-y-1 mt-4">
     <label className={fieldLabel}>Service Description<Req /></label>
     <textarea
@@ -940,52 +1118,6 @@ const removeCarImage = (index: number) => {
     <FieldError msg={fieldErrors.serviceDescription} />
   </div>
 )}
-                <AnimatePresence>
-                  {(form.role === "professional" || form.role === "service-provider") && (
-                    <motion.section
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="overflow-hidden space-y-5 pt-6 border-t border-slate-50"
-                    >
-                      <p className={sectionLabel}><UserCircle className="w-4 h-4" /> {form.role === "professional" ? "Professions" : "Services"} Offered</p>
-                      <div className="space-y-1">
-                        <label className={fieldLabel}>{form.role === "professional" ? "Select or Add Your Profession" : "Select or Add Your Services"} <span className="text-slate-400 font-normal">(Multiple allowed)</span></label>
-                        <Autocomplete
-                          multiple
-                          freeSolo
-                          autoHighlight={false}
-                          openOnFocus={false}
-                          options={serviceOptions.map((opt) => opt.name)}
-                          value={selectedServices}
-                          onChange={(_, newValue) => setSelectedServices(newValue as string[])}
-                          renderInput={(params) => (
-                            <TextField
-                              {...params}
-                              variant="outlined"
-                              placeholder="e.g. Electrical Maintenance"
-                              className="bg-slate-50 border-slate-100 rounded-2xl"
-                              inputProps={{
-                                ...params.inputProps,
-                                autoComplete: "new-password",
-                              }}
-                              sx={{
-                                '& .MuiOutlinedInput-root': {
-                                  borderRadius: '16px',
-                                  backgroundColor: '#f8fafc',
-                                  minHeight: '56px',
-                                  '& fieldset': { borderColor: '#f1f5f9' },
-                                  '&:hover fieldset': { borderColor: '#e2e8f0' },
-                                  '&.Mui-focused fieldset': { borderColor: 'rgba(20, 184, 166, 0.5)', borderWidth: '4px' } // primary color with opacity
-                                }
-                              }}
-                            />
-                          )}
-                        />
-                        <p className="text-[11px] text-slate-400 font-medium ml-1 mt-1">If your service is not listed, you can type it and add it. Custom services will be reviewed by an administrator.</p>
-                      </div>
-                    </motion.section>
-                  )}
                 </AnimatePresence>
 
                 {/* ── vehicle information ── */}

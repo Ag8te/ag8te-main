@@ -56,6 +56,11 @@ class DriverServiceSchema(Schema):
     car_year = fields.Int(allow_none=True, load_default=None)
     registration_number = fields.Str(allow_none=True, load_default=None)
     car_type = fields.Str(required=True)  # standard, premium, suv; pricing is admin-configured
+    color = fields.Str(allow_none=True, load_default=None)
+    images = fields.List(fields.Raw(), allow_none=True, load_default=list) 
+    class Meta:
+        unknown = "include"# List of FileStorage objects from request.files        
+    
 
 
 class UpdateProfileSchema(Schema):
@@ -119,9 +124,22 @@ def update_profile():
             request_data = ProfileService._parse_form_request(request) # I'll add this helper to service
         else:
             request_data = request.json or {}
-            
+        if "vehicles" in request_data:
+            request_data["driver_services"] = request_data.pop("vehicles")
         # Basic validation with Marshmallow
-    
+        
+        # 🔥 Attach files to each vehicle
+        for i, vehicle in enumerate(request_data.get("driver_services", [])):
+    # Disk document
+             disk_key = f"vehicles[{i}][disk_document]"
+             if disk_key in request.form:
+            
+                 vehicle["disk_document"] = request.files[disk_key]
+
+    # Multiple images
+                 image_key = f"vehicles[{i}][images]"
+                 vehicle["images"] = request.files.getlist(image_key)
+        
         data = schema.load(request_data, partial=True)
         data = {k: v for k, v in data.items() if v is not None}
         
