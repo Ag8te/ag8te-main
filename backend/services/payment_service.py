@@ -225,6 +225,7 @@ class PaymentService:
         """Process service request payment"""
         from backend.models import ServiceRequest, Payment, User
         from backend.services.email_service import EmailService
+        from backend.services.request_service import RequestService
         
         service_request = ServiceRequest.query.get(request_id)
         payment = Payment.query.filter_by(external_id=external_id).first()
@@ -242,6 +243,8 @@ class PaymentService:
             if service_request.payment_status != 'paid':
                 service_request.payment_status = 'paid'
                 service_request.status = 'pending'
+                if service_request.request_type == 'cab':
+                    RequestService.assign_initial_cab_dispatch(service_request)
                 if payment:
                     payment.status = 'completed'
                 db.session.commit()

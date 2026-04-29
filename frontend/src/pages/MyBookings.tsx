@@ -36,9 +36,10 @@ const MyBookings = () => {
   const [reviewJob, setReviewJob] = useState<{ id: string, name: string, type: 'professional' | 'provider' | 'cab' } | null>(null);
   const [detailsJob, setDetailsJob] = useState<{ data: any, type: 'service' | 'ride' | 'order' } | null>(null);
   const [isPaying, setIsPaying] = useState<string | null>(null);
+  const [cancellingRideId, setCancellingRideId] = useState<string | null>(null);
 
-  const fetchAll = async () => {
-    setLoading(true);
+  const fetchAll = async (showLoader: boolean = true) => {
+    if (showLoader) setLoading(true);
     try {
       const [reqRes, ordRes] = await Promise.all([
         apiFetch('/api/requests'),
@@ -49,7 +50,7 @@ const MyBookings = () => {
     } catch (err) {
       console.error("Failed to fetch history:", err);
     } finally {
-      setLoading(false);
+      if (showLoader) setLoading(false);
     }
   };
 
@@ -65,8 +66,40 @@ const MyBookings = () => {
     }
   };
 
+  const handleCancelRide = async (requestId: string) => {
+    const reason = window.prompt("Why are you cancelling this ride?")?.trim() || "";
+    setCancellingRideId(requestId);
+    try {
+      const res = await apiFetch(`/api/requests/${requestId}/cancel`, {
+        method: 'POST',
+        data: { reason }
+      });
+      if (res.success) {
+        toast({
+          title: "Ride Cancelled",
+          description: `Refund: R${(res.data?.refund_amount || 0).toFixed(2)} | Cancellation fee: R${(res.data?.cancellation_charge || 0).toFixed(2)}`
+        });
+        fetchAll(false);
+      }
+    } catch (err: any) {
+      toast({ title: "Cancellation Error", description: err.message || "Failed to cancel ride", variant: "destructive" });
+    } finally {
+      setCancellingRideId(null);
+    }
+  };
+
   useEffect(() => {
     if (isAuthenticated) fetchAll();
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const intervalId = window.setInterval(() => {
+      fetchAll(false);
+    }, 10000);
+
+    return () => window.clearInterval(intervalId);
   }, [isAuthenticated]);
 
   // ── Split requests and apply search ──────────────────────────────────────
@@ -104,9 +137,44 @@ const MyBookings = () => {
     }
   };
 
+  const getRideStatusLabel = (req: any) => {
+    if (req.request_type !== 'cab') return req.status;
+
+    const details = req.details || {};
+
+    if (req.status === 'completed' || details.cab_arrived_at_location) {
+      return 'completed';
+    }
+
+    if (details.cab_trip_started) {
+      return 'on trip';
+    }
+
+    if (details.cab_driver_arrived) {
+      return 'driver arrived';
+    }
+
+    if (req.status === 'accepted') {
+      return 'driver on the way';
+    }
+
+    if (req.status === 'pending' && req.payment_status === 'paid') {
+      if (req.dispatch_state === 'no_drivers_available') return 'waiting for drivers';
+      return 'finding driver';
+    }
+
+    return req.status;
+  };
+
   const getProviderName = (req: any) => {
     if (req.request_type === 'cab') return req.driver_name || "Assigned Driver";
     return req.details?.provider_name || req.details?.professional_name || "Service Provider";
+  };
+
+  const getRideVehicleLabel = (req: any) => {
+    const carType = req.details?.car_type || req.driver_vehicle?.car_type || req.details?.selected_driver?.car_type;
+    if (!carType) return "Standard ride";
+    return String(carType).replace(/_/g, ' ');
   };
 
   const safeLocation = (req: any) => {
@@ -262,7 +330,7 @@ const MyBookings = () => {
                         <div>
                           <div className="flex items-center gap-3 mb-1">
                             <span className={cn("px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border", getStatusColor(req.status))}>
-                              {req.status}
+                              {getRideStatusLabel(req)}
                             </span>
                             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">#{req.id.slice(-8)}</span>
                           </div>
@@ -271,6 +339,17 @@ const MyBookings = () => {
                         </div>
                       </div>
                       <div className="flex flex-wrap gap-3">
+                        {(req.status === 'pending' || req.status === 'accepted') && (
+                          <Button
+                            variant="ghost"
+                            className="h-11 px-5 rounded-2xl text-rose-500 bg-rose-50 hover:bg-rose-100 font-bold"
+                            onClick={() => handleCancelRide(req.id)}
+                            disabled={cancellingRideId === req.id}
+                          >
+                            {cancellingRideId === req.id ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <XCircle className="h-4 w-4 mr-2" />}
+                            Cancel Ride
+                          </Button>
+                        )}
                         {req.payment_status === 'paid' && !req.has_driver_rating && (
                           <Button
                             className="h-11 px-5 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-bold shadow-md"
@@ -296,7 +375,9 @@ const MyBookings = () => {
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-6 py-6 border-y border-slate-50">
                       <div>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Driver</p>
-                        <p className="font-bold text-[#222222]">{req.driver_name || "Not assigned yet"}</p>
+                        <p className="font-bold text-[#222222]">
+                          {req.driver_name || (req.dispatch_state === 'no_drivers_available' ? "No nearby driver yet" : "Finding nearby driver...")}
+                        </p>
                       </div>
                       <div>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Amount</p>
@@ -308,6 +389,18 @@ const MyBookings = () => {
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Payment</p>
                         <p className={cn("font-bold capitalize", req.payment_status === 'paid' ? 'text-emerald-600' : 'text-amber-500')}>
                           {req.payment_status || 'Unpaid'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Ride Type</p>
+                        <p className="font-bold text-[#222222] capitalize">
+                          {getRideVehicleLabel(req)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Distance</p>
+                        <p className="font-bold text-[#222222]">
+                          {req.distance_km ? `${Number(req.distance_km).toFixed(1)} km` : 'Estimating'}
                         </p>
                       </div>
                     </div>
