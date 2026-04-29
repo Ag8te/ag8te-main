@@ -347,6 +347,7 @@ def delete_user(user_id):
             return error_response(error, 'Failed to delete user', None, 404 if error == 'NOT_FOUND' else 500)
         return success_response(None, 'User deleted successfully')
     except Exception as e:
+        db.session.rollback()
         current_app.logger.error(f"Delete user error: {str(e)}")
         return error_response('INTERNAL_ERROR', 'Failed to delete user', None, 500)
 

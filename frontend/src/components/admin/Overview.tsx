@@ -181,7 +181,7 @@ const Overview: React.FC<OverviewProps> = ({
           <MetricCard
             label="Total Platform Revenue"
             value={`R${(stats?.revenue?.total || 0).toLocaleString()}`}
-            caption="Combined ads earnings"
+            caption="Shop, services, and registration fees"
             icon={RevenueIcon}
             color="primary"
             trend="+12.4%"
@@ -212,6 +212,36 @@ const Overview: React.FC<OverviewProps> = ({
             value={stats?.activity?.total_chats?.toLocaleString() || 0}
             caption="Global platform interactions"
             icon={ChatIcon}
+            color="secondary"
+          />
+        </Grid>
+      </Grid>
+
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid size={{ xs: 12, md: 4 }}>
+          <MetricCard
+            label="Shop Revenue"
+            value={`R${(stats?.revenue?.shop || 0).toLocaleString()}`}
+            caption="Completed paid shop orders"
+            icon={OrderIcon}
+            color="warning"
+          />
+        </Grid>
+        <Grid size={{ xs: 12, md: 4 }}>
+          <MetricCard
+            label="Service Revenue"
+            value={`R${(stats?.revenue?.service || 0).toLocaleString()}`}
+            caption="Paid service and call-out requests"
+            icon={SuccessIcon}
+            color="success"
+          />
+        </Grid>
+        <Grid size={{ xs: 12, md: 4 }}>
+          <MetricCard
+            label="Registration Fees"
+            value={`R${(stats?.revenue?.registration || 0).toLocaleString()}`}
+            caption="Completed role registration payments"
+            icon={RevenueIcon}
             color="secondary"
           />
         </Grid>
