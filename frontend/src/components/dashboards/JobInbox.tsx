@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
     Box,
     Typography,
@@ -25,7 +25,8 @@ import {
     AccessTime as ClockIcon,
     CalendarMonthOutlined as CalendarIcon,
     ChevronRight as ChevronRightIcon,
-    Person as UserIcon
+    Person as UserIcon,
+    Close as CloseIcon
 } from "@mui/icons-material";
 import { useToast } from "@/hooks/use-toast";
 import { apiFetch } from "@/lib/api";
@@ -53,9 +54,19 @@ export const JobInbox = ({ jobs, role, onJobAccepted }: JobInboxProps) => {
     const { toast } = useToast();
     const theme = useTheme();
     const [acceptingId, setAcceptingId] = useState<string | null>(null);
+    const [rejectingId, setRejectingId] = useState<string | null>(null);
     const [quotingJob, setQuotingJob] = useState<Job | null>(null);
     const [quoteAmount, setQuoteAmount] = useState<string>("");
     const [isQuoting, setIsQuoting] = useState(false);
+    const [now, setNow] = useState(() => Date.now());
+
+    useEffect(() => {
+        const hasCabOffers = role === 'driver' && jobs.some((job) => job.request_type === 'cab');
+        if (!hasCabOffers) return;
+
+        const timerId = window.setInterval(() => setNow(Date.now()), 1000);
+        return () => window.clearInterval(timerId);
+    }, [jobs, role]);
 
     const handleAccept = async (jobId: string) => {
         setAcceptingId(jobId);
@@ -72,6 +83,24 @@ export const JobInbox = ({ jobs, role, onJobAccepted }: JobInboxProps) => {
             toast({ title: "Error", description: err.message || "Failed to accept job", variant: "destructive" });
         } finally {
             setAcceptingId(null);
+        }
+    };
+
+    const handleReject = async (jobId: string) => {
+        setRejectingId(jobId);
+        try {
+            const res = await apiFetch(`/api/requests/${jobId}/reject`, {
+                method: 'POST'
+            });
+
+            if (res.success) {
+                toast({ title: "Ride Declined", description: "The next nearby driver will be notified." });
+                onJobAccepted();
+            }
+        } catch (err: any) {
+            toast({ title: "Error", description: err.message || "Failed to reject job", variant: "destructive" });
+        } finally {
+            setRejectingId(null);
         }
     };
 
@@ -109,6 +138,15 @@ export const JobInbox = ({ jobs, role, onJobAccepted }: JobInboxProps) => {
         if (typeof loc === 'string') return loc;
         if (typeof loc === 'object' && loc.address) return loc.address;
         return "Address details available";
+    };
+
+    const getOfferSecondsRemaining = (job: Job) => {
+        const updatedAt = job.details?.dispatch_updated_at;
+        if (!updatedAt) return null;
+
+        const expiresAt = new Date(updatedAt).getTime() + 30000;
+        const secondsRemaining = Math.max(0, Math.ceil((expiresAt - now) / 1000));
+        return Number.isFinite(secondsRemaining) ? secondsRemaining : null;
     };
 
     return (
@@ -163,6 +201,14 @@ export const JobInbox = ({ jobs, role, onJobAccepted }: JobInboxProps) => {
                                                         {renderLocation(job.location_data)}
                                                     </Typography>
                                                 </Stack>
+                                                {job.request_type === 'cab' && role === 'driver' && getOfferSecondsRemaining(job) !== null && (
+                                                    <Chip
+                                                        size="small"
+                                                        color={getOfferSecondsRemaining(job)! <= 10 ? "warning" : "info"}
+                                                        label={`Offer expires in ${getOfferSecondsRemaining(job)}s`}
+                                                        sx={{ fontWeight: 800 }}
+                                                    />
+                                                )}
                                             </Stack>
                                         </Box>
                                     </Stack>
@@ -186,19 +232,30 @@ export const JobInbox = ({ jobs, role, onJobAccepted }: JobInboxProps) => {
                                                 Submit Quote
                                             </Button>
                                         ) : (
-                                            <Button
-                                                variant="contained"
-                                                disabled={acceptingId === job.id}
-                                                onClick={() => handleAccept(job.id)}
-                                                sx={{
-                                                    fontWeight: 800,
-                                                    borderRadius: 2,
-                                                    px: 3,
-                                                    boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.2)}`
-                                                }}
-                                            >
-                                                {acceptingId === job.id ? <CircularProgress size={20} color="inherit" /> : "Accept Job"}
-                                            </Button>
+                                            <Stack direction="row" spacing={1.5}>
+                                                <Button
+                                                    variant="outlined"
+                                                    disabled={rejectingId === job.id || acceptingId === job.id}
+                                                    onClick={() => handleReject(job.id)}
+                                                    sx={{ fontWeight: 800, borderRadius: 2, px: 2.5 }}
+                                                >
+                                                    {rejectingId === job.id ? <CircularProgress size={18} color="inherit" /> : <CloseIcon sx={{ fontSize: 18, mr: 0.5 }} />}
+                                                    Reject
+                                                </Button>
+                                                <Button
+                                                    variant="contained"
+                                                    disabled={acceptingId === job.id || rejectingId === job.id}
+                                                    onClick={() => handleAccept(job.id)}
+                                                    sx={{
+                                                        fontWeight: 800,
+                                                        borderRadius: 2,
+                                                        px: 3,
+                                                        boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.2)}`
+                                                    }}
+                                                >
+                                                    {acceptingId === job.id ? <CircularProgress size={20} color="inherit" /> : "Accept Job"}
+                                                </Button>
+                                            </Stack>
                                         )}
                                     </Stack>
                                 </Grid>

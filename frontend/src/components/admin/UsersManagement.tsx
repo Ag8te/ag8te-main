@@ -49,7 +49,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface User {
     id: string;
@@ -119,6 +118,7 @@ export const UsersManagement = () => {
     const [isSuspendDialogOpen, setIsSuspendDialogOpen] = useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [suspensionReason, setSuspensionReason] = useState("");
     const [editFormData, setEditFormData] = useState({
         first_name: "",
         last_name: "",
@@ -286,6 +286,7 @@ export const UsersManagement = () => {
         const user = users.find(u => u.id === userId);
         if (user) {
             setSelectedUser(user);
+            setSuspensionReason("");
             setIsSuspendDialogOpen(true);
         }
     };
@@ -319,17 +320,27 @@ export const UsersManagement = () => {
 
     const handleConfirmSuspend = async () => {
         if (!selectedUser) return;
+        if (!suspensionReason.trim()) {
+            toast({
+                title: "Suspension reason required",
+                description: "Please provide a reason before suspending this user.",
+                variant: "destructive"
+            });
+            return;
+        }
         setIsSubmitting(true);
         try {
             const adminHeaders = { Authorization: `Bearer ${localStorage.getItem("adminToken")}` };
             const res = await apiFetch(`/api/admin/users/${selectedUser.id}/suspend`, {
                 method: "PATCH",
-                headers: adminHeaders
+                headers: adminHeaders,
+                data: { reason: suspensionReason.trim() }
             });
             if (res?.success) {
                 toast({ title: "Success", description: "User suspended successfully." });
                 setIsSuspendDialogOpen(false);
                 setSelectedUser(null);
+                setSuspensionReason("");
                 fetchUsers(); // Refresh list
             }
         } catch (error: any) {
@@ -506,7 +517,7 @@ export const UsersManagement = () => {
             }
 
             const url = selectedUser ? `/api/admin/users/${selectedUser.id}` : `/api/admin/users`;
-            const method = selectedUser ? "PATCH" : "POST";
+            const method = selectedUser ? "PUT" : "POST";
 
             const res = await apiFetch(url, {
                 method: method,
@@ -516,6 +527,7 @@ export const UsersManagement = () => {
             if (res?.success) {
                 toast({ title: "Success", description: `User ${selectedUser ? 'updated' : 'created'} successfully.` });
                 setIsEditModalOpen(false);
+                setSelectedUser(null);
                 fetchUsers();
             }
         } catch (error: any) {
@@ -780,7 +792,7 @@ export const UsersManagement = () => {
                         </div>
                     </DialogHeader>
 
-                    <ScrollArea className="flex-1 px-8 py-8">
+                    <div className="flex-1 overflow-y-auto px-8 py-8 min-h-0">
                         <form id="editUserForm" onSubmit={handleSubmitEdit} className="space-y-10 pb-10">
                             {/* Core Identity Section */}
                             <section className="space-y-4">
@@ -1235,7 +1247,7 @@ export const UsersManagement = () => {
                                 </div>
                             </section>
                         </form>
-                    </ScrollArea>
+                    </div>
 
                     <DialogFooter className="px-8 py-4 border-t bg-slate-50 flex gap-3 shrink-0">
                         <Button
@@ -1273,8 +1285,21 @@ export const UsersManagement = () => {
                             This will prevent them from accessing the platform.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
+                    <div className="space-y-2">
+                        <Label htmlFor="suspension-reason" className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
+                            Suspension Reason
+                        </Label>
+                        <textarea
+                            id="suspension-reason"
+                            value={suspensionReason}
+                            onChange={(e) => setSuspensionReason(e.target.value)}
+                            placeholder="Explain why this user is being suspended."
+                            rows={4}
+                            className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-[#5e35b1] focus:ring-2 focus:ring-[#5e35b1]/20"
+                        />
+                    </div>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogCancel onClick={() => setSuspensionReason("")}>Cancel</AlertDialogCancel>
                         <AlertDialogAction
                             onClick={(e) => {
                                 e.preventDefault();

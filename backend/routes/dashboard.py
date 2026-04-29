@@ -16,6 +16,7 @@ from backend.utils.response import success_response, error_response
 from backend.utils.decorators import require_auth
 from backend.utils.url import get_public_backend_base_url, get_request_frontend_base_url
 from backend.extensions import db
+from backend.services.request_service import RequestService
 
 bp = Blueprint('dashboard', __name__)
 
@@ -111,7 +112,7 @@ def get_dashboard():
                 if car_type:
                     driver_car_types.add(car_type.lower())
             
-            # Get pending cab requests
+            # Get pending cab requests currently dispatched to this driver
             pending_cab_requests = ServiceRequest.query.filter(
                 and_(
                     ServiceRequest.request_type == 'cab',
@@ -120,22 +121,19 @@ def get_dashboard():
                 )
             ).order_by(ServiceRequest.created_at.desc()).limit(10).all()
             
-            # Filter by car type matching
+            dispatch_changed = False
+
+            # Filter by current targeted dispatch state
             for req in pending_cab_requests:
-                request_details = req.details or {}
-                request_car_type = request_details.get('car_type')
-                
-                # If driver has no car types, skip
                 if not driver_car_types:
                     continue
-                
-                # If request has car_type preference, must match
-                if request_car_type:
-                    if request_car_type.lower() not in driver_car_types:
-                        continue  # Skip - doesn't match
-                # If no preference, show to all drivers
-                
-                available_ride_requests.append(req)
+                if RequestService.refresh_expired_cab_dispatch_if_needed(req):
+                    dispatch_changed = True
+                if RequestService.can_driver_view_cab_offer(req, user):
+                    available_ride_requests.append(req)
+
+            if dispatch_changed:
+                db.session.commit()
 
 
             available_ride_requests_payload = [_ride_request_with_client(r) for r in available_ride_requests]

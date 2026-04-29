@@ -104,7 +104,8 @@ def verify_id(user_id):
 @require_admin
 def suspend_user(user_id):
     try:
-        user_dict, error = AdminService.suspend_user(user_id)
+        data = request.get_json(silent=True) or {}
+        user_dict, error = AdminService.suspend_user(user_id, reason=data.get('reason'))
         if error:
             return error_response(error, 'Failed to suspend user', None, 404 if error == 'NOT_FOUND' else 500)
         return success_response(user_dict, 'User suspended successfully')
@@ -373,9 +374,44 @@ def list_requests():
             
         total = query.count()
         requests = query.order_by(ServiceRequest.created_at.desc()).limit(limit).offset(offset).all()
+
+        request_payload = []
+        for r in requests:
+            data = r.to_dict()
+            details = r.details or {}
+            requester_data = (r.requester.data or {}) if r.requester and r.requester.data else {}
+            provider_data = (r.provider.data or {}) if r.provider and r.provider.data else {}
+
+            requester_name = "Unknown"
+            if r.requester:
+                requester_name = (
+                    f"{(requester_data.get('full_name') or '').strip()} {(requester_data.get('surname') or '').strip()}".strip()
+                    or r.requester.email
+                    or "Unknown"
+                )
+
+            provider_name = None
+            if r.provider:
+                provider_name = (
+                    f"{(provider_data.get('full_name') or '').strip()} {(provider_data.get('surname') or '').strip()}".strip()
+                    or r.provider.email
+                )
+            elif r.request_type == 'cab':
+                selected_driver = details.get('selected_driver') or {}
+                provider_name = selected_driver.get('name')
+
+            data.update({
+                'requester_name': requester_name,
+                'provider_name': provider_name,
+                'dispatch_state': details.get('dispatch_state'),
+                'cancellation_reason': details.get('cancellation_reason'),
+                'car_type': details.get('car_type'),
+                'distance_km': data.get('distance_km'),
+            })
+            request_payload.append(data)
         
         return success_response({
-            'requests': [r.to_dict() for r in requests],
+            'requests': request_payload,
             'total': total,
             'limit': limit,
             'offset': offset

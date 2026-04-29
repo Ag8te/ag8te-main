@@ -259,6 +259,7 @@ class AdminService:
         total_revenue = float(shop_revenue) + float(service_revenue) + float(registration_revenue)
         
         seven_days_ago = datetime.utcnow() - timedelta(days=7)
+        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
         user_growth = []
         for i in range(7):
             day = seven_days_ago + timedelta(days=i+1)
@@ -269,6 +270,22 @@ class AdminService:
                 User.created_at < end_of_day
             ).count()
             user_growth.append({'date': start_of_day.strftime('%b %d'), 'count': count})
+
+        cab_requests_query = ServiceRequest.query.filter(ServiceRequest.request_type == 'cab')
+        cab_requests = cab_requests_query.all()
+
+        ride_searching = 0
+        ride_assigned = 0
+        ride_on_trip = 0
+        for ride in cab_requests:
+            details = ride.details or {}
+            dispatch_state = details.get('dispatch_state')
+            if ride.status == 'pending' and dispatch_state == 'searching':
+                ride_searching += 1
+            elif ride.status == 'accepted' and not details.get('cab_trip_started'):
+                ride_assigned += 1
+            elif details.get('cab_trip_started') and ride.status != 'completed':
+                ride_on_trip += 1
 
         return {
             'users': {
@@ -282,7 +299,21 @@ class AdminService:
             'requests': {
                 'total': ServiceRequest.query.count(),
                 'pending': ServiceRequest.query.filter_by(status='pending').count(),
-                'completed': ServiceRequest.query.filter_by(status='completed').count()
+                'completed': ServiceRequest.query.filter_by(status='completed').count(),
+                'rides': {
+                    'total': cab_requests_query.count(),
+                    'searching': ride_searching,
+                    'assigned': ride_assigned,
+                    'on_trip': ride_on_trip,
+                    'completed_today': cab_requests_query.filter(
+                        ServiceRequest.status == 'completed',
+                        ServiceRequest.updated_at >= today_start
+                    ).count(),
+                    'cancelled_today': cab_requests_query.filter(
+                        ServiceRequest.status == 'cancelled',
+                        ServiceRequest.updated_at >= today_start
+                    ).count()
+                }
             },
             'revenue': {
                 'total': total_revenue,
@@ -341,7 +372,7 @@ class AdminService:
         return True, None
 
     @staticmethod
-    def suspend_user(user_id):
+    def suspend_user(user_id, reason=None):
         """Suspend a user"""
         user = User.query.get(user_id)
         if not user:
@@ -349,7 +380,7 @@ class AdminService:
         user.is_active = False
         db.session.commit()
         try:
-            EmailService.send_user_suspension_notification(user)
+            EmailService.send_user_suspension_notification(user, reason=reason)
         except Exception as e:
             logger.error(f"Suspension email failed: {e}")
         return user.to_dict(), None

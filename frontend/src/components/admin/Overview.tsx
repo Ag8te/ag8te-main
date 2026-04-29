@@ -43,7 +43,8 @@ import {
   LayersOutlined as PortfolioIcon,
   AccountBalanceWalletOutlined as RevenueIcon,
   CheckCircleOutlined as SuccessIcon,
-  ShowChart as ChartIcon
+  ShowChart as ChartIcon,
+  LocalTaxiOutlined as RideIcon
 } from '@mui/icons-material';
 
 interface OverviewProps {
@@ -243,6 +244,45 @@ const Overview: React.FC<OverviewProps> = ({
             caption="Completed role registration payments"
             icon={RevenueIcon}
             color="secondary"
+          />
+        </Grid>
+      </Grid>
+
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <MetricCard
+            label="Ride Matching"
+            value={stats?.requests?.rides?.searching?.toLocaleString() || 0}
+            caption="Cab rides currently searching for a driver"
+            icon={RideIcon}
+            color="info"
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <MetricCard
+            label="Drivers En Route"
+            value={stats?.requests?.rides?.assigned?.toLocaleString() || 0}
+            caption="Accepted rides awaiting pickup"
+            icon={RideIcon}
+            color="warning"
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <MetricCard
+            label="Rides On Trip"
+            value={stats?.requests?.rides?.on_trip?.toLocaleString() || 0}
+            caption="Active trips currently in progress"
+            icon={RideIcon}
+            color="success"
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <MetricCard
+            label="Cancelled Today"
+            value={stats?.requests?.rides?.cancelled_today?.toLocaleString() || 0}
+            caption="Cab rides cancelled since midnight"
+            icon={ReportIcon}
+            color="error"
           />
         </Grid>
       </Grid>

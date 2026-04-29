@@ -338,6 +338,7 @@ def list_requests():
         
         # Get all matching requests
         all_requests = query.order_by(ServiceRequest.created_at.desc()).all()
+        dispatch_changed = False
         
         # Apply preference matching in Python (for JSONB fields)
         filtered_requests = []
@@ -359,31 +360,12 @@ def list_requests():
             # For pending requests not yet accepted, apply matching logic
             if req.status == 'pending' and (req.provider_id is None or str(req.provider_id) != str(user.id)):
                 request_details = req.details or {}
+                if req.request_type == 'cab' and RequestService.refresh_expired_cab_dispatch_if_needed(req):
+                    dispatch_changed = True
                 
                 if user.role == 'driver':
-                    # Match by car_type
-                    driver_services = user_data.get('driver_services', [])
-                    if not driver_services:
-                        continue  # Skip if driver has no services
-                    
-                    # Get driver's car types
-                    driver_car_types = set()
-                    for service in driver_services:
-                        car_type = service.get('car_type')
-                        if car_type:
-                            driver_car_types.add(car_type.lower())
-                    
-                    if not driver_car_types:
-                        continue  # Skip if no car types
-                    
-                    # Check if request has car_type preference
-                    request_car_type = request_details.get('car_type')
-                    if request_car_type:
-                        # Request has preference - must match
-                        if request_car_type.lower() not in driver_car_types:
-                            continue  # Skip - doesn't match
-                    # If no preference, show to all drivers
-                    
+                    if not RequestService.can_driver_view_cab_offer(req, user):
+                        continue
                     filtered_requests.append(req)
                 
                 elif user.role in ('professional', 'service-provider'):
@@ -402,6 +384,9 @@ def list_requests():
                 else:
                     # For other roles, include all
                     filtered_requests.append(req)
+
+        if dispatch_changed:
+            db.session.commit()
         
         # Apply pagination
         total = len(filtered_requests)
@@ -431,6 +416,9 @@ def list_requests():
             d['has_driver_rating'] = r.id in rated_driver_ids
             d['has_professional_rating'] = r.id in rated_professional_ids
             d['has_provider_rating'] = r.id in rated_provider_ids
+            details = r.details or {}
+            if r.request_type == 'cab':
+                d['dispatch_state'] = details.get('dispatch_state')
             # For cab requests with an accepted driver, include driver display info
             if r.provider_id and r.provider:
                 provider_user = r.provider
@@ -452,9 +440,15 @@ def list_requests():
                     d['provider_banner_url'] = provider_user.banner_url if hasattr(provider_user, 'banner_url') else None
                     d['provider_id_assigned'] = str(provider_user.id)
             
+            if r.request_type == 'cab' and not d.get('driver_name'):
+                selected_driver = details.get('selected_driver') or {}
+                d['driver_name'] = selected_driver.get('name')
+                d['driver_phone'] = selected_driver.get('phone')
+                d['driver_vehicle'] = selected_driver
+
             # Also attach service images if they exist in preferences
-            if r.details and 'service_image_url' in r.details:
-                d['service_image_url'] = r.details['service_image_url']
+            if details and 'service_image_url' in details:
+                d['service_image_url'] = details['service_image_url']
             
             requests_data.append(d)
         return success_response({
@@ -507,13 +501,29 @@ def accept_request(request_id):
     """Accept service request (provider)"""
     try:
         user_id = get_jwt_identity()
-        service_request = ServiceRequest.query.get(request_id)
+        service_request = ServiceRequest.query.filter_by(id=request_id).with_for_update().first()
         
         if not service_request:
             return error_response('NOT_FOUND', 'Service request not found', None, 404)
         
         if service_request.status != 'pending':
             return error_response('INVALID_STATUS', 'Request cannot be accepted', None, 400)
+
+        user = User.query.get(user_id)
+        if service_request.request_type == 'cab':
+            if RequestService.refresh_expired_cab_dispatch_if_needed(service_request):
+                db.session.flush()
+            if service_request.provider_id:
+                return error_response('INVALID_STATUS', 'This ride has already been assigned to another driver', None, 400)
+            if service_request.status != 'pending':
+                return error_response('INVALID_STATUS', 'This ride is no longer available for acceptance', None, 400)
+            if not RequestService.can_driver_view_cab_offer(service_request, user):
+                return error_response('FORBIDDEN', 'This ride offer is not currently assigned to you', None, 403)
+            details = dict(service_request.details or {})
+            details['dispatch_state'] = 'driver_assigned'
+            details['accepted_at'] = datetime.utcnow().isoformat()
+            details['accepted_driver_id'] = user_id
+            service_request.details = details
         
         service_request.provider_id = user_id
         service_request.status = 'accepted'
@@ -627,16 +637,42 @@ def cancel_request(request_id):
         # Only requester can cancel
         if str(service_request.requester_id) != user_id:
             return error_response('FORBIDDEN', 'Only requester can cancel', None, 403)
+
+        if service_request.status in ('completed', 'cancelled'):
+            return error_response('INVALID_STATUS', 'This request can no longer be cancelled', None, 400)
+
+        data = request.get_json(silent=True) or {}
+        cancellation_reason = (data.get('reason') or '').strip()
         
         cancellation_charge = 0.0
         refund_amount = 0.0
+        details = dict(service_request.details or {})
         
-        if service_request.status == 'accepted':
-            # Charge cancellation fee (20% of payment amount)
+        if service_request.request_type == 'cab' and service_request.status == 'accepted':
+            trip_started = bool(details.get('cab_trip_started'))
+            driver_arrived = bool(details.get('cab_driver_arrived'))
+
+            if trip_started:
+                return error_response('INVALID_STATUS', 'You cannot cancel a ride once the trip has started', None, 400)
+
+            fee_rate = 0.2 if driver_arrived else 0.1
+            cancellation_charge = float(service_request.payment_amount) * fee_rate
+            refund_amount = float(service_request.payment_amount) - cancellation_charge
+
+            if service_request.requester_id:
+                wallet = Wallet.query.filter_by(user_id=service_request.requester_id).first()
+                if wallet:
+                    WalletService.add_transaction(
+                        wallet_id=wallet.id,
+                        user_id=service_request.requester_id,
+                        transaction_type='cancellation_refund',
+                        amount=refund_amount,
+                        external_id=request_id,
+                        description='Cancellation refund'
+                    )
+        elif service_request.status == 'accepted':
             cancellation_charge = float(service_request.payment_amount) * 0.2
             refund_amount = float(service_request.payment_amount) - cancellation_charge
-            
-            # Refund to wallet
             if service_request.requester_id:
                 wallet = Wallet.query.filter_by(user_id=service_request.requester_id).first()
                 if wallet:
@@ -649,8 +685,14 @@ def cancel_request(request_id):
                         description='Cancellation refund'
                     )
         
+        details['cancelled_at'] = datetime.utcnow().isoformat()
+        if cancellation_reason:
+            details['cancellation_reason'] = cancellation_reason
+        details['dispatch_state'] = 'cancelled'
+        service_request.details = details
         service_request.status = 'cancelled'
         service_request.cancellation_charge = cancellation_charge
+        service_request.provider_id = None
         db.session.commit()
         
         wallet = Wallet.query.filter_by(user_id=user_id).first()
@@ -661,6 +703,7 @@ def cancel_request(request_id):
             'status': 'cancelled',
             'refund_amount': refund_amount,
             'cancellation_charge': cancellation_charge,
+            'cancellation_reason': cancellation_reason,
             'wallet_balance': wallet_balance
         }, 'Request cancelled successfully')
         
@@ -711,11 +754,38 @@ def cab_driver_arrived(request_id):
         # Reassign details so SQLAlchemy detects JSONB change
         details = dict(service_request.details or {})
         details['cab_driver_arrived'] = True
+        details['dispatch_state'] = 'driver_arrived'
         service_request.details = details
         db.session.commit()
         return success_response(service_request.to_dict(), 'Driver marked as arrived')
     except Exception as e:
         current_app.logger.error(f"Cab driver arrived error: {str(e)}")
+        return error_response('INTERNAL_ERROR', 'Failed to update', None, 500)
+
+
+@bp.route('/<request_id>/cab-start-trip', methods=['PATCH'])
+@require_auth
+def cab_start_trip(request_id):
+    """Mark that the trip has started (assigned driver only)."""
+    try:
+        user_id = get_jwt_identity()
+        service_request = ServiceRequest.query.get(request_id)
+        err_code, err_msg, status = _require_cab_driver(service_request, user_id)
+        if err_code:
+            return error_response(err_code, err_msg, None, status)
+
+        details = dict(service_request.details or {})
+        if not details.get('cab_driver_arrived'):
+            return error_response('INVALID_REQUEST', 'Driver must arrive before starting trip', None, 400)
+
+        details['cab_trip_started'] = True
+        details['trip_started_at'] = datetime.utcnow().isoformat()
+        details['dispatch_state'] = 'on_trip'
+        service_request.details = details
+        db.session.commit()
+        return success_response(service_request.to_dict(), 'Trip started successfully')
+    except Exception as e:
+        current_app.logger.error(f"Cab start trip error: {str(e)}")
         return error_response('INTERNAL_ERROR', 'Failed to update', None, 500)
 
 
@@ -733,7 +803,10 @@ def cab_arrived_at_location(request_id):
         if not details.get('cab_driver_arrived'):
             return error_response('INVALID_REQUEST', 'Driver must be marked as arrived first', None, 400)
         details = dict(details)
+        if not details.get('cab_trip_started'):
+            return error_response('INVALID_REQUEST', 'Trip must be started before completing drop off', None, 400)
         details['cab_arrived_at_location'] = True
+        details['dispatch_state'] = 'completed'
         service_request.details = details
         service_request.status = 'completed'
         db.session.commit()
@@ -757,7 +830,9 @@ def cab_mark_no_show(request_id):
         details['cab_driver_no_show'] = True
         service_request.details = details
         service_request.status = 'pending'
+        previous_driver_id = service_request.provider_id
         service_request.provider_id = None
+        RequestService.refresh_cab_dispatch(service_request, declined_driver_id=previous_driver_id)
         db.session.commit()
         return success_response(service_request.to_dict(), 'Driver marked as no-show. Request is available for another driver.')
     except Exception as e:
@@ -882,7 +957,9 @@ def request_another_driver(request_id):
         details['request_another_driver_reason'] = reason
         service_request.details = details
         service_request.status = 'pending'
+        previous_driver_id = service_request.provider_id
         service_request.provider_id = None
+        RequestService.refresh_cab_dispatch(service_request, declined_driver_id=previous_driver_id)
         db.session.commit()
         return success_response(service_request.to_dict(), 'Request is now pending for another driver.')
     except Exception as e:
@@ -915,7 +992,11 @@ def get_client_info(request_id):
         # Provider can view client info for: (1) their accepted/completed ride, or (2) pending request (browsing available)
         if user.role not in ('driver', 'professional', 'service-provider'):
             return error_response('FORBIDDEN', 'Only providers can view client info', 403)
-        if str(service_request.provider_id) != user_id and service_request.status != 'pending':
+        if service_request.request_type == 'cab':
+            can_view_pending = user.role == 'driver' and RequestService.can_driver_view_cab_offer(service_request, user)
+            if str(service_request.provider_id) != user_id and not can_view_pending:
+                return error_response('FORBIDDEN', 'Only the assigned or targeted driver can view client info', 403)
+        elif str(service_request.provider_id) != user_id and service_request.status != 'pending':
             return error_response('FORBIDDEN', 'Only the assigned provider can view client info', 403)
         client = service_request.requester
         if not client:
@@ -1297,14 +1378,22 @@ def reject_request(request_id):
         
         if not service_request:
             return error_response('NOT_FOUND', 'Service request not found', None, 404)
-        
-        # Check if user is the assigned provider or candidate
-        if service_request.provider_id and str(service_request.provider_id) != user_id:
-            return error_response('FORBIDDEN', 'You are not assigned to this request', None, 403)
-        
-        # Rejection logic: set back to pending and clear provider
-        service_request.status = 'pending'
-        service_request.provider_id = None
+
+        user = User.query.get(user_id)
+        if service_request.request_type == 'cab':
+            if not RequestService.can_driver_view_cab_offer(service_request, user) and (
+                not service_request.provider_id or str(service_request.provider_id) != user_id
+            ):
+                return error_response('FORBIDDEN', 'This ride offer is not currently assigned to you', None, 403)
+            service_request.status = 'pending'
+            service_request.provider_id = None
+            RequestService.refresh_cab_dispatch(service_request, declined_driver_id=user_id)
+        else:
+            # Check if user is the assigned provider or candidate
+            if service_request.provider_id and str(service_request.provider_id) != user_id:
+                return error_response('FORBIDDEN', 'You are not assigned to this request', None, 403)
+            service_request.status = 'pending'
+            service_request.provider_id = None
         db.session.commit()
         
         return success_response(service_request.to_dict(), 'Request rejected successfully')

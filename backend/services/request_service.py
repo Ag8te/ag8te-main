@@ -23,6 +23,10 @@ CAR_TYPE_BASE_RATE_PER_KM = {
 }
 
 class RequestService:
+    CAB_DRIVER_SEARCH_RADIUS_KM = 12
+    CAB_DRIVER_OFFER_LIMIT = 5
+    CAB_DRIVER_OFFER_WINDOW_SECONDS = 30
+
     @staticmethod
     def calculate_quote(pickup, dropoff, preferences=None):
         """Calculate cab quote based on distance and car type"""
@@ -130,9 +134,9 @@ class RequestService:
             scheduled_date = scheduled_dt.strftime("%Y-%m-%d")
             scheduled_time = scheduled_dt.strftime("%H:%M")
 
-            assigned_driver = None
+            preferred_driver = None
             if selected_driver_id:
-                assigned_driver, error = RequestService._validate_selected_driver(
+                preferred_driver, error = RequestService._validate_selected_driver(
                     selected_driver_id,
                     request_details.get('car_type'),
                     data['pickup'],
@@ -140,8 +144,9 @@ class RequestService:
                 if error:
                     return None, error
 
-                request_details['selected_driver_id'] = str(assigned_driver.id)
-                request_details['selected_driver'] = RequestService._build_driver_snapshot(assigned_driver)
+                request_details['selected_driver_id'] = str(preferred_driver.id)
+                request_details['selected_driver'] = RequestService._build_driver_snapshot(preferred_driver)
+                request_details['preferred_driver_id'] = str(preferred_driver.id)
             
             service_request = ServiceRequest(
                 id=request_id,
@@ -156,8 +161,6 @@ class RequestService:
                 payment_status='pending',
                 status='unpaid'
             )
-            if assigned_driver:
-                service_request.provider_id = assigned_driver.id
         else: # professional or provider
             location_data = {'location': data['location']}
             payment_amount = RequestService._resolve_payment_amount(data)
@@ -232,6 +235,204 @@ class RequestService:
             'redirect_url': checkout['redirect_url'],
             'external_id': external_id
         }, None
+
+    @staticmethod
+    def assign_initial_cab_dispatch(service_request):
+        """Populate targeted driver offers for a newly paid cab request."""
+        if not service_request or service_request.request_type != 'cab':
+            return
+
+        details = dict(service_request.details or {})
+        details.setdefault('dispatch_state', 'searching')
+        details.setdefault('declined_driver_ids', [])
+        details.setdefault('targeted_driver_ids', [])
+
+        preferred_driver_id = details.get('preferred_driver_id')
+        pickup = (service_request.location_data or {}).get('pickup') or {}
+        car_type = details.get('car_type')
+        targeted_ids = []
+
+        if preferred_driver_id:
+            preferred_driver, error = RequestService._validate_selected_driver(
+                preferred_driver_id,
+                car_type,
+                pickup,
+            )
+            if not error and preferred_driver:
+                targeted_ids.append(str(preferred_driver.id))
+
+        remaining_candidates = RequestService.find_nearest_matching_drivers(
+            pickup,
+            car_type=car_type,
+            limit=RequestService.CAB_DRIVER_OFFER_LIMIT + len(targeted_ids),
+            exclude_driver_ids=set(targeted_ids) | set(details.get('declined_driver_ids') or []),
+        )
+        targeted_ids.extend([str(driver.id) for driver in remaining_candidates])
+        targeted_ids = targeted_ids[:RequestService.CAB_DRIVER_OFFER_LIMIT]
+
+        details['targeted_driver_ids'] = targeted_ids
+        details['dispatch_state'] = 'searching' if targeted_ids else 'no_drivers_available'
+        details['dispatch_updated_at'] = datetime.utcnow().isoformat()
+        service_request.details = details
+
+    @staticmethod
+    def refresh_cab_dispatch(service_request, declined_driver_id=None):
+        """Update targeted drivers after a cab offer is declined or reassigned."""
+        if not service_request or service_request.request_type != 'cab':
+            return
+
+        details = dict(service_request.details or {})
+        declined_ids = list(details.get('declined_driver_ids') or [])
+        if declined_driver_id and str(declined_driver_id) not in declined_ids:
+            declined_ids.append(str(declined_driver_id))
+
+        pickup = (service_request.location_data or {}).get('pickup') or {}
+        car_type = details.get('car_type')
+
+        next_candidates = RequestService.find_nearest_matching_drivers(
+            pickup,
+            car_type=car_type,
+            limit=RequestService.CAB_DRIVER_OFFER_LIMIT,
+            exclude_driver_ids=set(declined_ids),
+        )
+
+        details['declined_driver_ids'] = declined_ids
+        details['targeted_driver_ids'] = [str(driver.id) for driver in next_candidates]
+        details['dispatch_state'] = 'searching' if next_candidates else 'no_drivers_available'
+        details['dispatch_updated_at'] = datetime.utcnow().isoformat()
+        service_request.details = details
+
+    @staticmethod
+    def refresh_expired_cab_dispatch_if_needed(service_request):
+        """Rotate targeted cab offers when the current offer window has expired."""
+        if not service_request or service_request.request_type != 'cab':
+            return False
+        if service_request.status != 'pending' or service_request.provider_id is not None:
+            return False
+
+        details = dict(service_request.details or {})
+        targeted_ids = list(details.get('targeted_driver_ids') or [])
+        dispatch_state = details.get('dispatch_state')
+        updated_at = details.get('dispatch_updated_at')
+        if not targeted_ids or dispatch_state != 'searching' or not updated_at:
+            return False
+
+        try:
+            last_dispatch_at = datetime.fromisoformat(updated_at.replace('Z', '+00:00'))
+        except Exception:
+            last_dispatch_at = None
+
+        if not last_dispatch_at:
+            return False
+
+        if (datetime.utcnow() - last_dispatch_at.replace(tzinfo=None)).total_seconds() < RequestService.CAB_DRIVER_OFFER_WINDOW_SECONDS:
+            return False
+
+        details['declined_driver_ids'] = list(dict.fromkeys((details.get('declined_driver_ids') or []) + targeted_ids))
+        service_request.details = details
+        RequestService.refresh_cab_dispatch(service_request)
+        return True
+
+    @staticmethod
+    def can_driver_view_cab_offer(service_request, driver):
+        """Return True when a pending cab request is currently offered to this driver."""
+        if not service_request or service_request.request_type != 'cab' or not driver:
+            return False
+        if service_request.status != 'pending' or service_request.provider_id is not None:
+            return False
+
+        details = service_request.details or {}
+        targeted_driver_ids = details.get('targeted_driver_ids') or []
+        declined_driver_ids = details.get('declined_driver_ids') or []
+        driver_id = str(driver.id)
+
+        if driver_id in declined_driver_ids:
+            return False
+        if targeted_driver_ids:
+            return driver_id in targeted_driver_ids
+        return False
+
+    @staticmethod
+    def find_nearest_matching_drivers(pickup, car_type=None, limit=5, exclude_driver_ids=None):
+        """Find the nearest eligible online drivers for a pickup location."""
+        exclude_driver_ids = {str(driver_id) for driver_id in (exclude_driver_ids or set())}
+        pickup_lat = pickup.get('lat')
+        pickup_lng = pickup.get('lng')
+        if pickup_lat is None or pickup_lng is None:
+            return []
+
+        requested_types = RequestService._expand_requested_car_types(car_type)
+        candidate_drivers = User.query.filter_by(
+            role='driver',
+            is_active=True,
+            is_approved=True,
+            is_paid=True,
+        ).all()
+
+        ranked = []
+        for driver in candidate_drivers:
+            if str(driver.id) in exclude_driver_ids:
+                continue
+
+            driver_data = driver.data or {}
+            current_location = driver_data.get('current_location') or {}
+            lat = current_location.get('lat')
+            lng = current_location.get('lng')
+            updated_at = current_location.get('updated_at')
+            if lat is None or lng is None or not updated_at:
+                continue
+
+            try:
+                last_seen = datetime.fromisoformat(updated_at.replace('Z', '+00:00'))
+            except Exception:
+                continue
+
+            if (datetime.utcnow() - last_seen.replace(tzinfo=None)) > timedelta(minutes=15):
+                continue
+
+            driver_types = RequestService._extract_driver_car_types(driver)
+            if requested_types and driver_types.isdisjoint(requested_types):
+                continue
+
+            distance_km = RequestService._haversine_distance_km(
+                {'lat': float(pickup_lat), 'lng': float(pickup_lng)},
+                {'lat': float(lat), 'lng': float(lng)},
+            )
+            if distance_km is None or distance_km > RequestService.CAB_DRIVER_SEARCH_RADIUS_KM:
+                continue
+
+            ranked.append((distance_km, driver))
+
+        ranked.sort(key=lambda item: item[0])
+        return [driver for _, driver in ranked[:limit]]
+
+    @staticmethod
+    def _extract_driver_car_types(driver):
+        driver_data = driver.data or {}
+        driver_services = driver_data.get('driver_services') or []
+        car_types = set()
+        for service in driver_services:
+            if isinstance(service, dict):
+                car_type = service.get('car_type')
+                if car_type:
+                    car_types.update(RequestService._expand_requested_car_types(car_type))
+        return car_types
+
+    @staticmethod
+    def _expand_requested_car_types(car_type):
+        if not car_type:
+            return set()
+        normalized = str(car_type).strip().lower().replace(' ', '_')
+        aliases = {
+            'small_hatchback': {'small_hatchback', 'hatchback'},
+            'hatchback': {'small_hatchback', 'hatchback'},
+            'standard': {'sedan', 'standard'},
+            'sedan': {'sedan', 'standard'},
+            'premium': {'luxury', 'premium'},
+            'luxury': {'luxury', 'premium'},
+            'suv': {'suv'},
+        }
+        return aliases.get(normalized, {normalized})
 
     @staticmethod
     def _validate_selected_driver(driver_id, requested_car_type, pickup):

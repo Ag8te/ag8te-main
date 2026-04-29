@@ -71,11 +71,13 @@ class EmailService:
             port = current_app.config.get('MAIL_PORT')
             user = current_app.config.get('MAIL_USERNAME')
             password = current_app.config.get('MAIL_PASSWORD')
+            from_name = current_app.config.get('DEFAULT_FROM_NAME') or 'Mzansi Serve'
             default_from = current_app.config.get('DEFAULT_FROM_EMAIL') or user
+            default_reply_to = current_app.config.get('DEFAULT_REPLY_TO_EMAIL') or default_from
             
             import logging
             logger = logging.getLogger(__name__)
-            logger.info(f"Attempting to send email: To={recipient}, Host={host}, Port={port}, User={user}, From={default_from}")
+            logger.info(f"Attempting to send email: To={recipient}, Host={host}, Port={port}, User={user}, From={default_from}, ReplyTo={default_reply_to}")
 
             if not host or not user or not password:
                 missing = []
@@ -87,8 +89,9 @@ class EmailService:
             # Create message
             msg = MIMEMultipart('alternative')
             msg['Subject'] = Header(subject, 'utf-8')
-            # Use Display Name if possible, fallback to default_from
-            msg['From'] = f"Mzansi Serve <{default_from}>"
+            msg['From'] = f"{from_name} <{default_from}>"
+            msg['Sender'] = default_from
+            msg['Reply-To'] = default_reply_to
             msg['To'] = recipient
             
             # Explicitly use utf-8 for body parts
@@ -521,6 +524,7 @@ MzansiServe Team"""
         """Send user suspension notification email. reason is optional."""
         first_name = _first_name(user)
         suspension_reason = (reason or '').strip() or 'Please contact support for details.'
+        support_email = current_app.config.get('SUPPORT_EMAIL') or 'support@mzansiserve.co.za'
         subject = "Account Suspended - Important Notice"
         body = f"""Hi {first_name},
 
@@ -529,7 +533,7 @@ We regret to inform you that your MzansiServe account has been temporarily suspe
 Reason: {suspension_reason}
 
 If you believe this was done in error, please contact us:
-support@mzansiserve.co.za
+{support_email}
 
 Sincerely,
 MzansiServe Compliance Team"""
@@ -537,7 +541,7 @@ MzansiServe Compliance Team"""
 <p>Hi {first_name},</p>
 <p>We regret to inform you that your MzansiServe account has been temporarily suspended.</p>
 <p><strong>Reason:</strong> {suspension_reason}</p>
-<p>If you believe this was done in error, please contact us:<br><a href="mailto:support@mzansiserve.co.za">support@mzansiserve.co.za</a></p>
+<p>If you believe this was done in error, please contact us:<br><a href="mailto:{support_email}">{support_email}</a></p>
 <p>Sincerely,<br>MzansiServe Compliance Team</p>
 </body></html>"""
         email = EmailService.queue_email(
