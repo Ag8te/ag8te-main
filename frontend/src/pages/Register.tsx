@@ -421,13 +421,13 @@ carColor: "",
 
     //Validating service and qualififcation
 
-    if (
-  (form.role === "professional" || form.role === "service-provider") &&
-  selectedServices.length === 0
-) {
-  setServerError("Please select at least one service");
-  return false;
-}
+//     if (
+//   (form.role === "professional" || form.role === "service-provider") &&
+//   selectedServices.length === 0
+// ) {
+//   setServerError("Please select at least one service");
+//   return false;
+// }
 
 // professional qualification
 if (form.role === "professional" && !form.highestQualification.trim()) {
