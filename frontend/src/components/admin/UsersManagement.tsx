@@ -13,6 +13,7 @@ import {
     Activity,
     UserCircle,
     CheckCircle2,
+    XCircle,
     Info,
     Mail,
     Plus,
@@ -596,6 +597,7 @@ export const UsersManagement = () => {
                             <tr className="bg-[#f8fafc]">
                                 <th className="px-6 py-4 text-left text-xs font-bold text-[#697586] uppercase tracking-wider">Email/Name</th>
                                 <th className="px-6 py-4 text-left text-xs font-bold text-[#697586] uppercase tracking-wider">Role</th>
+                                <th className="px-6 py-4 text-left text-xs font-bold text-[#697586] uppercase tracking-wider">Registration</th>
                                 <th className="px-6 py-4 text-left text-xs font-bold text-[#697586] uppercase tracking-wider">Status</th>
                                 <th className="px-6 py-4 text-left text-xs font-bold text-[#697586] uppercase tracking-wider">Verification</th>
                                 <th className="px-6 py-4 text-right text-xs font-bold text-[#697586] uppercase tracking-wider">Actions</th>
@@ -604,7 +606,7 @@ export const UsersManagement = () => {
                         <tbody className="divide-y divide-gray-100 bg-white">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-12 text-center text-[#697586]">
+                                    <td colSpan={6} className="px-6 py-12 text-center text-[#697586]">
                                         <div className="flex flex-col items-center">
                                             <Loader2 className="animate-spin h-8 w-8 text-[#5e35b1] mb-3" />
                                             <span>Loading users...</span>
@@ -613,7 +615,7 @@ export const UsersManagement = () => {
                                 </tr>
                             ) : users.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-12 text-center text-[#697586]">
+                                    <td colSpan={6} className="px-6 py-12 text-center text-[#697586]">
                                         No users found matching your criteria.
                                     </td>
                                 </tr>
@@ -637,6 +639,19 @@ export const UsersManagement = () => {
                                             <span className="px-2.5 py-1 inline-flex text-xs leading-5 font-semibold  bg-[#e3f2fd] text-[#1e88e5] capitalize tracking-wide">
                                                 {user.role}
                                             </span>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            {user.is_paid ? (
+                                                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-green-600 bg-green-50 px-2.5 py-1">
+                                                    <CheckCircle2 className="h-3.5 w-3.5" />
+                                                    Paid
+                                                </span>
+                                            ) : (
+                                                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-red-600 bg-red-50 px-2.5 py-1">
+                                                    <XCircle className="h-3.5 w-3.5" />
+                                                    Not paid
+                                                </span>
+                                            )}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             {user.is_active ? (
