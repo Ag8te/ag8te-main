@@ -252,9 +252,14 @@ class AdminService:
         service_revenue = db.session.query(func.sum(ServiceRequest.payment_amount)).filter(
             ServiceRequest.payment_status == 'paid'
         ).scalar() or 0
-        total_revenue = float(shop_revenue) + float(service_revenue)
+        registration_revenue = db.session.query(func.sum(Payment.amount)).filter(
+            Payment.status == 'completed',
+            Payment.external_id.like('reg_fee_%')
+        ).scalar() or 0
+        total_revenue = float(shop_revenue) + float(service_revenue) + float(registration_revenue)
         
         seven_days_ago = datetime.utcnow() - timedelta(days=7)
+        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
         user_growth = []
         for i in range(7):
             day = seven_days_ago + timedelta(days=i+1)
@@ -265,6 +270,22 @@ class AdminService:
                 User.created_at < end_of_day
             ).count()
             user_growth.append({'date': start_of_day.strftime('%b %d'), 'count': count})
+
+        cab_requests_query = ServiceRequest.query.filter(ServiceRequest.request_type == 'cab')
+        cab_requests = cab_requests_query.all()
+
+        ride_searching = 0
+        ride_assigned = 0
+        ride_on_trip = 0
+        for ride in cab_requests:
+            details = ride.details or {}
+            dispatch_state = details.get('dispatch_state')
+            if ride.status == 'pending' and dispatch_state == 'searching':
+                ride_searching += 1
+            elif ride.status == 'accepted' and not details.get('cab_trip_started'):
+                ride_assigned += 1
+            elif details.get('cab_trip_started') and ride.status != 'completed':
+                ride_on_trip += 1
 
         return {
             'users': {
@@ -278,12 +299,27 @@ class AdminService:
             'requests': {
                 'total': ServiceRequest.query.count(),
                 'pending': ServiceRequest.query.filter_by(status='pending').count(),
-                'completed': ServiceRequest.query.filter_by(status='completed').count()
+                'completed': ServiceRequest.query.filter_by(status='completed').count(),
+                'rides': {
+                    'total': cab_requests_query.count(),
+                    'searching': ride_searching,
+                    'assigned': ride_assigned,
+                    'on_trip': ride_on_trip,
+                    'completed_today': cab_requests_query.filter(
+                        ServiceRequest.status == 'completed',
+                        ServiceRequest.updated_at >= today_start
+                    ).count(),
+                    'cancelled_today': cab_requests_query.filter(
+                        ServiceRequest.status == 'cancelled',
+                        ServiceRequest.updated_at >= today_start
+                    ).count()
+                }
             },
             'revenue': {
                 'total': total_revenue,
                 'shop': float(shop_revenue),
-                'service': float(service_revenue)
+                'service': float(service_revenue),
+                'registration': float(registration_revenue)
             },
             'feedback': {
                 'total_ratings': DriverRating.query.count() + ProfessionalRating.query.count() + ProviderRating.query.count(),
@@ -336,7 +372,7 @@ class AdminService:
         return True, None
 
     @staticmethod
-    def suspend_user(user_id):
+    def suspend_user(user_id, reason=None):
         """Suspend a user"""
         user = User.query.get(user_id)
         if not user:
@@ -344,7 +380,7 @@ class AdminService:
         user.is_active = False
         db.session.commit()
         try:
-            EmailService.send_user_suspension_notification(user)
+            EmailService.send_user_suspension_notification(user, reason=reason)
         except Exception as e:
             logger.error(f"Suspension email failed: {e}")
         return user.to_dict(), None
@@ -365,6 +401,14 @@ class AdminService:
         user = User.query.get(user_id)
         if not user:
             return None, "NOT_FOUND"
+
+        from backend.models.subscription import Subscription
+        from backend.models.advert import Advert
+        from backend.models.marketplace import MarketplaceAd
+
+        Subscription.query.filter_by(user_id=user.id).delete(synchronize_session=False)
+        Advert.query.filter_by(user_id=user.id).delete(synchronize_session=False)
+        MarketplaceAd.query.filter_by(user_id=user.id).delete(synchronize_session=False)
         db.session.delete(user)
         db.session.commit()
         return True, None
@@ -375,13 +419,47 @@ class AdminService:
         user = User.query.get(user_id)
         if not user:
             return None, "NOT_FOUND"
-            
+
+        profile_data = dict(user.data) if user.data else {}
         data = user.to_dict()
-        data['profile_data'] = user.data
-        
-        # Add ID URL
-        if user.id_document_url:
-            data['id_document_url'] = user.id_document_url
+        data['profile_data'] = profile_data
+
+        next_of_kin = profile_data.get('next_of_kin') or {}
+        id_document_url = None
+        if user.file_urls and isinstance(user.file_urls, list):
+            id_document_url = user.file_urls[0] if user.file_urls else None
+
+        qualification_urls = profile_data.get('qualification_urls') or []
+        if not isinstance(qualification_urls, list):
+            qualification_urls = [qualification_urls] if qualification_urls else []
+
+        data.update({
+            'phone': profile_data.get('phone'),
+            'gender': profile_data.get('gender'),
+            'is_sa_citizen': profile_data.get('sa_citizen'),
+            'sa_id_number': profile_data.get('sa_id'),
+            'next_of_kin_name': next_of_kin.get('full_name'),
+            'next_of_kin_phone': next_of_kin.get('contact_number'),
+            'next_of_kin_email': next_of_kin.get('contact_email'),
+            'highest_qualification': profile_data.get('highest_qualification'),
+            'professional_body': profile_data.get('professional_body'),
+            'professional_services': profile_data.get('professional_services') or [],
+            'provider_services': profile_data.get('provider_services') or [],
+            'driver_services': profile_data.get('driver_services') or [],
+            'id_document_url': id_document_url,
+            'proof_of_residence_url': profile_data.get('proof_of_residence_url'),
+            'driver_license_url': profile_data.get('driver_license_url'),
+            'cv_resume_url': profile_data.get('cv_resume_url'),
+            'qualification_urls': qualification_urls,
+            'registration_documents': {
+                'profile_image_url': user.profile_image_url,
+                'id_document_url': id_document_url,
+                'proof_of_residence_url': profile_data.get('proof_of_residence_url'),
+                'driver_license_url': profile_data.get('driver_license_url'),
+                'cv_resume_url': profile_data.get('cv_resume_url'),
+                'qualification_urls': qualification_urls,
+            }
+        })
             
         # Pending updates
         pending = PendingProfileUpdate.query.filter_by(user_id=user_id, status='pending').first()

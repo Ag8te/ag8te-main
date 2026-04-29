@@ -46,7 +46,29 @@ const Sidebar: React.FC<SidebarProps> = ({
   navStructure
 }) => {
   const theme = useTheme();
-  const [openGroups, setOpenGroups] = React.useState<Record<string, boolean>>({});
+  const [openGroups, setOpenGroups] = React.useState<Record<string, boolean>>(() => {
+    const initialGroups: Record<string, boolean> = {};
+    navStructure.forEach((item) => {
+      if (item.type === 'group' && item.children?.some((child: any) => activeTab === child.id)) {
+        initialGroups[item.label] = true;
+      }
+    });
+    return initialGroups;
+  });
+
+  React.useEffect(() => {
+    setOpenGroups((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      navStructure.forEach((item) => {
+        if (item.type === 'group' && item.children?.some((child: any) => activeTab === child.id) && !(item.label in next)) {
+          next[item.label] = true;
+          changed = true;
+        }
+      });
+      return changed ? next : prev;
+    });
+  }, [activeTab, navStructure]);
 
   const toggleGroup = (label: string) => {
     setOpenGroups(prev => ({ ...prev, [label]: !prev[label] }));
@@ -151,7 +173,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                     />
                     {isOpen ? <ExpandLess /> : <ExpandMore />}
                   </ListItemButton>
-                  <Collapse in={isOpen || hasActiveChild} timeout="auto" unmountOnExit>
+                  <Collapse in={isOpen} timeout="auto" unmountOnExit>
                     <List component="div" disablePadding sx={{ pl: 2 }}>
                       {item.children.map((child: any) => {
                         const active = activeTab === child.id;

@@ -59,22 +59,32 @@ const DriverDashboard = () => {
         { id: "profile", label: "My Profile", icon: SettingsIcon },
     ];
 
-    const fetchData = useCallback(async () => {
-        setLoading(true);
+    const fetchData = useCallback(async (showLoader: boolean = true, showError: boolean = true) => {
+        if (showLoader) setLoading(true);
         try {
             const res = await apiFetch('/api/dashboard');
             if (res.success) {
                 setData(res.data);
             }
         } catch (err: unknown) {
-            toast({ title: "Error", description: "Failed to load dashboard data.", variant: "destructive" });
+            if (showError) {
+                toast({ title: "Error", description: "Failed to load dashboard data.", variant: "destructive" });
+            }
         } finally {
-            setLoading(false);
+            if (showLoader) setLoading(false);
         }
     }, [toast]);
 
     useEffect(() => {
         fetchData();
+    }, [fetchData]);
+
+    useEffect(() => {
+        const intervalId = window.setInterval(() => {
+            fetchData(false, false);
+        }, 10000);
+
+        return () => window.clearInterval(intervalId);
     }, [fetchData]);
 
     useEffect(() => {

@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiFetch } from "@/lib/api";
 import { useJsApiLoader, Autocomplete, GoogleMap, Marker } from "@react-google-maps/api";
 import { formatUTCtoSAST, getMinBookableTimeSAST } from "@/lib/dateUtils";
+import { getCurrentLocationAddress } from "@/lib/locationUtils";
 import { useSearchParams } from "react-router-dom";
 
 type Step = 1 | 2 | 3;
@@ -220,64 +221,15 @@ const Transport = () => {
   const [suggestedDriver, setSuggestedDriver] = useState<any | null>(null);
 
   const handleUseCurrentLocation = async () => {
-    if (!navigator.geolocation) {
-      toast({
-        variant: "destructive",
-        title: "Geolocation not supported",
-        description: "Your browser does not support location access. Please use a different browser.",
-      });
-      return;
-    }
-    setIsLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        if (!window.google) {
-          setIsLocating(false);
-          return;
-        }
-        const geocoder = new google.maps.Geocoder();
-        geocoder.geocode(
-         { location: {lat: latitude, lng: longitude}},
-         (results, status) => {
-          setIsLocating(false);
-          if (status === 'OK' && results && results[0]) {
-            const place = results[0];
-            const components = place.address_components || [];
-            const hasStreet = components.some((c: any) => 
-              c.types.includes("street_number") || c.types.includes("route")
-            );
-            if (!hasStreet) {
-              toast({
-                variant: "destructive",
-                title: "Invalid Location",
-                description: "Please select a valid street address.",
-              });
-              return;
-            }
-            setPickup(place.formatted_address || "");
-            setPickupCoords({ lat: latitude, lng: longitude });
-            setPickupValid(true);
-          } else {
-            toast({
-              variant: "destructive",
-              title: "Location Error",
-              description: `Could not determine your address. Please enter it manually.`
-            });
-          }
-        
-        });
+    getCurrentLocationAddress(
+      (address, _city, coords, _postalCode) => {
+        setPickup(address);
+        setPickupCoords(coords);
+        setPickupValid(true);
       },
-      (error) => {
-        setIsLocating(false);
-        toast({
-          variant: "destructive",
-          title: "Location Denied",
-          description: `Could not determine your address. Please enter it manually.`
-        });
-      
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
+      (title, description) => toast({ variant: "destructive", title, description }),
+      setIsLocating,
+      'full_address'
     );
   };
 

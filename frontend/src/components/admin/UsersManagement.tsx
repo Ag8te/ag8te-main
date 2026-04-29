@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import {
     Loader2,
-    Search,
     MoreVertical,
     ShieldCheck,
     Ban,
@@ -14,15 +13,19 @@ import {
     Activity,
     UserCircle,
     CheckCircle2,
+    XCircle,
     Info,
     Mail,
     Plus,
     X as CloseIcon,
-    Settings
+    Settings,
+    Download,
+    ExternalLink,
+    FileText
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, getImageUrl } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import {
     Dialog,
@@ -46,10 +49,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface User {
-    id: number;
+    id: string;
     email: string;
     first_name: string | null;
     last_name: string | null;
@@ -70,6 +72,24 @@ interface User {
     professional_body?: string | null;
     is_paid?: boolean;
     email_verified?: boolean;
+    profile_image_url?: string | null;
+    id_document_url?: string | null;
+    proof_of_residence_url?: string | null;
+    driver_license_url?: string | null;
+    cv_resume_url?: string | null;
+    qualification_urls?: string[];
+    professional_services?: string[];
+    provider_services?: string[];
+    driver_services?: Array<string | Record<string, any>>;
+    profile_data?: Record<string, any> | null;
+    registration_documents?: {
+        profile_image_url?: string | null;
+        id_document_url?: string | null;
+        proof_of_residence_url?: string | null;
+        driver_license_url?: string | null;
+        cv_resume_url?: string | null;
+        qualification_urls?: string[];
+    };
 }
 
 interface UsersResponse {
@@ -98,6 +118,7 @@ export const UsersManagement = () => {
     const [isSuspendDialogOpen, setIsSuspendDialogOpen] = useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [suspensionReason, setSuspensionReason] = useState("");
     const [editFormData, setEditFormData] = useState({
         first_name: "",
         last_name: "",
@@ -123,6 +144,69 @@ export const UsersManagement = () => {
     const [professionalServices, setProfessionalServices] = useState<string[]>([]);
     const [providerServices, setProviderServices] = useState<string[]>([]);
     const [driverVehicles, setDriverVehicles] = useState<string[]>([]);
+
+    const buildDocumentEntries = (user: User | null) => {
+        if (!user) return [];
+
+        const docs = user.registration_documents || {};
+        const qualificationUrls = (docs.qualification_urls || user.qualification_urls || []).filter(Boolean);
+        const entries = [
+            { label: "Profile Photo", url: docs.profile_image_url || user.profile_image_url || "" },
+            { label: "ID Document", url: docs.id_document_url || user.id_document_url || "" },
+            { label: "Proof of Residence", url: docs.proof_of_residence_url || user.proof_of_residence_url || "" },
+            { label: "Driver's License", url: docs.driver_license_url || user.driver_license_url || "" },
+            { label: "CV / Resume", url: docs.cv_resume_url || user.cv_resume_url || "" },
+        ].filter((doc) => Boolean(doc.url));
+
+        qualificationUrls.forEach((url, index) => {
+            entries.push({
+                label: `Qualification Document ${index + 1}`,
+                url,
+            });
+        });
+
+        return entries;
+    };
+
+    const mapDriverVehicles = (driverServices?: Array<string | Record<string, any>>) => {
+        if (!Array.isArray(driverServices)) return [];
+        return driverServices.map((item) => {
+            if (typeof item === "string") return item;
+            const carMake = item?.car_make || item?.make || "";
+            const carModel = item?.car_model || item?.model || "";
+            const plate = item?.registration || item?.license_plate || item?.plate || "";
+            return [carMake, carModel, plate].filter(Boolean).join(" ").trim() || "Registered vehicle";
+        });
+    };
+
+    const normalizeUserDetail = (user: any): User => {
+        const profile = user?.profile_data || user?.data || {};
+        const nextOfKin = profile?.next_of_kin || {};
+        return {
+            ...user,
+            phone: user?.phone ?? profile?.phone ?? "",
+            gender: user?.gender ?? profile?.gender ?? "",
+            is_sa_citizen: user?.is_sa_citizen ?? profile?.sa_citizen ?? false,
+            sa_id_number: user?.sa_id_number ?? profile?.sa_id ?? "",
+            next_of_kin_name: user?.next_of_kin_name ?? nextOfKin?.full_name ?? "",
+            next_of_kin_phone: user?.next_of_kin_phone ?? nextOfKin?.contact_number ?? "",
+            next_of_kin_email: user?.next_of_kin_email ?? nextOfKin?.contact_email ?? "",
+            highest_qualification: user?.highest_qualification ?? profile?.highest_qualification ?? "",
+            professional_body: user?.professional_body ?? profile?.professional_body ?? "",
+            professional_services: user?.professional_services ?? profile?.professional_services ?? [],
+            provider_services: user?.provider_services ?? profile?.provider_services ?? [],
+            driver_services: user?.driver_services ?? profile?.driver_services ?? [],
+            qualification_urls: user?.qualification_urls ?? profile?.qualification_urls ?? [],
+            registration_documents: user?.registration_documents ?? {
+                profile_image_url: user?.profile_image_url ?? null,
+                id_document_url: user?.id_document_url ?? null,
+                proof_of_residence_url: user?.proof_of_residence_url ?? null,
+                driver_license_url: user?.driver_license_url ?? null,
+                cv_resume_url: user?.cv_resume_url ?? null,
+                qualification_urls: user?.qualification_urls ?? profile?.qualification_urls ?? [],
+            },
+        };
+    };
 
     const fetchUsers = useCallback(async () => {
         setLoading(true);
@@ -154,7 +238,7 @@ export const UsersManagement = () => {
         fetchUsers();
     }, [fetchUsers]);
 
-    const handleApprove = async (userId: number) => {
+    const handleApprove = async (userId: string) => {
         try {
             const adminHeaders = { Authorization: `Bearer ${localStorage.getItem("adminToken")}` };
             const res = await apiFetch(`/api/admin/users/${userId}/approve`, {
@@ -174,7 +258,7 @@ export const UsersManagement = () => {
         }
     };
 
-    const handleImpersonate = async (userId: number) => {
+    const handleImpersonate = async (userId: string) => {
         try {
             const adminHeaders = { Authorization: `Bearer ${localStorage.getItem("adminToken")}` };
             const res = await apiFetch(`/api/admin/users/${userId}/impersonate`, {
@@ -198,26 +282,65 @@ export const UsersManagement = () => {
         }
     };
 
-    const handleSuspend = async (userId: number) => {
+    const handleSuspend = async (userId: string) => {
         const user = users.find(u => u.id === userId);
         if (user) {
             setSelectedUser(user);
+            setSuspensionReason("");
             setIsSuspendDialogOpen(true);
+        }
+    };
+
+    const handleReinstate = async (userId: string) => {
+        const user = users.find(u => u.id === userId);
+        if (!user) return;
+
+        setIsSubmitting(true);
+        try {
+            const adminHeaders = { Authorization: `Bearer ${localStorage.getItem("adminToken")}` };
+            const res = await apiFetch(`/api/admin/users/${user.id}/unsuspend`, {
+                method: "PATCH",
+                headers: adminHeaders
+            });
+            if (res?.success) {
+                toast({ title: "Success", description: "User reinstated successfully." });
+                setSelectedUser(null);
+                fetchUsers();
+            }
+        } catch (error: any) {
+            toast({
+                title: "Error",
+                description: error.message || "Failed to reinstate user.",
+                variant: "destructive"
+            });
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     const handleConfirmSuspend = async () => {
         if (!selectedUser) return;
+        if (!suspensionReason.trim()) {
+            toast({
+                title: "Suspension reason required",
+                description: "Please provide a reason before suspending this user.",
+                variant: "destructive"
+            });
+            return;
+        }
         setIsSubmitting(true);
         try {
             const adminHeaders = { Authorization: `Bearer ${localStorage.getItem("adminToken")}` };
             const res = await apiFetch(`/api/admin/users/${selectedUser.id}/suspend`, {
                 method: "PATCH",
-                headers: adminHeaders
+                headers: adminHeaders,
+                data: { reason: suspensionReason.trim() }
             });
             if (res?.success) {
                 toast({ title: "Success", description: "User suspended successfully." });
                 setIsSuspendDialogOpen(false);
+                setSelectedUser(null);
+                setSuspensionReason("");
                 fetchUsers(); // Refresh list
             }
         } catch (error: any) {
@@ -231,7 +354,7 @@ export const UsersManagement = () => {
         }
     };
 
-    const handleDelete = async (userId: number) => {
+    const handleDelete = async (userId: string) => {
         const user = users.find(u => u.id === userId);
         if (user) {
             setSelectedUser(user);
@@ -251,6 +374,8 @@ export const UsersManagement = () => {
             if (res?.success) {
                 toast({ title: "Success", description: "User deleted successfully." });
                 setIsDeleteDialogOpen(false);
+                setSelectedUser(null);
+                setUsers((current) => current.filter((user) => user.id !== selectedUser.id));
                 fetchUsers(); // Refresh list
             }
         } catch (error: any) {
@@ -264,36 +389,54 @@ export const UsersManagement = () => {
         }
     };
 
-    const handleEdit = (user: User) => {
-        setSelectedUser(user);
-        setEditFormData({
-            first_name: user.first_name || "",
-            last_name: user.last_name || "",
-            username: user.username || "",
-            role: user.role,
-            email: user.email || "",
-            password: "", // Leave blank on edit
-            phone: user.phone || "",
-            gender: user.gender || "",
-            is_sa_citizen: user.is_sa_citizen || false,
-            sa_id_number: user.sa_id_number || "",
-            next_of_kin_name: user.next_of_kin_name || "",
-            next_of_kin_phone: user.next_of_kin_phone || "",
-            next_of_kin_email: user.next_of_kin_email || "",
-            highest_qualification: user.highest_qualification || "",
-            professional_body: user.professional_body || "",
-            is_paid: user.is_paid || false,
-            is_approved: user.is_approved,
-            is_active: user.is_active,
-            email_verified: user.email_verified || false
-        });
+    const handleEdit = async (user: User) => {
+        setIsSubmitting(true);
+        try {
+            const adminHeaders = { Authorization: `Bearer ${localStorage.getItem("adminToken")}` };
+            const res = await apiFetch(`/api/admin/users/${user.id}`, { headers: adminHeaders });
+            const detailedUser = normalizeUserDetail(res?.data || user);
 
-        // Mocking/Retrieving dynamic services for now (would typically come from a sub-API or relation)
-        setProfessionalServices([]);
-        setProviderServices([]);
-        setDriverVehicles([]);
+            setSelectedUser(detailedUser);
+            setEditFormData({
+                first_name: detailedUser.first_name || "",
+                last_name: detailedUser.last_name || "",
+                username: detailedUser.username || "",
+                role: detailedUser.role,
+                email: detailedUser.email || "",
+                password: "",
+                phone: detailedUser.phone || "",
+                gender: detailedUser.gender || "",
+                is_sa_citizen: detailedUser.is_sa_citizen || false,
+                sa_id_number: detailedUser.sa_id_number || "",
+                next_of_kin_name: detailedUser.next_of_kin_name || "",
+                next_of_kin_phone: detailedUser.next_of_kin_phone || "",
+                next_of_kin_email: detailedUser.next_of_kin_email || "",
+                highest_qualification: detailedUser.highest_qualification || "",
+                professional_body: detailedUser.professional_body || "",
+                is_paid: detailedUser.is_paid || false,
+                is_approved: detailedUser.is_approved,
+                is_active: detailedUser.is_active,
+                email_verified: detailedUser.email_verified || false
+            });
 
-        setIsEditModalOpen(true);
+            setProfessionalServices(
+                Array.isArray(detailedUser.professional_services) ? detailedUser.professional_services : []
+            );
+            setProviderServices(
+                Array.isArray(detailedUser.provider_services) ? detailedUser.provider_services : []
+            );
+            setDriverVehicles(mapDriverVehicles(detailedUser.driver_services));
+
+            setIsEditModalOpen(true);
+        } catch (error: any) {
+            toast({
+                title: "Error",
+                description: error.message || "Failed to load user details.",
+                variant: "destructive"
+            });
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const handleOpenAddModal = () => {
@@ -374,7 +517,7 @@ export const UsersManagement = () => {
             }
 
             const url = selectedUser ? `/api/admin/users/${selectedUser.id}` : `/api/admin/users`;
-            const method = selectedUser ? "PATCH" : "POST";
+            const method = selectedUser ? "PUT" : "POST";
 
             const res = await apiFetch(url, {
                 method: method,
@@ -384,6 +527,7 @@ export const UsersManagement = () => {
             if (res?.success) {
                 toast({ title: "Success", description: `User ${selectedUser ? 'updated' : 'created'} successfully.` });
                 setIsEditModalOpen(false);
+                setSelectedUser(null);
                 fetchUsers();
             }
         } catch (error: any) {
@@ -465,6 +609,7 @@ export const UsersManagement = () => {
                             <tr className="bg-[#f8fafc]">
                                 <th className="px-6 py-4 text-left text-xs font-bold text-[#697586] uppercase tracking-wider">Email/Name</th>
                                 <th className="px-6 py-4 text-left text-xs font-bold text-[#697586] uppercase tracking-wider">Role</th>
+                                <th className="px-6 py-4 text-left text-xs font-bold text-[#697586] uppercase tracking-wider">Registration</th>
                                 <th className="px-6 py-4 text-left text-xs font-bold text-[#697586] uppercase tracking-wider">Status</th>
                                 <th className="px-6 py-4 text-left text-xs font-bold text-[#697586] uppercase tracking-wider">Verification</th>
                                 <th className="px-6 py-4 text-right text-xs font-bold text-[#697586] uppercase tracking-wider">Actions</th>
@@ -473,7 +618,7 @@ export const UsersManagement = () => {
                         <tbody className="divide-y divide-gray-100 bg-white">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-12 text-center text-[#697586]">
+                                    <td colSpan={6} className="px-6 py-12 text-center text-[#697586]">
                                         <div className="flex flex-col items-center">
                                             <Loader2 className="animate-spin h-8 w-8 text-[#5e35b1] mb-3" />
                                             <span>Loading users...</span>
@@ -482,7 +627,7 @@ export const UsersManagement = () => {
                                 </tr>
                             ) : users.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-12 text-center text-[#697586]">
+                                    <td colSpan={6} className="px-6 py-12 text-center text-[#697586]">
                                         No users found matching your criteria.
                                     </td>
                                 </tr>
@@ -506,6 +651,19 @@ export const UsersManagement = () => {
                                             <span className="px-2.5 py-1 inline-flex text-xs leading-5 font-semibold  bg-[#e3f2fd] text-[#1e88e5] capitalize tracking-wide">
                                                 {user.role}
                                             </span>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            {user.is_paid ? (
+                                                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-green-600 bg-green-50 px-2.5 py-1">
+                                                    <CheckCircle2 className="h-3.5 w-3.5" />
+                                                    Paid
+                                                </span>
+                                            ) : (
+                                                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-red-600 bg-red-50 px-2.5 py-1">
+                                                    <XCircle className="h-3.5 w-3.5" />
+                                                    Not paid
+                                                </span>
+                                            )}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             {user.is_active ? (
@@ -550,13 +708,23 @@ export const UsersManagement = () => {
                                                 >
                                                     <UserCircle className="h-4 w-4" />
                                                 </button>
-                                                {user.is_active && (
+                                                {user.is_active ? (
                                                     <button
                                                         onClick={() => handleSuspend(user.id)}
                                                         className="text-orange-600 hover:text-orange-900 bg-orange-50 hover:bg-orange-100 p-1.5  transition-colors"
                                                         title="Suspend User"
+                                                        disabled={isSubmitting}
                                                     >
                                                         <Ban className="h-4 w-4" />
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => handleReinstate(user.id)}
+                                                        className="text-green-600 hover:text-green-900 bg-green-50 hover:bg-green-100 p-1.5 transition-colors disabled:opacity-50"
+                                                        title="Reinstate User"
+                                                        disabled={isSubmitting}
+                                                    >
+                                                        <Activity className="h-4 w-4" />
                                                     </button>
                                                 )}
                                                 <button
@@ -624,7 +792,7 @@ export const UsersManagement = () => {
                         </div>
                     </DialogHeader>
 
-                    <ScrollArea className="flex-1 px-8 py-8">
+                    <div className="flex-1 overflow-y-auto px-8 py-8 min-h-0">
                         <form id="editUserForm" onSubmit={handleSubmitEdit} className="space-y-10 pb-10">
                             {/* Core Identity Section */}
                             <section className="space-y-4">
@@ -805,6 +973,59 @@ export const UsersManagement = () => {
                                     </div>
                                 </div>
                             </section>
+
+                            {/* Registration Documents Section */}
+                            {selectedUser && (
+                                <section className="space-y-4">
+                                    <div className="flex items-center gap-2 px-1">
+                                        <h4 className="text-[11px] font-extrabold text-[#5e35b1] uppercase tracking-wider">Registration Documents</h4>
+                                        <div className="h-px flex-1 bg-slate-100" />
+                                    </div>
+                                    <div className="bg-white p-6 border border-slate-200 shadow-sm space-y-4">
+                                        {buildDocumentEntries(selectedUser).length > 0 ? (
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                {buildDocumentEntries(selectedUser).map((doc) => (
+                                                    <div
+                                                        key={`${doc.label}-${doc.url}`}
+                                                        className="border border-slate-200 bg-slate-50 p-4 flex items-center justify-between gap-4"
+                                                    >
+                                                        <div className="min-w-0">
+                                                            <div className="flex items-center gap-2 text-slate-800 font-semibold">
+                                                                <FileText className="w-4 h-4 text-[#5e35b1]" />
+                                                                <span className="truncate">{doc.label}</span>
+                                                            </div>
+                                                            <p className="text-xs text-slate-500 truncate mt-1">{doc.url}</p>
+                                                        </div>
+                                                        <div className="flex items-center gap-2 shrink-0">
+                                                            <a
+                                                                href={getImageUrl(doc.url)}
+                                                                target="_blank"
+                                                                rel="noreferrer"
+                                                                className="inline-flex items-center gap-1 px-3 py-2 text-xs font-bold text-[#5e35b1] bg-purple-50 hover:bg-purple-100 border border-purple-100 transition-colors"
+                                                            >
+                                                                <ExternalLink className="w-3.5 h-3.5" />
+                                                                Open
+                                                            </a>
+                                                            <a
+                                                                href={getImageUrl(doc.url)}
+                                                                download
+                                                                className="inline-flex items-center gap-1 px-3 py-2 text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 transition-colors"
+                                                            >
+                                                                <Download className="w-3.5 h-3.5" />
+                                                                Download
+                                                            </a>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="text-sm text-slate-500">
+                                                No registration documents have been uploaded for this user yet.
+                                            </div>
+                                        )}
+                                    </div>
+                                </section>
+                            )}
 
                             {/* Role Specific Sections */}
                             <div className="space-y-8">
@@ -1026,7 +1247,7 @@ export const UsersManagement = () => {
                                 </div>
                             </section>
                         </form>
-                    </ScrollArea>
+                    </div>
 
                     <DialogFooter className="px-8 py-4 border-t bg-slate-50 flex gap-3 shrink-0">
                         <Button
@@ -1064,8 +1285,21 @@ export const UsersManagement = () => {
                             This will prevent them from accessing the platform.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
+                    <div className="space-y-2">
+                        <Label htmlFor="suspension-reason" className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
+                            Suspension Reason
+                        </Label>
+                        <textarea
+                            id="suspension-reason"
+                            value={suspensionReason}
+                            onChange={(e) => setSuspensionReason(e.target.value)}
+                            placeholder="Explain why this user is being suspended."
+                            rows={4}
+                            className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-[#5e35b1] focus:ring-2 focus:ring-[#5e35b1]/20"
+                        />
+                    </div>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogCancel onClick={() => setSuspensionReason("")}>Cancel</AlertDialogCancel>
                         <AlertDialogAction
                             onClick={(e) => {
                                 e.preventDefault();
