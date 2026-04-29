@@ -43,7 +43,8 @@ import {
   LayersOutlined as PortfolioIcon,
   AccountBalanceWalletOutlined as RevenueIcon,
   CheckCircleOutlined as SuccessIcon,
-  ShowChart as ChartIcon
+  ShowChart as ChartIcon,
+  LocalTaxiOutlined as RideIcon
 } from '@mui/icons-material';
 
 interface OverviewProps {
@@ -181,7 +182,7 @@ const Overview: React.FC<OverviewProps> = ({
           <MetricCard
             label="Total Platform Revenue"
             value={`R${(stats?.revenue?.total || 0).toLocaleString()}`}
-            caption="Combined ads earnings"
+            caption="Shop, services, and registration fees"
             icon={RevenueIcon}
             color="primary"
             trend="+12.4%"
@@ -213,6 +214,75 @@ const Overview: React.FC<OverviewProps> = ({
             caption="Global platform interactions"
             icon={ChatIcon}
             color="secondary"
+          />
+        </Grid>
+      </Grid>
+
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid size={{ xs: 12, md: 4 }}>
+          <MetricCard
+            label="Shop Revenue"
+            value={`R${(stats?.revenue?.shop || 0).toLocaleString()}`}
+            caption="Completed paid shop orders"
+            icon={OrderIcon}
+            color="warning"
+          />
+        </Grid>
+        <Grid size={{ xs: 12, md: 4 }}>
+          <MetricCard
+            label="Service Revenue"
+            value={`R${(stats?.revenue?.service || 0).toLocaleString()}`}
+            caption="Paid service and call-out requests"
+            icon={SuccessIcon}
+            color="success"
+          />
+        </Grid>
+        <Grid size={{ xs: 12, md: 4 }}>
+          <MetricCard
+            label="Registration Fees"
+            value={`R${(stats?.revenue?.registration || 0).toLocaleString()}`}
+            caption="Completed role registration payments"
+            icon={RevenueIcon}
+            color="secondary"
+          />
+        </Grid>
+      </Grid>
+
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <MetricCard
+            label="Ride Matching"
+            value={stats?.requests?.rides?.searching?.toLocaleString() || 0}
+            caption="Cab rides currently searching for a driver"
+            icon={RideIcon}
+            color="info"
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <MetricCard
+            label="Drivers En Route"
+            value={stats?.requests?.rides?.assigned?.toLocaleString() || 0}
+            caption="Accepted rides awaiting pickup"
+            icon={RideIcon}
+            color="warning"
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <MetricCard
+            label="Rides On Trip"
+            value={stats?.requests?.rides?.on_trip?.toLocaleString() || 0}
+            caption="Active trips currently in progress"
+            icon={RideIcon}
+            color="success"
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <MetricCard
+            label="Cancelled Today"
+            value={stats?.requests?.rides?.cancelled_today?.toLocaleString() || 0}
+            caption="Cab rides cancelled since midnight"
+            icon={ReportIcon}
+            color="error"
           />
         </Grid>
       </Grid>

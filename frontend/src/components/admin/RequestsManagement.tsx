@@ -17,9 +17,15 @@ interface ServiceRequest {
     id: string;
     request_type: string;
     requester_id?: string;
+    requester_name?: string;
+    provider_name?: string;
     status: string;
     payment_status?: string;
     payment_amount?: number;
+    dispatch_state?: string;
+    cancellation_reason?: string;
+    car_type?: string;
+    distance_km?: number;
     created_at: string;
 }
 
@@ -97,6 +103,12 @@ export const RequestsManagement = () => {
             case 'provider': return '🛠️';
             default: return '📋';
         }
+    };
+
+    const getDispatchLabel = (req: ServiceRequest) => {
+        if (req.request_type !== 'cab') return 'n/a';
+        if (req.dispatch_state) return req.dispatch_state.replace(/_/g, ' ');
+        return req.status;
     };
 
     return (
@@ -182,16 +194,18 @@ export const RequestsManagement = () => {
                                 <th className="px-6 py-4 text-left text-[11px] font-extrabold text-[#5e35b1] uppercase tracking-wider">Request ID</th>
                                 <th className="px-6 py-4 text-left text-[11px] font-extrabold text-[#5e35b1] uppercase tracking-wider">Service Type</th>
                                 <th className="px-6 py-4 text-left text-[11px] font-extrabold text-[#5e35b1] uppercase tracking-wider">Customer</th>
-                                        <th className="px-6 py-4 text-left text-[11px] font-extrabold text-[#5e35b1] uppercase tracking-wider">Request Status</th>
-                                        <th className="px-6 py-4 text-left text-[11px] font-extrabold text-[#5e35b1] uppercase tracking-wider">Payment</th>
-                                        <th className="px-6 py-4 text-left text-[11px] font-extrabold text-[#5e35b1] uppercase tracking-wider">Amount</th>
-                                        <th className="px-6 py-4 text-left text-[11px] font-extrabold text-[#5e35b1] uppercase tracking-wider">Date Created</th>
+                                <th className="px-6 py-4 text-left text-[11px] font-extrabold text-[#5e35b1] uppercase tracking-wider">Ride Stage</th>
+                                <th className="px-6 py-4 text-left text-[11px] font-extrabold text-[#5e35b1] uppercase tracking-wider">Request Status</th>
+                                <th className="px-6 py-4 text-left text-[11px] font-extrabold text-[#5e35b1] uppercase tracking-wider">Payment</th>
+                                <th className="px-6 py-4 text-left text-[11px] font-extrabold text-[#5e35b1] uppercase tracking-wider">Amount</th>
+                                <th className="px-6 py-4 text-left text-[11px] font-extrabold text-[#5e35b1] uppercase tracking-wider">Trip Meta</th>
+                                <th className="px-6 py-4 text-left text-[11px] font-extrabold text-[#5e35b1] uppercase tracking-wider">Date Created</th>
                                     </tr>
                                 </thead>
                         <tbody className="divide-y divide-slate-50 bg-white">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={7} className="px-6 py-24 text-center">
+                                    <td colSpan={9} className="px-6 py-24 text-center">
                                         <div className="flex flex-col items-center gap-3">
                                             <div className="relative">
                                                 <div className="w-12 h-12 border-4 border-slate-100 border-t-[#5e35b1]  animate-spin" />
@@ -203,7 +217,7 @@ export const RequestsManagement = () => {
                                 </tr>
                             ) : requests.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="px-6 py-24 text-center">
+                                    <td colSpan={9} className="px-6 py-24 text-center">
                                         <div className="flex flex-col items-center gap-2 opacity-40">
                                             <ClipboardList className="w-12 h-12 text-slate-300" />
                                             <span className="text-sm font-semibold text-slate-500 uppercase tracking-widest">No requests matching your filters</span>
@@ -232,9 +246,14 @@ export const RequestsManagement = () => {
                                             <div className="flex items-center gap-2 text-slate-600">
                                                 <User className="w-4 h-4 text-slate-400" />
                                                 <span className="text-sm font-medium">
-                                                    {req.requester_id ? req.requester_id.substring(0, 8) + '...' : 'N/A'}
+                                                    {req.requester_name || (req.requester_id ? req.requester_id.substring(0, 8) + '...' : 'N/A')}
                                                 </span>
                                             </div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <Badge variant="outline" className="border px-2.5 py-0.5 font-bold uppercase text-[10px] tracking-wider shadow-sm">
+                                                {getDispatchLabel(req)}
+                                            </Badge>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <Badge variant="outline" className={cn(" border px-2.5 py-0.5 font-bold uppercase text-[10px] tracking-wider transition-all shadow-sm", getStatusStyles(req.status))}>
@@ -250,6 +269,21 @@ export const RequestsManagement = () => {
                                             <span className="text-sm font-black text-slate-900">
                                                 R{Number(req.payment_amount || 0).toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                             </span>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="text-xs font-semibold text-slate-600 space-y-1">
+                                                {req.request_type === 'cab' && (
+                                                    <>
+                                                        <div>{req.car_type ? `Vehicle: ${req.car_type}` : 'Vehicle: n/a'}</div>
+                                                        <div>{req.distance_km ? `Distance: ${req.distance_km.toFixed(1)} km` : 'Distance: n/a'}</div>
+                                                    </>
+                                                )}
+                                                {req.cancellation_reason && (
+                                                    <div className="max-w-[220px] truncate text-rose-600" title={req.cancellation_reason}>
+                                                        Reason: {req.cancellation_reason}
+                                                    </div>
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="flex items-center gap-2 text-slate-500">

@@ -49,6 +49,18 @@ export const BookingDetailsModal = ({ isOpen, onClose, data, type }: BookingDeta
         return data.details?.service_name || "Service Details";
     };
 
+    const getRideStageLabel = () => {
+        if (type !== 'ride') return null;
+        const details = data.details || {};
+        if (data.status === 'completed' || details.cab_arrived_at_location) return 'Completed';
+        if (details.cab_trip_started) return 'On Trip';
+        if (details.cab_driver_arrived) return 'Driver Arrived';
+        if (data.status === 'accepted') return 'Driver En Route';
+        if (details.dispatch_state === 'no_drivers_available') return 'Waiting for Drivers';
+        if (data.status === 'pending' && data.payment_status === 'paid') return 'Finding Driver';
+        return data.status;
+    };
+
     return (
         <AnimatePresence>
             {isOpen && (
@@ -77,7 +89,7 @@ export const BookingDetailsModal = ({ isOpen, onClose, data, type }: BookingDeta
                                     {getIcon()}
                                 </div>
                                 <div className={cn("px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border", getStatusColor(data.status))}>
-                                    {data.status}
+                                    {type === 'ride' ? getRideStageLabel() : data.status}
                                 </div>
                             </div>
 
@@ -148,6 +160,31 @@ export const BookingDetailsModal = ({ isOpen, onClose, data, type }: BookingDeta
                                         </p>
                                     </div>
                                 </div>
+
+                                {type === 'ride' && (
+                                    <>
+                                        <div className="space-y-3">
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                                <Car size={12} /> Ride Type
+                                            </p>
+                                            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                                <p className="font-bold text-[#222222] capitalize">
+                                                    {String(data.details?.car_type || data.driver_vehicle?.car_type || data.details?.selected_driver?.car_type || 'standard').replace(/_/g, ' ')}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="space-y-3">
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                                <ArrowRight size={12} /> Distance
+                                            </p>
+                                            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                                <p className="font-bold text-[#222222]">
+                                                    {data.distance_km ? `${Number(data.distance_km).toFixed(1)} km` : 'Not available'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
                             </div>
 
                             {/* Partners / Professional */}
@@ -257,6 +294,18 @@ export const BookingDetailsModal = ({ isOpen, onClose, data, type }: BookingDeta
                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Additional Notes</p>
                                     <div className="p-6 bg-slate-50/50 rounded-3xl border border-slate-100 text-sm italic text-slate-600 leading-relaxed font-medium">
                                         "{data.details?.notes || data.details?.description}"
+                                    </div>
+                                </div>
+                            )}
+
+                            {type === 'ride' && (data.cancellation_charge > 0 || data.details?.cancellation_reason) && (
+                                <div className="space-y-3">
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cancellation Details</p>
+                                    <div className="p-6 bg-rose-50/60 rounded-3xl border border-rose-100 text-sm text-rose-700 leading-relaxed font-medium">
+                                        {data.details?.cancellation_reason && (
+                                            <p className="mb-2"><span className="font-bold">Reason:</span> {data.details.cancellation_reason}</p>
+                                        )}
+                                        <p><span className="font-bold">Cancellation charge:</span> R{(data.cancellation_charge || 0).toFixed(2)}</p>
                                     </div>
                                 </div>
                             )}

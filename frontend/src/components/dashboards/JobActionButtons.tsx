@@ -68,6 +68,20 @@ export const JobActionButtons = ({ job, role, onStatusUpdate }: JobActionButtons
                 </Button>
             );
         }
+        if (!details.cab_trip_started) {
+            return (
+                <Button
+                    fullWidth
+                    variant="contained"
+                    onClick={() => handleAction('cab-start-trip')}
+                    disabled={loading}
+                    startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <NavigationIcon />}
+                    sx={{ fontWeight: 800, borderRadius: 2, bgcolor: '#F59E0B', '&:hover': { bgcolor: '#D97706' } }}
+                >
+                    Start Trip
+                </Button>
+            );
+        }
         if (!details.cab_arrived_at_location) {
             return (
                 <Button
@@ -78,7 +92,7 @@ export const JobActionButtons = ({ job, role, onStatusUpdate }: JobActionButtons
                     startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <CheckCircleIcon />}
                     sx={{ fontWeight: 800, borderRadius: 2, bgcolor: theme.palette.success.main, '&:hover': { bgcolor: theme.palette.success.dark } }}
                 >
-                    Drop off Complete
+                    Complete Trip
                 </Button>
             );
         }
