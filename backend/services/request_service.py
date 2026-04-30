@@ -5,12 +5,13 @@ import math
 import secrets
 import uuid
 from datetime import datetime, timedelta
+from urllib.parse import quote
 from flask import current_app
 from backend.extensions import db
 from backend.models import ServiceRequest, User, AppSetting, Payment, Wallet, ClientRating, DriverRating, ProfessionalRating, ProviderRating
 from backend.services.wallet_service import WalletService
 from backend.services.payment_service import PaymentService
-from backend.utils.url import get_request_frontend_base_url
+from backend.utils.url import get_request_frontend_base_url, get_request_frontend_return_path
 
 CAR_TYPE_BASE_RATE_PER_KM = {
     'small_hatchback': 8.12,
@@ -210,10 +211,11 @@ class RequestService:
         external_id = f"request_{request_id}_{secrets.token_hex(6)}"
         base_url = host_url.rstrip('/')
         frontend_url = get_request_frontend_base_url()
+        return_path = quote(get_request_frontend_return_path('/my-bookings?tab=rides'), safe='')
         
-        success_url = f"{base_url}/api/payments/request-callback?callback_status=success&external_id={external_id}&request_id={request_id}&frontend_url={frontend_url}"
-        cancel_url = f"{base_url}/api/payments/request-callback?callback_status=cancel&external_id={external_id}&request_id={request_id}&frontend_url={frontend_url}"
-        failure_url = f"{base_url}/api/payments/request-callback?callback_status=failure&external_id={external_id}&request_id={request_id}&frontend_url={frontend_url}"
+        success_url = f"{base_url}/api/payments/request-callback?callback_status=success&external_id={external_id}&request_id={request_id}&frontend_url={frontend_url}&return_path={return_path}"
+        cancel_url = f"{base_url}/api/payments/request-callback?callback_status=cancel&external_id={external_id}&request_id={request_id}&frontend_url={frontend_url}&return_path={return_path}"
+        failure_url = f"{base_url}/api/payments/request-callback?callback_status=failure&external_id={external_id}&request_id={request_id}&frontend_url={frontend_url}&return_path={return_path}"
         
         checkout = PaymentService.create_checkout(
             amount=amount_cents,

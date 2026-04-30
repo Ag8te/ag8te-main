@@ -3,6 +3,7 @@ Dashboard Routes
 """
 import uuid
 from datetime import datetime, timezone
+from urllib.parse import quote
 from flask import Blueprint, request, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from marshmallow import Schema, fields, ValidationError
@@ -14,7 +15,7 @@ from backend.services.agent_service import AgentService
 from backend.services.recon_service import run_recon_for_user
 from backend.utils.response import success_response, error_response
 from backend.utils.decorators import require_auth
-from backend.utils.url import get_public_backend_base_url, get_request_frontend_base_url
+from backend.utils.url import get_public_backend_base_url, get_request_frontend_base_url, get_request_frontend_return_path
 from backend.extensions import db
 from backend.services.request_service import RequestService
 
@@ -443,13 +444,14 @@ def wallet_top_up():
         # Create checkout session
         backend_url = get_public_backend_base_url()
         frontend_url = get_request_frontend_base_url()
+        return_path = quote(get_request_frontend_return_path('/wallet'), safe='')
         checkout_result = PaymentService.create_checkout(
             amount=amount_cents,
             currency=currency,
             external_id=external_id,
-            success_url=f"{backend_url}/api/payments/wallet-topup-callback?callback_status=success&external_id={external_id}&frontend_url={frontend_url}",
-            cancel_url=f"{backend_url}/api/payments/wallet-topup-callback?callback_status=cancel&external_id={external_id}&frontend_url={frontend_url}",
-            failure_url=f"{backend_url}/api/payments/wallet-topup-callback?callback_status=failure&external_id={external_id}&frontend_url={frontend_url}"
+            success_url=f"{backend_url}/api/payments/wallet-topup-callback?callback_status=success&external_id={external_id}&frontend_url={frontend_url}&return_path={return_path}",
+            cancel_url=f"{backend_url}/api/payments/wallet-topup-callback?callback_status=cancel&external_id={external_id}&frontend_url={frontend_url}&return_path={return_path}",
+            failure_url=f"{backend_url}/api/payments/wallet-topup-callback?callback_status=failure&external_id={external_id}&frontend_url={frontend_url}&return_path={return_path}"
         )
         
         # Update payment metadata with wallet info

@@ -4,6 +4,7 @@ Service Request Routes
 import math
 import secrets
 from datetime import datetime
+from urllib.parse import quote
 
 from flask import Blueprint, request, current_app
 from flask_jwt_extended import get_jwt_identity
@@ -16,7 +17,7 @@ from backend.services.wallet_service import WalletService
 from backend.services.payment_service import PaymentService
 from backend.utils.decorators import require_auth, require_role
 from backend.utils.response import error_response, success_response
-from backend.utils.url import get_public_backend_base_url
+from backend.utils.url import get_public_backend_base_url, get_request_frontend_base_url, get_request_frontend_return_path
 
 bp = Blueprint('requests', __name__)
 
@@ -583,9 +584,11 @@ def pay_quote(request_id):
         amount_cents = int(round(float(service_request.payment_amount) * 100))
         external_id = f"quote_pay_{request_id}_{secrets.token_hex(6)}"
         base_url = request.host_url.rstrip('/')
-        success_url = f"{base_url}/api/payments/request-callback?callback_status=success&external_id={external_id}&request_id={request_id}"
-        cancel_url = f"{base_url}/api/payments/request-callback?callback_status=cancel&external_id={external_id}&request_id={request_id}"
-        failure_url = f"{base_url}/api/payments/request-callback?callback_status=failure&external_id={external_id}&request_id={request_id}"
+        frontend_url = get_request_frontend_base_url()
+        return_path = quote(get_request_frontend_return_path('/my-bookings?tab=services'), safe='')
+        success_url = f"{base_url}/api/payments/request-callback?callback_status=success&external_id={external_id}&request_id={request_id}&frontend_url={frontend_url}&return_path={return_path}"
+        cancel_url = f"{base_url}/api/payments/request-callback?callback_status=cancel&external_id={external_id}&request_id={request_id}&frontend_url={frontend_url}&return_path={return_path}"
+        failure_url = f"{base_url}/api/payments/request-callback?callback_status=failure&external_id={external_id}&request_id={request_id}&frontend_url={frontend_url}&return_path={return_path}"
 
         checkout = PaymentService.create_checkout(
             amount=amount_cents,

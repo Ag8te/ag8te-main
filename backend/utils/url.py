@@ -1,5 +1,5 @@
 """Helpers for choosing frontend/backend base URLs per environment."""
-from urllib.parse import urlparse
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from flask import current_app, has_request_context, request
 
@@ -121,3 +121,71 @@ def get_callback_frontend_base_url() -> str:
         _prefer_configured_public_url(request.args.get("frontend_url"), "FRONTEND_URL") or get_request_frontend_base_url(),
         _config_default_frontend()
     )
+
+
+def _extract_safe_frontend_return_path(value: str | None, fallback: str = "/") -> str:
+    """Keep only same-site frontend paths so payment callbacks can't redirect off-site."""
+    cleaned = (value or "").strip()
+    if not cleaned:
+        return fallback
+
+    parsed = urlparse(cleaned)
+    if parsed.scheme or parsed.netloc:
+        frontend_origin = urlparse(get_request_frontend_base_url())
+        if (
+            parsed.scheme != frontend_origin.scheme
+            or parsed.netloc != frontend_origin.netloc
+        ):
+            return fallback
+        path = parsed.path or "/"
+        query = f"?{parsed.query}" if parsed.query else ""
+        return f"{path}{query}"
+
+    if not cleaned.startswith("/"):
+        return fallback
+
+    return cleaned
+
+
+def get_request_frontend_return_path(default: str = "/") -> str:
+    """Best-effort current frontend page path, including query string."""
+    if not has_request_context():
+        return default
+
+    candidates = [request.args.get("return_path")]
+
+    json_payload = request.get_json(silent=True)
+    if isinstance(json_payload, dict):
+        candidates.append(json_payload.get("return_path"))
+
+    candidates.append(request.headers.get("Referer"))
+
+    for candidate in candidates:
+        resolved = _extract_safe_frontend_return_path(candidate, fallback=default)
+        if resolved != default or candidate:
+            return resolved
+
+    return default
+
+
+def get_callback_frontend_return_url(default_path: str = "/") -> str:
+    """Frontend URL for payment callbacks, including the originating page path."""
+    base_url = get_callback_frontend_base_url()
+    return_path = _extract_safe_frontend_return_path(
+        request.args.get("return_path"),
+        fallback=default_path,
+    )
+    if return_path.startswith("/"):
+        return f"{base_url}{return_path}"
+    return f"{base_url}/{return_path}"
+
+
+def append_query_params(url: str, params: dict[str, str | None]) -> str:
+    """Merge query params into a URL, overwriting existing keys."""
+    parsed = urlparse(url)
+    query = dict(parse_qsl(parsed.query, keep_blank_values=True))
+    for key, value in params.items():
+        if value is None:
+            continue
+        query[key] = str(value)
+    return urlunparse(parsed._replace(query=urlencode(query, doseq=True)))

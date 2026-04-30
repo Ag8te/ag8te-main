@@ -5,12 +5,13 @@ import os
 import uuid
 import json
 import logging
+from urllib.parse import quote
 from flask import current_app
 from backend.extensions import db
 from backend.models import User, PendingProfileUpdate, Payment
 from backend.services.payment_service import PaymentService
 from backend.services.agent_service import AgentService
-from backend.utils.url import get_public_backend_base_url, get_request_frontend_base_url
+from backend.utils.url import get_public_backend_base_url, get_request_frontend_base_url, get_request_frontend_return_path
 
 logger = logging.getLogger(__name__)
 
@@ -153,11 +154,12 @@ class ProfileService:
         external_id = f"reg_fee_{user_id_hex}_{uuid.uuid4().hex[:8]}"
         backend_url = get_public_backend_base_url()
         frontend_url = get_request_frontend_base_url()
+        return_path = quote(get_request_frontend_return_path('/profile'), safe='')
         
         urls = {
-            'success_url': f"{backend_url}/api/profile/payment-callback?callback_status=success&external_id={external_id}&provider={provider}&frontend_url={frontend_url}",
-            'cancel_url': f"{backend_url}/api/profile/payment-callback?callback_status=cancel&external_id={external_id}&provider={provider}&frontend_url={frontend_url}",
-            'failure_url': f"{backend_url}/api/profile/payment-callback?callback_status=failure&external_id={external_id}&provider={provider}&frontend_url={frontend_url}"
+            'success_url': f"{backend_url}/api/profile/payment-callback?callback_status=success&external_id={external_id}&provider={provider}&frontend_url={frontend_url}&return_path={return_path}",
+            'cancel_url': f"{backend_url}/api/profile/payment-callback?callback_status=cancel&external_id={external_id}&provider={provider}&frontend_url={frontend_url}&return_path={return_path}",
+            'failure_url': f"{backend_url}/api/profile/payment-callback?callback_status=failure&external_id={external_id}&provider={provider}&frontend_url={frontend_url}&return_path={return_path}"
         }
         
         checkout = PaymentService.create_checkout(

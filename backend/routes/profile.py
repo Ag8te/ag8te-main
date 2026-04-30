@@ -13,7 +13,7 @@ from backend.extensions import db
 from backend.utils.response import success_response, error_response
 from backend.utils.decorators import require_auth
 from backend.utils.auth import validate_sa_id
-from backend.utils.url import get_callback_frontend_base_url
+from backend.utils.url import append_query_params, get_callback_frontend_return_url
 from backend.services.profile_service import ProfileService
 
 bp = Blueprint('profile', __name__)
@@ -368,33 +368,23 @@ def pay_registration_fee():
 def payment_callback():
     try:
         external_id = request.args.get('external_id')
-        frontend_url = get_callback_frontend_base_url()
         
         success, error = ProfileService.handle_payment_callback(external_id)
         
         if success:
             return current_app.make_response((
-                f'<html><body><script>window.location.href="{frontend_url}/profile?payment=success";</script></body></html>',
+                f'<html><body><script>window.location.href="{append_query_params(get_callback_frontend_return_url("/profile"), {"payment": "success", "external_id": external_id})}";</script></body></html>',
                 302
             ))
         else:
             return current_app.make_response((
-                f'<html><body><script>window.location.href="{frontend_url}/profile?payment=error&reason=' + (error or 'unknown') + '";</script></body></html>',
+                f'<html><body><script>window.location.href="{append_query_params(get_callback_frontend_return_url("/profile"), {"payment": "error", "reason": error or "unknown", "external_id": external_id})}";</script></body></html>',
                 302
             ))
             
     except Exception as e:
         current_app.logger.error(f"Payment callback error: {str(e)}")
-        frontend_url = get_callback_frontend_base_url()
         return current_app.make_response((
-            f'<html><body><script>window.location.href="{frontend_url}/profile?payment=error";</script></body></html>',
-            302
-        ))
-        
-    except Exception as e:
-        current_app.logger.error(f"Payment callback error: {str(e)}")
-        frontend_url = get_callback_frontend_base_url()
-        return current_app.make_response((
-            f'<html><body><script>window.location.href="{frontend_url}/profile?payment=error";</script></body></html>',
+            f'<html><body><script>window.location.href="{append_query_params(get_callback_frontend_return_url("/profile"), {"payment": "error"})}";</script></body></html>',
             302
         ))

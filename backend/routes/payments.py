@@ -2,6 +2,7 @@
 Payment Routes
 """
 import uuid
+from urllib.parse import quote
 from flask import Blueprint, request, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from marshmallow import Schema, fields, ValidationError
@@ -11,13 +12,23 @@ from backend.services.wallet_service import WalletService
 from backend.utils.response import success_response, error_response
 from backend.utils.decorators import require_auth
 from backend.utils.url import (
+    append_query_params,
     get_callback_frontend_base_url,
+    get_callback_frontend_return_url,
     get_public_backend_base_url,
     get_request_frontend_base_url,
+    get_request_frontend_return_path,
 )
 from backend.extensions import db
 
 bp = Blueprint('payments', __name__)
+
+
+def _redirect_html(target_url: str, status_code: int = 302):
+    return current_app.make_response((
+        f'<html><body><script>window.location.href="{target_url}";</script></body></html>',
+        status_code
+    ))
 
 class CreateOrderSchema(Schema):
     items = fields.List(fields.Dict(), required=True)
@@ -49,9 +60,10 @@ def create_order():
         # 2. Initialize payment checkout
         backend_url = get_public_backend_base_url()
         frontend_url = get_request_frontend_base_url()
-        success_url = f"{backend_url}/api/payments/order-callback?callback_status=success&external_id={order_id}&order_id={order_id}&provider={data['provider']}&frontend_url={frontend_url}"
-        cancel_url = f"{backend_url}/api/payments/order-callback?callback_status=cancel&external_id={order_id}&order_id={order_id}&provider={data['provider']}&frontend_url={frontend_url}"
-        failure_url = f"{backend_url}/api/payments/order-callback?callback_status=failure&external_id={order_id}&order_id={order_id}&provider={data['provider']}&frontend_url={frontend_url}"
+        return_path = quote(get_request_frontend_return_path('/shopping-history'), safe='')
+        success_url = f"{backend_url}/api/payments/order-callback?callback_status=success&external_id={order_id}&order_id={order_id}&provider={data['provider']}&frontend_url={frontend_url}&return_path={return_path}"
+        cancel_url = f"{backend_url}/api/payments/order-callback?callback_status=cancel&external_id={order_id}&order_id={order_id}&provider={data['provider']}&frontend_url={frontend_url}&return_path={return_path}"
+        failure_url = f"{backend_url}/api/payments/order-callback?callback_status=failure&external_id={order_id}&order_id={order_id}&provider={data['provider']}&frontend_url={frontend_url}&return_path={return_path}"
         
         current_app.logger.info(f"Creating checkout for order {order_id} via {data['provider']} (amount: {amount_in_cents})")
         
@@ -238,7 +250,18 @@ def paypal_callback():
         
         current_app.logger.info(f"PayPal callback: status={status}, external_id={external_id}, token={token}")
         
-        frontend_url = get_callback_frontend_base_url()
+        success_url = append_query_params(
+            get_callback_frontend_return_url('/dashboard'),
+            {'payment': 'success', 'provider': 'paypal', 'external_id': external_id}
+        )
+        cancelled_url = append_query_params(
+            get_callback_frontend_return_url('/dashboard'),
+            {'payment': 'cancelled', 'provider': 'paypal', 'external_id': external_id}
+        )
+        error_url = append_query_params(
+            get_callback_frontend_return_url('/dashboard'),
+            {'payment': 'error', 'provider': 'paypal', 'external_id': external_id}
+        )
         
         if status == 'success':
             # We could optionally capture the order here if not done via webhook
@@ -263,37 +286,23 @@ def paypal_callback():
                             current_app.logger.error(f"Inventory update failed for PayPal order {external_id}: {str(e)}")
                 
                 db.session.commit()
-                return current_app.make_response((
-                    f'<html><body><script>window.location.href="{frontend_url}/shopping-history?payment=success&provider=paypal";</script></body></html>',
-                    302
-                ))
+                return _redirect_html(success_url)
             elif external_id.startswith('topup_'):
-                # Handle wallet topup logic similar to wallet_topup_callback but for PayPal
-                # ... implementation omitted for brevity, adding placeholder ...
-                return current_app.make_response((
-                    f'<html><body><script>window.location.href="{frontend_url}/wallet?payment=success&provider=paypal";</script></body></html>',
-                    302
-                ))
+                return _redirect_html(success_url)
             else:
-                return current_app.make_response((
-                    f'<html><body><script>window.location.href="{frontend_url}/dashboard?payment=success&provider=paypal";</script></body></html>',
-                    302
-                ))
+                return _redirect_html(success_url)
 
         # Handle cancel/error
-        redirect_param = "cancelled" if status == "cancel" else "error"
-        return current_app.make_response((
-            f'<html><body><script>window.location.href="{frontend_url}/dashboard?payment={redirect_param}&provider=paypal";</script></body></html>',
-            302
-        ))
+        return _redirect_html(cancelled_url if status == "cancel" else error_url)
 
     except Exception as e:
         current_app.logger.error(f"PayPal callback error: {str(e)}")
-        frontend_url = get_callback_frontend_base_url()
-        return current_app.make_response((
-            f'<html><body><script>window.location.href="{frontend_url}/dashboard?payment=error&provider=paypal";</script></body></html>',
-            302
-        ))
+        return _redirect_html(
+            append_query_params(
+                get_callback_frontend_return_url('/dashboard'),
+                {'payment': 'error', 'provider': 'paypal'}
+            )
+        )
 
 @bp.route('/order-callback', methods=['GET'])
 def order_payment_callback():
@@ -303,42 +312,38 @@ def order_payment_callback():
         external_id = request.args.get('external_id')
         order_id = request.args.get('order_id')
         
-        frontend_url = get_callback_frontend_base_url()
+        cancelled_url = append_query_params(
+            get_callback_frontend_return_url('/shopping-history'),
+            {'payment': 'cancelled', 'external_id': external_id}
+        )
+        success_url = append_query_params(
+            get_callback_frontend_return_url('/shopping-history'),
+            {'payment': 'success', 'external_id': external_id}
+        )
         
         if callback_status == 'cancel':
-            return current_app.make_response((
-                f'<html><body><script>window.location.href="{frontend_url}/shopping-history?payment=cancelled&external_id=' + (external_id or '') + '";</script></body></html>',
-                302
-            ))
+            return _redirect_html(cancelled_url)
 
         success, error = PaymentService.handle_order_payment(order_id, external_id, callback_status=callback_status)
         
         if success:
-            return current_app.make_response((
-                f'<html><body><script>window.location.href="{frontend_url}/shopping-history?payment=success&external_id=' + (external_id or '') + '";</script></body></html>',
-                302
-            ))
+            return _redirect_html(success_url)
         else:
-            return current_app.make_response((
-                f'<html><body><script>window.location.href="{frontend_url}/shopping-history?payment=error&reason=' + (error or 'unknown') + '&external_id=' + (external_id or '') + '";</script></body></html>',
-                302
-            ))
+            return _redirect_html(
+                append_query_params(
+                    get_callback_frontend_return_url('/shopping-history'),
+                    {'payment': 'error', 'reason': error or 'unknown', 'external_id': external_id}
+                )
+            )
             
     except Exception as e:
         current_app.logger.error(f"Order payment callback error: {str(e)}")
-        frontend_url = get_callback_frontend_base_url()
-        return current_app.make_response((
-            f'<html><body><script>window.location.href="{frontend_url}/shopping-history?payment=error";</script></body></html>',
-            302
-        ))
-        
-    except Exception as e:
-        frontend_url = get_callback_frontend_base_url()
-        current_app.logger.error(f"Order payment callback error: {str(e)}")
-        return current_app.make_response((
-            f'<html><body><script>window.location.href="{frontend_url}/shopping-history?payment=error";</script></body></html>',
-            302
-        ))
+        return _redirect_html(
+            append_query_params(
+                get_callback_frontend_return_url('/shopping-history'),
+                {'payment': 'error'}
+            )
+        )
 
 @bp.route('/wallet-topup-callback', methods=['GET'])
 def wallet_topup_callback():
@@ -346,42 +351,38 @@ def wallet_topup_callback():
     try:
         external_id = request.args.get('external_id')
         callback_status = request.args.get('callback_status')
-        frontend_url = get_callback_frontend_base_url()
+        cancelled_url = append_query_params(
+            get_callback_frontend_return_url('/wallet'),
+            {'payment': 'cancelled', 'external_id': external_id}
+        )
+        success_url = append_query_params(
+            get_callback_frontend_return_url('/wallet'),
+            {'payment': 'success', 'external_id': external_id}
+        )
         
         if callback_status == 'cancel':
-            return current_app.make_response((
-                f'<html><body><script>window.location.href="{frontend_url}/wallet?payment=cancelled&external_id=' + (external_id or '') + '";</script></body></html>',
-                302
-            ))
+            return _redirect_html(cancelled_url)
 
         success, error = PaymentService.handle_wallet_topup(external_id, callback_status=callback_status)
         
         if success:
-            return current_app.make_response((
-                f'<html><body><script>window.location.href="{frontend_url}/wallet?payment=success&external_id=' + (external_id or '') + '";</script></body></html>',
-                302
-            ))
+            return _redirect_html(success_url)
         else:
-            return current_app.make_response((
-                f'<html><body><script>window.location.href="{frontend_url}/wallet?payment=error&reason=' + (error or 'unknown') + '&external_id=' + (external_id or '') + '";</script></body></html>',
-                302
-            ))
+            return _redirect_html(
+                append_query_params(
+                    get_callback_frontend_return_url('/wallet'),
+                    {'payment': 'error', 'reason': error or 'unknown', 'external_id': external_id}
+                )
+            )
             
     except Exception as e:
         current_app.logger.error(f"Wallet top-up callback error: {str(e)}")
-        frontend_url = get_callback_frontend_base_url()
-        return current_app.make_response((
-            f'<html><body><script>window.location.href="{frontend_url}/wallet?payment=error";</script></body></html>',
-            302
-        ))
-        
-    except Exception as e:
-        frontend_url = get_callback_frontend_base_url()
-        current_app.logger.error(f"Wallet top-up callback error: {str(e)}")
-        return current_app.make_response((
-            f'<html><body><script>window.location.href="{frontend_url}/wallet?payment=error";</script></body></html>',
-            302
-        ))
+        return _redirect_html(
+            append_query_params(
+                get_callback_frontend_return_url('/wallet'),
+                {'payment': 'error'}
+            )
+        )
 
 
 @bp.route('/request-callback', methods=['GET'])
@@ -392,81 +393,35 @@ def request_payment_callback():
         external_id = request.args.get('external_id')
         request_id = request.args.get('request_id')
         callback_status = request.args.get('callback_status')
-        frontend_url = get_callback_frontend_base_url()
+        cancelled_url = append_query_params(
+            get_callback_frontend_return_url('/my-bookings?tab=rides'),
+            {'payment': 'cancelled', 'request_id': request_id, 'external_id': external_id}
+        )
+        success_url = append_query_params(
+            get_callback_frontend_return_url('/my-bookings?tab=rides'),
+            {'payment': 'success', 'request_id': request_id, 'external_id': external_id}
+        )
 
         if callback_status == 'cancel':
-            return current_app.make_response((
-                f'<html><body><script>window.location.href="{frontend_url}/my-bookings?payment=cancelled&external_id=' + (external_id or '') + '";</script></body></html>',
-                302
-            ))
+            return _redirect_html(cancelled_url)
         
         success, error = PaymentService.handle_service_request_payment(request_id, external_id, callback_status=callback_status)
         
         if success:
-            # Show brief message then redirect after 3 seconds
-            html = """
-                <html>
-                  <head>
-                    <title>Payment Successful</title>
-                    <style>
-                      body { margin:0; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
-                      .overlay {
-                        position: fixed;
-                        inset: 0;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        background: rgba(15, 23, 42, 0.85);
-                        color: white;
-                        z-index: 50;
-                      }
-                      .card {
-                        background: #0f172a;
-                        padding: 2rem 3rem;
-                        border-radius: 0.75rem;
-                        box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.8);
-                        text-align: center;
-                      }
-                      .card h1 { font-size: 1.5rem; margin-bottom: 0.75rem; }
-                      .card p { font-size: 0.95rem; opacity: 0.9; }
-                    </style>
-                    <script>
-                      setTimeout(function () {
-                        var frontend_url = "%s";
-                        window.location.href = frontend_url + "/my-bookings";
-                      }, 3000);
-                    </script>
-                  </head>
-                  <body>
-                    <div class="overlay">
-                      <div class="card">
-                        <h1>Payment Successful</h1>
-                        <p>Your service request has been created and paid successfully.</p>
-                        <p>You will be redirected to your booked services in a moment...</p>
-                      </div>
-                    </div>
-                  </body>
-                </html>
-            """
-            return current_app.make_response((html % frontend_url, 200))
+            return _redirect_html(success_url)
         else:
-            return current_app.make_response((
-                f'<html><body><script>window.location.href="{frontend_url}/my-bookings?payment=error&reason=' + (error or 'unknown') + '&external_id=' + (external_id or '') + '";</script></body></html>',
-                302
-            ))
+            return _redirect_html(
+                append_query_params(
+                    get_callback_frontend_return_url('/my-bookings?tab=rides'),
+                    {'payment': 'error', 'request_id': request_id, 'reason': error or 'unknown', 'external_id': external_id}
+                )
+            )
             
     except Exception as e:
         current_app.logger.error(f"Request payment callback error: {str(e)}")
-        frontend_url = get_callback_frontend_base_url()
-        return current_app.make_response((
-            f'<html><body><script>window.location.href="{frontend_url}/my-bookings?payment=error";</script></body></html>',
-            302
-        ))
-
-    except Exception as e:
-        frontend_url = get_callback_frontend_base_url()
-        current_app.logger.error(f"Request payment callback error: {str(e)}")
-        return current_app.make_response((
-            f'<html><body><script>window.location.href="{frontend_url}/my-bookings?payment=error";</script></body></html>',
-            302
-        ))
+        return _redirect_html(
+            append_query_params(
+                get_callback_frontend_return_url('/my-bookings?tab=rides'),
+                {'payment': 'error'}
+            )
+        )

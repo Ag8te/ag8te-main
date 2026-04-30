@@ -1,6 +1,7 @@
 """
 Shop Routes
 """
+from urllib.parse import quote
 from flask import Blueprint, request, current_app
 from backend.models import ShopCategory, ShopSubcategory, ShopProduct, Order, User
 from backend.models.shop import Inventory
@@ -11,7 +12,7 @@ from backend.services.payment_service import PaymentService
 from datetime import datetime
 import secrets
 import uuid
-from backend.utils.url import get_public_backend_base_url, get_request_frontend_base_url
+from backend.utils.url import get_public_backend_base_url, get_request_frontend_base_url, get_request_frontend_return_path
 
 bp = Blueprint('shop', __name__)
 
@@ -270,9 +271,10 @@ def initiate_order_payment(order_id):
         # Create callback URLs
         base_url = get_public_backend_base_url()
         frontend_url = get_request_frontend_base_url()
-        success_url = f"{base_url}/api/payments/order-callback?callback_status=success&external_id={external_id}&order_id={order_id}&frontend_url={frontend_url}"
-        cancel_url = f"{base_url}/api/payments/order-callback?callback_status=cancel&external_id={external_id}&order_id={order_id}&frontend_url={frontend_url}"
-        failure_url = f"{base_url}/api/payments/order-callback?callback_status=failure&external_id={external_id}&order_id={order_id}&frontend_url={frontend_url}"
+        return_path = quote(get_request_frontend_return_path('/shopping-history'), safe='')
+        success_url = f"{base_url}/api/payments/order-callback?callback_status=success&external_id={external_id}&order_id={order_id}&frontend_url={frontend_url}&return_path={return_path}"
+        cancel_url = f"{base_url}/api/payments/order-callback?callback_status=cancel&external_id={external_id}&order_id={order_id}&frontend_url={frontend_url}&return_path={return_path}"
+        failure_url = f"{base_url}/api/payments/order-callback?callback_status=failure&external_id={external_id}&order_id={order_id}&frontend_url={frontend_url}&return_path={return_path}"
         
         # Create Yoco checkout
         checkout_result = PaymentService.create_checkout(

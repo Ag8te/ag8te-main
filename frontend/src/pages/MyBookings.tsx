@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useLocation } from "react-router-dom";
 import {
   Calendar, MapPin, MessageSquare, Star,
   ChevronRight, Loader2, Package,
@@ -25,6 +26,7 @@ type Tab = 'services' | 'rides' | 'orders';
 const MyBookings = () => {
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState<Tab>('services');
   const [requests, setRequests] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
@@ -37,6 +39,7 @@ const MyBookings = () => {
   const [detailsJob, setDetailsJob] = useState<{ data: any, type: 'service' | 'ride' | 'order' } | null>(null);
   const [isPaying, setIsPaying] = useState<string | null>(null);
   const [cancellingRideId, setCancellingRideId] = useState<string | null>(null);
+  const [hasHandledLandingRequest, setHasHandledLandingRequest] = useState(false);
 
   const fetchAll = async (showLoader: boolean = true) => {
     if (showLoader) setLoading(true);
@@ -198,6 +201,36 @@ const MyBookings = () => {
     { key: 'rides', label: 'Cab Rides', icon: <Car className="h-4 w-4" />, count: cabRides.length },
     { key: 'orders', label: 'Shop Orders', icon: <ShoppingBag className="h-4 w-4" />, count: orders.length },
   ];
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tab = params.get('tab');
+    if (tab === 'rides' || tab === 'services' || tab === 'orders') {
+      setActiveTab(tab);
+    }
+  }, [location.search]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const payment = params.get('payment');
+    const requestId = params.get('request_id');
+    if (!isAuthenticated || hasHandledLandingRequest || !requestId) return;
+
+    const targetRequest = requests.find((request) => request.id === requestId && request.request_type === 'cab');
+    if (!targetRequest) return;
+
+    setActiveTab('rides');
+    setDetailsJob({ data: targetRequest, type: 'ride' });
+    setHasHandledLandingRequest(true);
+
+    if (payment === 'success') {
+      toast({ title: 'Ride Request Created', description: 'Your cab request is now live and being tracked here.' });
+    } else if (payment === 'cancelled') {
+      toast({ title: 'Payment Cancelled', description: 'Your cab request was not paid for, so dispatch did not start.', variant: 'destructive' });
+    } else if (payment === 'error') {
+      toast({ title: 'Payment Error', description: 'We could not complete your cab payment. Please try again.', variant: 'destructive' });
+    }
+  }, [isAuthenticated, hasHandledLandingRequest, location.search, requests, toast]);
 
   if (loading) {
     return (
