@@ -6,7 +6,8 @@ import {
   LayoutGrid, List, Sparkles, SlidersHorizontal,
   Car, Home, Smartphone, Lamp, Briefcase,
   UserCheck, Shirt, Microwave, X, ShoppingCart, Package, ShoppingBag,
-  Wrench, Scissors, Laptop, Paintbrush, Utensils, Zap, BookOpen, Music, Film
+  Wrench, Scissors, Laptop, Paintbrush, Utensils, Zap, BookOpen, Music, Film,
+  Navigation, Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +19,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiFetch, API_BASE_URL, getImageUrl } from "@/lib/api";
 import { AdBanner } from "@/components/AdBanner";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { getCurrentLocationAddress } from "@/lib/locationUtils";
 import { Badge } from "@/components/ui/badge";
 import {
   Pagination, PaginationContent, PaginationItem,
@@ -102,6 +104,7 @@ export default function Shop() {
   const [sourceFilter, setSourceFilter] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
   const [onlyWishlist, setOnlyWishlist] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
   const [wishlist, setWishlist] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem('mz_wishlist');
@@ -347,6 +350,17 @@ export default function Shop() {
 
   const isLoading = loadingProducts || loadingAds;
 
+  const handleUseCurrentLocation = () => {
+    getCurrentLocationAddress(
+      (_address, city, _coords, _postalCode) => {
+        updateParams({ city });
+      },
+      (title, description) => toast({ variant: "destructive", title, description }),
+      setIsLocating,
+      'city_only'
+    );
+  };
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex flex-col">
       <Navbar />
@@ -380,14 +394,24 @@ export default function Shop() {
                   onChange={(e) => updateParams({ q: e.target.value })}
                 />
               </div>
-              <div className="flex-1 flex items-center px-4">
+              <div className="flex-1 flex items-center px-4 relative">
                 <MapPin className="text-slate-400 w-5 h-5 mr-3 shrink-0" />
                 <Input
                   placeholder="Location (e.g. Pretoria)"
-                  className="border-none focus-visible:ring-0 text-slate-700 h-12 text-base w-full"
+                  className="border-none focus-visible:ring-0 text-slate-700 h-12 text-base w-full pr-10"
                   value={city}
                   onChange={(e) => updateParams({ city: e.target.value })}
                 />
+                <button
+                  type="button"
+                  onClick={handleUseCurrentLocation}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-slate-400 hover:text-primary hover:bg-primary/10 transition-all"
+                >
+                  {isLocating
+                   ? <Loader2 className="h-5 w-5 animate-spin" /> 
+                   : <Navigation className="h-5 w-5" />
+                  }
+                </button>
               </div>
               <Button className="h-14 md:px-10 rounded-2xl bg-primary hover:bg-primary/90 text-white font-bold text-base transition-transform active:scale-95 shadow-lg shadow-primary/20 shrink-0">
                 Find Deals
@@ -400,7 +424,7 @@ export default function Shop() {
             <button
               onClick={() => updateParams({ cat: 'all' })}
               className={`flex flex-col items-center gap-2 px-6 py-4 rounded-2xl border transition-all whitespace-nowrap min-w-[100px] ${categorySlug === 'all'
-                ? "bg-[#1e293b] text-white border-[#1e293b] shadow-xl"
+                ? "bg-[#1e293b] text-white border-[#1e293b]"
                 : "bg-white text-slate-500 border-slate-100 hover:border-primary hover:text-primary"
                 }`}
             >
@@ -502,7 +526,7 @@ export default function Shop() {
                       <SelectTrigger className="w-full rounded-xl border-slate-200">
                         <SelectValue placeholder="All Sources" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="z-[200]">
                         <SelectItem value="all">All Sources</SelectItem>
                         <SelectItem value="shop">Shop Products Only</SelectItem>
                         <SelectItem value="mkp">ads Only</SelectItem>
@@ -517,7 +541,7 @@ export default function Shop() {
                       <SelectTrigger className="w-full rounded-xl border-slate-200">
                         <SelectValue placeholder="Newest first" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="z-[200]">
                         <SelectItem value="newest">Newest first</SelectItem>
                         <SelectItem value="price_asc">Price: Low to High</SelectItem>
                         <SelectItem value="price_desc">Price: High to Low</SelectItem>
@@ -577,14 +601,14 @@ export default function Shop() {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 whileHover={{ y: -5 }}
-                className={`group bg-white border border-slate-100 rounded-[2rem] overflow-hidden transition-all hover:shadow-2xl hover:shadow-slate-200 cursor-pointer ${viewMode === 'list' ? "flex h-48 sm:h-auto sm:min-h-[12rem] flex-row" : "flex flex-col h-full"}`}
+                className={`group bg-white border border-slate-100 rounded-[2rem] overflow-hidden transition-all hover:shadow-2xl hover:shadow-slate-200 cursor-pointer ${viewMode === 'list' ? "flex h-48 sm:h-auto sm:min-h-[12rem] flex-row" : "flex flex-col h-[22rem]"}`}
                 onClick={() => handleItemClick(item)}
               >
-                <div className={`relative ${viewMode === 'list' ? "w-1/3 sm:w-64 shrink-0" : "aspect-[4/3] w-full"}`}>
+                <div className={`relative ${viewMode === 'list' ? "w-1/3 sm:w-64 shrink-0" : "w-full h-48"}`}>
                   <img
                     src={item.image || "https://images.unsplash.com/photo-1549421263-5ec394a5ad4c?q=80&w=800&auto=format&fit=crop"}
                     alt={item.title}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 bg-slate-100"
+                    className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-110 bg-slate-100"
                     onError={(e) => {
                       const t = e.currentTarget as HTMLImageElement;
                       t.style.display = "none";
@@ -621,7 +645,7 @@ export default function Shop() {
                     </div>
                   )}
 
-                  <div className="flex justify-between items-start gap-2 mb-2">
+                  <div className="flex justify-between items-start gap-2 mb-1">
                     <h3 className="font-bold text-[#1e293b] line-clamp-2 text-[15px] leading-tight group-hover:text-primary transition-colors pr-2">
                       {item.title}
                     </h3>
@@ -629,6 +653,11 @@ export default function Shop() {
                       {item.price ? `R ${item.price.toLocaleString("en-ZA")}` : (item.item_type === 'shop' ? 'Free' : (item.item_type === 'banner_ad' ? 'View' : 'POA'))}
                     </div>
                   </div>
+                    {item.raw?.description && (
+                      <p className="text-slate-400 text-xs mt-1 line-clamp-3 leading-relaxed">
+                        {item.raw.description}
+                      </p>
+                    )}
 
                   <div className="flex items-center gap-3 text-slate-400 text-xs mb-4">
                     {item.location !== '-' && (

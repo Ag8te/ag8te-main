@@ -261,9 +261,20 @@ class ProfileService:
           availability = data['availability']
 
           if isinstance(availability, dict):
-              payload['availability'] = {
-                  'is_online': bool(availability.get('is_online', False))
-              }
+              cleaned = {}
+              if 'is_online' in availability:
+                # Keep is_online for drivers
+                cleaned['is_online'] = bool(availability.get('is_online', False))
+              if 'regular_hours' in availability:
+                #keep working hours for professionals and service providers
+                cleaned['regular_hours'] = availability['regular_hours']
+              if 'blocked_dates' in availability:
+                #keep blocked dates for professionals and service providers
+                cleaned['blocked_dates'] = availability['blocked_dates']
+              if 'schedule' in availability:
+                #keep lagacy schedule shape from Profile.tsx just in case
+                cleaned['schedule'] = availability['schedule']
+              payload['availability'] = cleaned
 
       # =========================
       # FILE HANDLING

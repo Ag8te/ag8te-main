@@ -19,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import { useJsApiLoader, Autocomplete } from "@react-google-maps/api";
+import { getCurrentLocationAddress } from "@/lib/locationUtils";
 import BookingStepWizard from "@/components/BookingStepWizard";
 import { cn } from "@/lib/utils";
 
@@ -166,13 +167,14 @@ const BookService = () => {
     }
 
     const availability = provider?.data?.availability;
-    if (!availability) {
-      const currentTime = date === todayStr ? getCurrentTimeSAST() : "00:00";
-      setAvailableTimeSlots(DEFAULT_TIME_SLOTS.filter(slot => slot > currentTime));
+    if (!availability?.regular_hours) {
+      // provider has not configured availability yet, show all default time slots
+      setAvailableTimeSlots(DEFAULT_TIME_SLOTS);
       return;
     }
 
-    const selectedDate = new Date(date);
+    const [year, month, dayNum] = date.split('-').map(Number);
+    const selectedDate = new Date(year, month - 1, dayNum);
     const dayName = DAYS_OF_WEEK[selectedDate.getDay()] as string;
     const dayConfig = availability.regular_hours?.[dayName];
 
@@ -228,62 +230,14 @@ const BookService = () => {
   };
 
   const handleUseCurrentLocation = () => {
-    if (!navigator.geolocation) {
-      toast({
-        variant: "destructive",
-        title: "Not Supported",
-        description: "Your browser does not support location access. Please use a different browser.",
-      });
-      return;
-    }
-    setIsLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        if (!window.google) {
-          setIsLocating(false);
-          return;
-        }
-
-      const geocoder = new google.maps.Geocoder();
-      geocoder.geocode(
-        { location: { lat: latitude, lng: longitude } },
-        (results, status) => {
-          setIsLocating(false);
-          if (status === 'OK' && results && results[0]) {
-            const place = results[0];
-            const components = place.address_components || [];
-            const hasStreet = components.some((c: any) => 
-              c.types.includes("street_number") || c.types.includes("route")
-            );
-            if (!hasStreet) {
-              toast({
-                variant: "destructive",
-                title: "Location Too Vague",
-                description: "Could not determine your address. Please enter it manually.",
-              });
-              return;
-            }
-            setLocation(place.formatted_address ||"");
-            setCoords({ lat: latitude, lng: longitude });
-          } else {
-            toast({
-              variant: "destructive",
-              title: "Location Error",
-              description: `Could not determine your address. Please enter it manually.`,
-            });
-          }
-        });
+    getCurrentLocationAddress(
+      (address, _city, coords, _postalCode) => {
+        setLocation(address);
+        setCoords(coords);
       },
-      () => {
-        setIsLocating(false);
-        toast({
-          variant: "destructive",
-          title: "Location Denied",
-          description: `Could not determine your address. Please enter it manually.`,
-        });
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
+      (title, description) => toast({ variant: "destructive", title, description }),
+      setIsLocating,
+      'full_address'
     );
   };
   const handleSubmit = () => {
@@ -335,7 +289,20 @@ const BookService = () => {
         setStep("done");
         toast({ title: "Booking confirmed!", description: `Your request with ${provider?.data?.full_name || 'the provider'} has been submitted.` });
       } else {
-        toast({ title: "Checkout failed", description: res.message || "Failed to initiate payment", variant: "destructive" });
+        const errorMap: Record<string, string> = {
+          "PROV_DATE_BLOCKED": "The provider is unavailable on the selected date.",
+          "PROV_OUT_OF_HOURS": "The selected time is outside the provider's working hours.",
+          "TIME_SLOT_TAKEN": "This time slot has already been booked. Please choose another.",
+          "INVALID_DATE_FORMAT": "Invalid date selected. Please try again.",
+          "PROVIDER_ID_REQUIRED": "No provider selected. Please go back and try again.",
+        };
+        const friendlyMessage = res.message && errorMap[res.message]
+          ? errorMap[res.message]
+          : res.message || "Failed to initiate payment";
+        toast({ title: "Booking Failed",
+                description: friendlyMessage,
+                variant: "destructive"
+         });
       }
     } catch (err: any) {
       toast({ title: "Error", description: err.message || "Failed to process booking", variant: "destructive" });
