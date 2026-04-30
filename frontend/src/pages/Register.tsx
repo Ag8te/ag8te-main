@@ -47,6 +47,8 @@ carMake: string;
 carModel: string;
 carYear: string;
 carPlate: string;
+carType:string,
+carSeats: string;
 
 // Services
 serviceDescription: string;
@@ -158,6 +160,30 @@ serviceDescription: (v, f) =>
     //Added new validation
     carColor: (v, f) =>
   f?.role === "driver" && !v.trim() ? "Car color is required" : "",
+
+    carType: (v, f) =>
+  f?.role === "driver" && !v
+    ? "Car type is required"
+    : "",
+
+carSeats: (v, f) => {
+  if (f?.role !== "driver") return "";
+
+  if (!v) return "Number of seats is required";
+
+  const selectedCar = carOptions.find(
+    (car) => car.type === f?.carType
+  );
+
+  if (
+    selectedCar &&
+    !selectedCar.seats.includes(Number(v))
+  ) {
+    return "Invalid seat selection for this car type";
+  }
+
+  return "";
+ },
 };
 const serviceOptions1 = [
   { name: "Electrical Installation" },
@@ -179,6 +205,13 @@ const professionOptions1 = [
   { name: "Welder" },
   { name: "Software Developer" },
   { name: "Mechanic" },
+];
+
+const carOptions = [
+  { type: "Small Hatchback", seats: [3] },
+  { type: "Sedan", seats: [4] },
+  { type: "SUV", seats: [6] },
+  { type: "Luxury", seats: [4] },
 ];
 
 // ─── Country List ─────────────────────────────────────────────────────────────
@@ -250,6 +283,8 @@ carYear: "",
 carPlate: "",
 serviceDescription: "",
 carColor: "",
+carType: "",
+carSeats: "",
   });
 
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
@@ -1134,7 +1169,7 @@ const removeCarImage = (index: number) => {
 
       <div className="grid gap-5 sm:grid-cols-2">
         <input
-          placeholder="Car Make"
+          placeholder="Vehicle Make"
           value={form.carMake}
           onChange={(e) => update("carMake", e.target.value)}
           onBlur={() => handleBlur("carMake")}
@@ -1143,7 +1178,7 @@ const removeCarImage = (index: number) => {
         <FieldError msg={fieldErrors.carMake} />
 
         <input
-          placeholder="Car Model"
+          placeholder="Vehicle Model"
           value={form.carModel}
           onChange={(e) => update("carModel", e.target.value)}
           onBlur={() => handleBlur("carModel")}
@@ -1177,6 +1212,45 @@ const removeCarImage = (index: number) => {
           className={ic("carColor")}
         />
          <FieldError msg={fieldErrors.carColor} />
+
+             <select
+               value={form.carType}
+              onChange={(e) => {
+                 update("carType", e.target.value);
+                  update("carSeats", ""); // reset seats when type changes
+               }}
+               onBlur={() => handleBlur("carType")}
+                className={ic("carType")}
+              >
+               <option value="">Select Vehicle Type</option>
+                 {carOptions.map((car) => (
+               <option key={car.type} value={car.type}>
+              {car.type}
+             </option>
+           ))}
+        </select>
+
+      <FieldError msg={fieldErrors.carType} />
+
+      <select
+  value={form.carSeats}
+  onChange={(e) => update("carSeats", e.target.value)}
+  onBlur={() => handleBlur("carSeats")}
+  className={ic("carSeats")}
+  disabled={!form.carType}
+>
+  <option value="">Select Seats</option>
+  {carOptions
+    .find((car) => car.type === form.carType)
+    ?.seats.map((seat) => (
+      <option key={seat} value={seat}>
+        {seat} seats
+      </option>
+    ))}
+</select>
+
+<FieldError msg={fieldErrors.carSeats} />
+         
 
       </div>
 
