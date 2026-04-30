@@ -24,7 +24,7 @@ CAR_TYPE_BASE_RATE_PER_KM = {
 
 class RequestService:
     CAB_DRIVER_SEARCH_RADIUS_KM = 12
-    CAB_DRIVER_OFFER_LIMIT = 5
+    CAB_DRIVER_OFFER_LIMIT = 1
     CAB_DRIVER_OFFER_WINDOW_SECONDS = 30
 
     @staticmethod
@@ -251,29 +251,22 @@ class RequestService:
         preferred_driver_id = details.get('preferred_driver_id')
         pickup = (service_request.location_data or {}).get('pickup') or {}
         car_type = details.get('car_type')
-        targeted_ids = []
-
-        if preferred_driver_id:
-            preferred_driver, error = RequestService._validate_selected_driver(
-                preferred_driver_id,
-                car_type,
-                pickup,
-            )
-            if not error and preferred_driver:
-                targeted_ids.append(str(preferred_driver.id))
-
-        remaining_candidates = RequestService.find_nearest_matching_drivers(
-            pickup,
+        targeted_ids = RequestService._select_next_cab_offer_ids(
+            pickup=pickup,
             car_type=car_type,
-            limit=RequestService.CAB_DRIVER_OFFER_LIMIT + len(targeted_ids),
-            exclude_driver_ids=set(targeted_ids) | set(details.get('declined_driver_ids') or []),
+            declined_driver_ids=details.get('declined_driver_ids') or [],
+            preferred_driver_id=preferred_driver_id,
         )
-        targeted_ids.extend([str(driver.id) for driver in remaining_candidates])
-        targeted_ids = targeted_ids[:RequestService.CAB_DRIVER_OFFER_LIMIT]
 
+        now_iso = datetime.utcnow().isoformat()
         details['targeted_driver_ids'] = targeted_ids
         details['dispatch_state'] = 'searching' if targeted_ids else 'no_drivers_available'
-        details['dispatch_updated_at'] = datetime.utcnow().isoformat()
+        details['dispatch_updated_at'] = now_iso
+        details['dispatch_expires_at'] = (
+            (datetime.utcnow() + timedelta(seconds=RequestService.CAB_DRIVER_OFFER_WINDOW_SECONDS)).isoformat()
+            if targeted_ids else None
+        )
+        details.pop('assigned_driver', None)
         service_request.details = details
 
     @staticmethod
@@ -290,17 +283,22 @@ class RequestService:
         pickup = (service_request.location_data or {}).get('pickup') or {}
         car_type = details.get('car_type')
 
-        next_candidates = RequestService.find_nearest_matching_drivers(
-            pickup,
+        next_candidates = RequestService._select_next_cab_offer_ids(
+            pickup=pickup,
             car_type=car_type,
-            limit=RequestService.CAB_DRIVER_OFFER_LIMIT,
-            exclude_driver_ids=set(declined_ids),
+            declined_driver_ids=declined_ids,
+            preferred_driver_id=details.get('preferred_driver_id'),
         )
 
         details['declined_driver_ids'] = declined_ids
-        details['targeted_driver_ids'] = [str(driver.id) for driver in next_candidates]
+        details['targeted_driver_ids'] = next_candidates
         details['dispatch_state'] = 'searching' if next_candidates else 'no_drivers_available'
         details['dispatch_updated_at'] = datetime.utcnow().isoformat()
+        details['dispatch_expires_at'] = (
+            (datetime.utcnow() + timedelta(seconds=RequestService.CAB_DRIVER_OFFER_WINDOW_SECONDS)).isoformat()
+            if next_candidates else None
+        )
+        details.pop('assigned_driver', None)
         service_request.details = details
 
     @staticmethod
@@ -314,19 +312,19 @@ class RequestService:
         details = dict(service_request.details or {})
         targeted_ids = list(details.get('targeted_driver_ids') or [])
         dispatch_state = details.get('dispatch_state')
-        updated_at = details.get('dispatch_updated_at')
-        if not targeted_ids or dispatch_state != 'searching' or not updated_at:
+        expires_at = details.get('dispatch_expires_at')
+        if not targeted_ids or dispatch_state != 'searching':
             return False
 
         try:
-            last_dispatch_at = datetime.fromisoformat(updated_at.replace('Z', '+00:00'))
+            dispatch_expiry = datetime.fromisoformat((expires_at or '').replace('Z', '+00:00'))
         except Exception:
-            last_dispatch_at = None
+            dispatch_expiry = None
 
-        if not last_dispatch_at:
+        if not dispatch_expiry:
             return False
 
-        if (datetime.utcnow() - last_dispatch_at.replace(tzinfo=None)).total_seconds() < RequestService.CAB_DRIVER_OFFER_WINDOW_SECONDS:
+        if datetime.utcnow() < dispatch_expiry.replace(tzinfo=None):
             return False
 
         details['declined_driver_ids'] = list(dict.fromkeys((details.get('declined_driver_ids') or []) + targeted_ids))
@@ -352,6 +350,89 @@ class RequestService:
         if targeted_driver_ids:
             return driver_id in targeted_driver_ids
         return False
+
+    @staticmethod
+    def _select_next_cab_offer_ids(pickup, car_type=None, declined_driver_ids=None, preferred_driver_id=None):
+        """Return the next driver ids who should see the active offer, nearest-first."""
+        declined_driver_ids = {str(driver_id) for driver_id in (declined_driver_ids or [])}
+        targeted_ids = []
+
+        if preferred_driver_id and str(preferred_driver_id) not in declined_driver_ids:
+            preferred_driver, error = RequestService._validate_selected_driver(
+                preferred_driver_id,
+                car_type,
+                pickup,
+            )
+            if not error and preferred_driver:
+                targeted_ids.append(str(preferred_driver.id))
+
+        if len(targeted_ids) >= RequestService.CAB_DRIVER_OFFER_LIMIT:
+            return targeted_ids[:RequestService.CAB_DRIVER_OFFER_LIMIT]
+
+        remaining_candidates = RequestService.find_nearest_matching_drivers(
+            pickup,
+            car_type=car_type,
+            limit=RequestService.CAB_DRIVER_OFFER_LIMIT,
+            exclude_driver_ids=declined_driver_ids | set(targeted_ids),
+        )
+        targeted_ids.extend(str(driver.id) for driver in remaining_candidates)
+        return targeted_ids[:RequestService.CAB_DRIVER_OFFER_LIMIT]
+
+    @staticmethod
+    def get_cab_ride_stage(service_request):
+        """Return a single rider/driver-friendly stage for a cab request."""
+        if not service_request or service_request.request_type != 'cab':
+            return None
+
+        details = service_request.details or {}
+        if service_request.status == 'cancelled':
+            return 'cancelled'
+        if service_request.status == 'completed' or details.get('cab_arrived_at_location'):
+            return 'completed'
+        if details.get('cab_trip_started'):
+            return 'on_trip'
+        if details.get('cab_driver_arrived'):
+            return 'driver_arrived'
+        if service_request.status == 'accepted' or service_request.provider_id:
+            return 'driver_assigned'
+        if details.get('dispatch_state') == 'no_drivers_available':
+            return 'no_drivers_available'
+        if service_request.payment_status == 'paid' and service_request.status == 'pending':
+            return 'searching'
+        if service_request.status == 'unpaid':
+            return 'awaiting_payment'
+        return service_request.status
+
+    @staticmethod
+    def serialize_request(service_request):
+        """Serialize a request with rider/driver-facing cab metadata."""
+        data = service_request.to_dict()
+        details = dict(data.get('details') or {})
+        data['details'] = details
+
+        if service_request.request_type != 'cab':
+            return data
+
+        details['ride_stage'] = RequestService.get_cab_ride_stage(service_request)
+        data['ride_stage'] = details['ride_stage']
+        data['dispatch_state'] = details.get('dispatch_state')
+
+        assigned_snapshot = None
+        if service_request.provider_id and service_request.provider:
+            assigned_snapshot = RequestService._build_driver_snapshot(service_request.provider)
+            details['assigned_driver'] = assigned_snapshot
+        else:
+            assigned_snapshot = details.get('assigned_driver') or details.get('selected_driver')
+
+        if assigned_snapshot:
+            data['driver_id'] = assigned_snapshot.get('id')
+            data['driver_name'] = assigned_snapshot.get('name')
+            data['driver_phone'] = assigned_snapshot.get('phone')
+            data['driver_profile_image_url'] = assigned_snapshot.get('profile_image_url')
+            data['driver_current_location'] = assigned_snapshot.get('current_location')
+            data['driver_vehicle'] = assigned_snapshot.get('vehicle')
+
+        return data
 
     @staticmethod
     def find_nearest_matching_drivers(pickup, car_type=None, limit=5, exclude_driver_ids=None):
@@ -497,19 +578,40 @@ class RequestService:
     def _build_driver_snapshot(driver):
         """Capture the assigned driver and vehicle details for rider-facing flows."""
         driver_data = driver.data or {}
-        car_details = driver_data.get('car_details') or {}
+        name = RequestService._get_user_display_name(driver)
+        vehicle = RequestService._extract_primary_driver_vehicle(driver_data)
         return {
             'id': str(driver.id),
-            'name': driver.full_name or driver.email,
+            'name': name or driver.email,
             'phone': driver_data.get('phone'),
-            'vehicle': {
-                'make': car_details.get('make'),
-                'model': car_details.get('model'),
-                'license_plate': car_details.get('plate'),
-                'color': car_details.get('color'),
-                'year': car_details.get('year'),
-                'car_type': car_details.get('car_type'),
-            }
+            'profile_image_url': driver.profile_image_url,
+            'current_location': driver_data.get('current_location'),
+            'vehicle': vehicle,
+        }
+
+    @staticmethod
+    def _get_user_display_name(user):
+        user_data = user.data or {}
+        first = (user_data.get('full_name') or user_data.get('first_name') or '').strip()
+        last = (user_data.get('surname') or user_data.get('last_name') or '').strip()
+        return f"{first} {last}".strip()
+
+    @staticmethod
+    def _extract_primary_driver_vehicle(driver_data):
+        car_details = driver_data.get('car_details') or {}
+        driver_services = driver_data.get('driver_services') or []
+        primary_vehicle = next(
+            (service for service in driver_services if isinstance(service, dict)),
+            {},
+        )
+
+        return {
+            'make': primary_vehicle.get('car_make') or car_details.get('make'),
+            'model': primary_vehicle.get('car_model') or car_details.get('model'),
+            'license_plate': primary_vehicle.get('registration_number') or primary_vehicle.get('registration') or car_details.get('plate'),
+            'color': primary_vehicle.get('color') or car_details.get('color'),
+            'year': primary_vehicle.get('car_year') or car_details.get('year'),
+            'car_type': primary_vehicle.get('car_type') or car_details.get('car_type'),
         }
 
     @staticmethod

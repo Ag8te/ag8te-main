@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
     Box,
     Typography,
@@ -28,7 +28,7 @@ import {
     Pin as HashIcon,
     Settings as SettingsIcon
 } from "@mui/icons-material";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, getImageUrl } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
 interface Vehicle {
@@ -52,8 +52,29 @@ interface VehicleManagementProps {
 export const VehicleManagement = ({ initialVehicles }: VehicleManagementProps) => {
     const { toast } = useToast();
     const theme = useTheme();
-    const [vehicles, setVehicles] = useState<Vehicle[]>(initialVehicles || []);
+    const normalizeVehicle = (vehicle: any): Vehicle => ({
+        car_make: vehicle?.car_make || vehicle?.make || "",
+        car_model: vehicle?.car_model || vehicle?.model || "",
+        car_year: Number(vehicle?.car_year || vehicle?.year) || new Date().getFullYear(),
+        registration_number: vehicle?.registration_number || vehicle?.registration || vehicle?.license_plate || vehicle?.plate || "",
+        car_type: (vehicle?.car_type || "standard") as Vehicle["car_type"],
+        color: vehicle?.color || "",
+        images: [],
+        disk_document: null,
+        preview_images: Array.isArray(vehicle?.images)
+            ? vehicle.images.filter((img: any) => typeof img === "string")
+            : [],
+        disk_preview: typeof vehicle?.disk_document === "string"
+            ? vehicle.disk_document
+            : (typeof vehicle?.disk_preview === "string" ? vehicle.disk_preview : ""),
+    });
+
+    const [vehicles, setVehicles] = useState<Vehicle[]>((initialVehicles || []).map(normalizeVehicle));
     const [saving, setSaving] = useState(false);
+
+    useEffect(() => {
+        setVehicles((initialVehicles || []).map(normalizeVehicle));
+    }, [initialVehicles]);
     
     //updated added new vehicle features
     const addVehicle = () => {
@@ -102,12 +123,13 @@ export const VehicleManagement = ({ initialVehicles }: VehicleManagementProps) =
             return;
         }
 
-        if (!v.images || v.images.length < 3) {
+        const existingImageCount = v.preview_images?.length || 0;
+        if ((!v.images || v.images.length < 3) && existingImageCount < 3) {
             toast({ title: "Validation Error", description: "Upload at least 3 vehicle images", variant: "destructive" });
             return;
         }
 
-        if (!v.disk_document) {
+        if (!v.disk_document && !v.disk_preview) {
             toast({ title: "Validation Error", description: "Vehicle disk document is required", variant: "destructive" });
             return;
         }
@@ -335,7 +357,7 @@ export const VehicleManagement = ({ initialVehicles }: VehicleManagementProps) =
   >
     <Box
       component="img"
-      src={img}
+      src={img.startsWith('/uploads/') ? getImageUrl(img) : img}
       sx={{
         width: '100%',
         height: '100%',
@@ -352,7 +374,7 @@ export const VehicleManagement = ({ initialVehicles }: VehicleManagementProps) =
         const newVehicles = [...vehicles];
 
          const removedPreview = newVehicles[index].preview_images?.[i];
-          if (removedPreview) URL.revokeObjectURL(removedPreview);
+          if (removedPreview && removedPreview.startsWith('blob:')) URL.revokeObjectURL(removedPreview);
         // remove image + preview
         newVehicles[index].images = newVehicles[index].images.filter((_, idx) => idx !== i);
         newVehicles[index].preview_images = newVehicles[index].preview_images?.filter((_, idx) => idx !== i);
@@ -403,7 +425,7 @@ export const VehicleManagement = ({ initialVehicles }: VehicleManagementProps) =
                                                  {vehicle.disk_preview && (
   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
     
-    <Typography variant="caption">
+    <Typography variant="caption" sx={{ wordBreak: 'break-all' }}>
       {vehicle.disk_preview}
     </Typography>
 

@@ -59,7 +59,7 @@ class AdminService:
         if User.query.filter_by(email=email).first():
             return None, "ALREADY_EXISTS"
             
-        role = data.get('role', 'user')
+        role = data.get('role', 'client')
         user = User(
             email=email,
             role=role,
@@ -75,16 +75,23 @@ class AdminService:
         mappings = {
             'first_name': 'full_name', 'last_name': 'surname', 'phone': 'phone',
             'gender': 'gender', 'sa_id_number': 'sa_id', 'is_sa_citizen': 'sa_citizen',
+            'sa_id': 'sa_id', 'sa_citizen': 'sa_citizen', 'username': 'username',
             'highest_qualification': 'highest_qualification', 'professional_body': 'professional_body',
-            'professional_services': 'professional_services', 'driver_vehicles': 'driver_services'
+            'professional_services': 'professional_services', 'provider_services': 'provider_services',
+            'driver_vehicles': 'driver_services', 'driver_services': 'driver_services'
         }
         for k, target in mappings.items():
             if k in data: profile_data[target] = data[k]
-            
-        nok = {}
-        for k, target in [('next_of_kin_name', 'full_name'), ('next_of_kin_phone', 'contact_number'), ('next_of_kin_email', 'contact_email')]:
-            if data.get(k): nok[target] = data[k]
-        if nok: profile_data['next_of_kin'] = nok
+
+        if isinstance(data.get('next_of_kin'), dict):
+            profile_data['next_of_kin'] = data['next_of_kin']
+        else:
+            nok = {}
+            for k, target in [('next_of_kin_name', 'full_name'), ('next_of_kin_phone', 'contact_number'), ('next_of_kin_email', 'contact_email')]:
+                if data.get(k):
+                    nok[target] = data[k]
+            if nok:
+                profile_data['next_of_kin'] = nok
         
         user.data = profile_data
         db.session.add(user)

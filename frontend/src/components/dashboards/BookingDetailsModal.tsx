@@ -51,14 +51,16 @@ export const BookingDetailsModal = ({ isOpen, onClose, data, type }: BookingDeta
 
     const getRideStageLabel = () => {
         if (type !== 'ride') return null;
-        const details = data.details || {};
-        if (data.status === 'completed' || details.cab_arrived_at_location) return 'Completed';
-        if (details.cab_trip_started) return 'On Trip';
-        if (details.cab_driver_arrived) return 'Driver Arrived';
-        if (data.status === 'accepted') return 'Driver En Route';
-        if (details.dispatch_state === 'no_drivers_available') return 'Waiting for Drivers';
-        if (data.status === 'pending' && data.payment_status === 'paid') return 'Finding Driver';
-        return data.status;
+        switch (data.ride_stage) {
+            case 'completed': return 'Completed';
+            case 'on_trip': return 'On Trip';
+            case 'driver_arrived': return 'Driver Arrived';
+            case 'driver_assigned': return 'Driver En Route';
+            case 'no_drivers_available': return 'Waiting for Drivers';
+            case 'searching': return 'Finding Driver';
+            case 'awaiting_payment': return 'Awaiting Payment';
+            default: return data.status;
+        }
     };
 
     return (
@@ -204,6 +206,9 @@ export const BookingDetailsModal = ({ isOpen, onClose, data, type }: BookingDeta
                                                 {data.driver_name || data.details?.provider_name || data.details?.professional_name || "Pending Assignment"}
                                             </p>
                                             <p className="text-xs text-slate-500">Verified ads Partner</p>
+                                            {type === 'ride' && data.driver_phone && (
+                                                <p className="text-xs text-slate-400 mt-1">{data.driver_phone}</p>
+                                            )}
                                         </div>
                                         {data.provider_id && (
                                             <div className="ml-auto">
@@ -245,6 +250,27 @@ export const BookingDetailsModal = ({ isOpen, onClose, data, type }: BookingDeta
                                                     {typeof data.location_data.dropoff === 'object'
                                                         ? data.location_data.dropoff.address
                                                         : data.location_data.dropoff}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {type === 'ride' && data.driver_current_location?.updated_at && (
+                                        <div className="flex items-start gap-4 p-5 bg-blue-50 rounded-3xl border border-blue-100">
+                                            <Info className="h-5 w-5 text-blue-500 shrink-0 mt-0.5" />
+                                            <div>
+                                                <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-1">Driver Tracking</p>
+                                                <p className="font-bold text-[#222222]">
+                                                    {data.ride_stage === 'driver_assigned'
+                                                        ? 'Your driver is on the way.'
+                                                        : data.ride_stage === 'driver_arrived'
+                                                            ? 'Your driver has arrived at pickup.'
+                                                            : data.ride_stage === 'on_trip'
+                                                                ? 'Trip is currently in progress.'
+                                                                : 'Latest driver location update received.'}
+                                                </p>
+                                                <p className="text-xs text-slate-500 mt-1">
+                                                    Last location sync: {new Date(data.driver_current_location.updated_at).toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' })}
                                                 </p>
                                             </div>
                                         </div>

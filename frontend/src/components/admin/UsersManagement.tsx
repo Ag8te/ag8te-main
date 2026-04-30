@@ -123,7 +123,7 @@ export const UsersManagement = () => {
         first_name: "",
         last_name: "",
         username: "",
-        role: "user",
+        role: "client",
         email: "",
         password: "",
         phone: "",
@@ -445,7 +445,7 @@ export const UsersManagement = () => {
             first_name: "",
             last_name: "",
             username: "",
-            role: "user",
+            role: "client",
             email: "",
             password: "",
             phone: "",
@@ -492,6 +492,54 @@ export const UsersManagement = () => {
     };
     const removeDriverVehicle = (index: number) => setDriverVehicles(driverVehicles.filter((_, i) => i !== index));
 
+    const buildUserPayload = () => {
+        const professionalServicePayload = professionalServices
+            .map((service) => service.trim())
+            .filter(Boolean)
+            .map((name) => ({ name }));
+        const providerServicePayload = providerServices
+            .map((service) => service.trim())
+            .filter(Boolean)
+            .map((name) => ({ name }));
+
+        const payload: Record<string, any> = {
+            first_name: editFormData.first_name.trim(),
+            last_name: editFormData.last_name.trim(),
+            email: editFormData.email.trim(),
+            username: editFormData.username.trim(),
+            role: editFormData.role,
+            phone: editFormData.phone.trim(),
+            gender: editFormData.gender || null,
+            sa_citizen: editFormData.is_sa_citizen,
+            sa_id: editFormData.sa_id_number.trim(),
+            next_of_kin: {
+                full_name: editFormData.next_of_kin_name.trim(),
+                contact_number: editFormData.next_of_kin_phone.trim(),
+                contact_email: editFormData.next_of_kin_email.trim(),
+            },
+            highest_qualification: editFormData.highest_qualification.trim(),
+            professional_body: editFormData.professional_body.trim(),
+            is_paid: editFormData.is_paid,
+            is_approved: editFormData.is_approved,
+            is_active: editFormData.is_active,
+            email_verified: editFormData.email_verified,
+        };
+
+        if (editFormData.password.trim()) {
+            payload.password = editFormData.password.trim();
+        }
+
+        if (editFormData.role === "professional") {
+            payload.professional_services = professionalServicePayload;
+        }
+
+        if (editFormData.role === "service-provider") {
+            payload.provider_services = providerServicePayload;
+        }
+
+        return payload;
+    };
+
     const handleSubmitEdit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -504,17 +552,7 @@ export const UsersManagement = () => {
         setIsSubmitting(true);
         try {
             const adminHeaders = { Authorization: `Bearer ${localStorage.getItem("adminToken")}` };
-            const payload: any = {
-                ...editFormData,
-                professional_services: professionalServices.filter(s => s.trim() !== ""),
-                provider_services: providerServices.filter(s => s.trim() !== ""),
-                driver_vehicles: driverVehicles.filter(s => s.trim() !== "")
-            };
-
-            // Do not send blank password if editing
-            if (selectedUser && !payload.password) {
-                delete payload.password;
-            }
+            const payload = buildUserPayload();
 
             const url = selectedUser ? `/api/admin/users/${selectedUser.id}` : `/api/admin/users`;
             const method = selectedUser ? "PUT" : "POST";
@@ -869,7 +907,7 @@ export const UsersManagement = () => {
                                             onChange={(e) => setEditFormData({ ...editFormData, role: e.target.value })}
                                             className="flex h-11 w-full  border border-slate-200 bg-white px-3 py-2 text-sm focus:border-[#5e35b1] focus:ring-[#5e35b1]/10 shadow-sm outline-none"
                                         >
-                                            <option value="user">Standard User</option>
+                                            <option value="client">Client</option>
                                             <option value="professional">Professional</option>
                                             <option value="service-provider">Service Provider</option>
                                             <option value="driver">Driver</option>

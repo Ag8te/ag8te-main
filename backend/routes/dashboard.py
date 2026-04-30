@@ -56,7 +56,7 @@ def get_dashboard():
         recent_service_provider_jobs = []
 
         def _ride_request_with_client(r):
-            d = r.to_dict()
+            d = RequestService.serialize_request(r)
             if r.requester_id and r.requester:
                 requester = r.requester
                 pdata = requester.data or {}

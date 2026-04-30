@@ -116,7 +116,7 @@ const Navbar = () => {
         </button>
 
         {/* ── Desktop nav links (centred) ──────────────────────────────────── */}
-        <ul className="hidden items-center gap-1 lg:flex absolute left-1/2 -translate-x-1/2">
+        <ul className="hidden items-center gap-1 xl:flex absolute left-1/2 -translate-x-1/2">
           {dynamicLinks.map(link => (
             <li key={link.label}>
               <Link
@@ -140,7 +140,7 @@ const Navbar = () => {
         </ul>
 
         {/* ── Desktop right: cart + auth ───────────────────────────────────── */}
-        <div className="hidden items-center gap-3 lg:flex">
+        <div className="hidden items-center gap-3 xl:flex">
           {/* Cart */}
           <CartDrawer>
             <div className="relative cursor-pointer">
@@ -237,7 +237,7 @@ const Navbar = () => {
         <button
           onClick={() => setMobileOpen(!mobileOpen)}
           className={cn(
-            "lg:hidden rounded-full p-2 transition-colors border",
+            "xl:hidden rounded-full p-2 transition-colors border",
             isTransparent
               ? "text-white border-white/30 hover:bg-white/10"
               : "text-[#222222] border-slate-200 hover:bg-slate-50"
@@ -250,7 +250,7 @@ const Navbar = () => {
 
       {/* ── Mobile menu ──────────────────────────────────────────────────── */}
       {mobileOpen && (
-        <div className="bg-white lg:hidden border-t border-slate-100 animate-in slide-in-from-top duration-200">
+        <div className="bg-white xl:hidden border-t border-slate-100 animate-in slide-in-from-top duration-200">
           <div className="container mx-auto flex flex-col gap-1 px-6 py-6">
             {dynamicLinks.map(link => (
               <Link
