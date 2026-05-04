@@ -49,6 +49,13 @@ carYear: string;
 carPlate: string;
 carType:string,
 carSeats: string;
+driverLicenseNumber: string;
+driverLicenseCode: string;
+driverLicenseExpiry: string;
+prdpNumber: string;
+prdpExpiry: string;
+vehicleDiskExpiry: string;
+operatingAreas: string;
 
 // Services
 serviceDescription: string;
@@ -59,6 +66,16 @@ type FieldErrors = Partial<Record<keyof FormFields, string>>;
 //Updated phoneregex
 const phoneRegex = /^(?:\+27|0)[6-8][0-9]{8}$/;
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const licenseCodeOptions = ["B", "EB", "C1", "EC1"];
+
+const isFutureOrTodayDate = (value: string) => {
+  if (!value) return false;
+  const parsed = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return parsed >= today;
+};
 
 // ─── Field-level validators ───────────────────────────────────────────────────
 const validators: Partial<Record<keyof FormFields, (v: string, form?: FormFields) => string>> = {
@@ -184,6 +201,32 @@ carSeats: (v, f) => {
 
   return "";
  },
+ driverLicenseNumber: (v, f) =>
+  f?.role === "driver" && !v.trim() ? "Driver license number is required" : "",
+
+ driverLicenseCode: (v, f) =>
+  f?.role === "driver" && !v.trim() ? "License code is required" : "",
+
+ driverLicenseExpiry: (v, f) => {
+  if (f?.role !== "driver") return "";
+  if (!v) return "Driver license expiry is required";
+  return isFutureOrTodayDate(v) ? "" : "Driver license expiry must be today or later";
+ },
+
+ prdpNumber: (v, f) =>
+  f?.role === "driver" && !v.trim() ? "PrDP number is required" : "",
+
+ prdpExpiry: (v, f) => {
+  if (f?.role !== "driver") return "";
+  if (!v) return "PrDP expiry is required";
+  return isFutureOrTodayDate(v) ? "" : "PrDP expiry must be today or later";
+ },
+
+ vehicleDiskExpiry: (v, f) => {
+  if (f?.role !== "driver") return "";
+  if (!v) return "Vehicle disk expiry is required";
+  return isFutureOrTodayDate(v) ? "" : "Vehicle disk expiry must be today or later";
+ },
 };
 const serviceOptions1 = [
   { name: "Electrical Installation" },
@@ -280,11 +323,18 @@ const Register = () => {
     carMake: "",
 carModel: "",
 carYear: "",
-carPlate: "",
+    carPlate: "",
 serviceDescription: "",
 carColor: "",
 carType: "",
 carSeats: "",
+driverLicenseNumber: "",
+driverLicenseCode: "",
+driverLicenseExpiry: "",
+prdpNumber: "",
+prdpExpiry: "",
+vehicleDiskExpiry: "",
+operatingAreas: "",
   });
 
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
@@ -292,7 +342,8 @@ carSeats: "",
 
   const [files, setFiles] = useState<{ [key: string]: File | null }>({
     profile_photo: null, id_document: null, proof_of_residence: null,
-    drivers_license: null, cv_resume: null, qualification_documents: null,
+    drivers_license: null, prdp_document: null, vehicle_disk_document: null,
+    cv_resume: null, qualification_documents: null,
   });
   const [previews, setPreviews] = useState<{ [key: string]: string | null }>({});
 
@@ -397,6 +448,7 @@ carSeats: "",
   if (field === "email") value = value.toLowerCase().trim();
   if (field === "password") value = value.trim();
   if (field === "agent_id") value = value.toUpperCase();
+  if (field === "driverLicenseCode") value = value.toUpperCase();
 
   setForm((f) => {
     const next = { ...f, [field]: value };
@@ -497,6 +549,8 @@ if (form.role === "driver" && carImages.length < 3) {
     id_document: ["image/jpeg", "image/png", "application/pdf"],
     proof_of_residence: ["image/jpeg", "image/png", "application/pdf"],
     drivers_license: ["image/jpeg", "image/png", "application/pdf"],
+    prdp_document: ["image/jpeg", "image/png", "application/pdf"],
+    vehicle_disk_document: ["image/jpeg", "image/png", "application/pdf"],
     cv_resume: ["application/pdf"],
     qualification_documents: ["image/jpeg", "image/png", "application/pdf"],
   };
@@ -582,8 +636,8 @@ const removeCarImage = (index: number) => {
     if (!form.role) { setServerError("Please select a role to register as"); return; }
     if (!files.profile_photo) { setServerError("Profile photo is required"); return; }
     if (!files.id_document) { setServerError("ID document is required"); return; }
-    if (form.role === "driver" && (!files.proof_of_residence || !files.drivers_license)) {
-      setServerError("Drivers need Proof of Residence and Driver's License"); return;
+    if (form.role === "driver" && (!files.proof_of_residence || !files.drivers_license || !files.prdp_document || !files.vehicle_disk_document)) {
+      setServerError("Drivers need Proof of Residence, Driver's License, PrDP, and Vehicle Disk documents"); return;
     }
     if ((form.role === "professional" || form.role === "service-provider") && !files.proof_of_residence) {
       setServerError("Professionals & Service Providers require Proof of Residence"); return;
@@ -596,6 +650,23 @@ const removeCarImage = (index: number) => {
     setLoading(true);
     try {
       const payloadServices = selectedServices.map(s => ({ name: s, description: "" }));
+      const operatingAreas = form.operatingAreas
+        .split(",")
+        .map((area) => area.trim())
+        .filter(Boolean);
+      const driverVehicle =
+        form.role === "driver"
+          ? {
+              car_make: form.carMake,
+              car_model: form.carModel,
+              car_year: form.carYear,
+              registration_number: form.carPlate,
+              car_type: form.carType ? form.carType.toLowerCase().replace(/\s+/g, "_") : "",
+              color: form.carColor,
+              seats: form.carSeats ? Number(form.carSeats) : undefined,
+              disk_expiry: form.vehicleDiskExpiry || undefined,
+            }
+          : null;
       const formData = new FormData();
       formData.append("registration_data", JSON.stringify({
         car_details: form.role === "driver" ? {
@@ -603,11 +674,19 @@ const removeCarImage = (index: number) => {
         model: form.carModel,
         year: form.carYear,
         plate: form.carPlate,
-        color: form.carColor
+        color: form.carColor,
+        car_type: form.carType ? form.carType.toLowerCase().replace(/\s+/g, "_") : "",
+        seats: form.carSeats ? Number(form.carSeats) : undefined,
+        disk_expiry: form.vehicleDiskExpiry || undefined,
         }: null,
-
-
-
+        driver_services: driverVehicle ? [driverVehicle] : [],
+        driver_license_number: form.driverLicenseNumber,
+        driver_license_code: form.driverLicenseCode,
+        driver_license_expiry: form.driverLicenseExpiry,
+        prdp_number: form.prdpNumber,
+        prdp_expiry: form.prdpExpiry,
+        vehicle_disk_expiry: form.vehicleDiskExpiry,
+        operating_areas: operatingAreas,
         service_description:
         (form.role === "professional" || form.role === "service-provider")
         ? form.serviceDescription
@@ -628,6 +707,8 @@ const removeCarImage = (index: number) => {
       if (files.id_document) formData.append("id_document", files.id_document);
       if (files.proof_of_residence) formData.append("proof_of_residence", files.proof_of_residence);
       if (files.drivers_license) formData.append("drivers_license", files.drivers_license);
+      if (files.prdp_document) formData.append("prdp_document", files.prdp_document);
+      if (files.vehicle_disk_document) formData.append("vehicle_disk_document", files.vehicle_disk_document);
       if (files.cv_resume) formData.append("cv_resume", files.cv_resume);
       if (files.qualification_documents) formData.append("qualification_documents", files.qualification_documents);
 
@@ -1254,6 +1335,107 @@ const removeCarImage = (index: number) => {
 
       </div>
 
+      <div className="space-y-4 rounded-[28px] border border-slate-100 bg-slate-50/70 p-5">
+        <div>
+          <p className="text-sm font-bold text-[#222222]">Driver Compliance</p>
+          <p className="mt-1 text-xs text-slate-500">
+            These details are required before a driver can appear in Request Cab.
+          </p>
+        </div>
+
+        <div className="grid gap-5 sm:grid-cols-2">
+          <div className="space-y-1">
+            <label className={fieldLabel}>Driver License Number<Req /></label>
+            <input
+              placeholder="Enter license number"
+              value={form.driverLicenseNumber}
+              onChange={(e) => update("driverLicenseNumber", e.target.value)}
+              onBlur={() => handleBlur("driverLicenseNumber")}
+              className={ic("driverLicenseNumber")}
+            />
+            <FieldError msg={fieldErrors.driverLicenseNumber} />
+          </div>
+
+          <div className="space-y-1">
+            <label className={fieldLabel}>License Code<Req /></label>
+            <select
+              value={form.driverLicenseCode}
+              onChange={(e) => update("driverLicenseCode", e.target.value)}
+              onBlur={() => handleBlur("driverLicenseCode")}
+              className={fieldErrors.driverLicenseCode ? errorSelect : validSelect}
+            >
+              <option value="">Select license code</option>
+              {licenseCodeOptions.map((code) => (
+                <option key={code} value={code}>
+                  {code}
+                </option>
+              ))}
+            </select>
+            <FieldError msg={fieldErrors.driverLicenseCode} />
+          </div>
+
+          <div className="space-y-1">
+            <label className={fieldLabel}>Driver License Expiry<Req /></label>
+            <input
+              type="date"
+              value={form.driverLicenseExpiry}
+              onChange={(e) => update("driverLicenseExpiry", e.target.value)}
+              onBlur={() => handleBlur("driverLicenseExpiry")}
+              className={ic("driverLicenseExpiry")}
+            />
+            <FieldError msg={fieldErrors.driverLicenseExpiry} />
+          </div>
+
+          <div className="space-y-1">
+            <label className={fieldLabel}>PrDP Number<Req /></label>
+            <input
+              placeholder="Enter PrDP number"
+              value={form.prdpNumber}
+              onChange={(e) => update("prdpNumber", e.target.value)}
+              onBlur={() => handleBlur("prdpNumber")}
+              className={ic("prdpNumber")}
+            />
+            <FieldError msg={fieldErrors.prdpNumber} />
+          </div>
+
+          <div className="space-y-1">
+            <label className={fieldLabel}>PrDP Expiry<Req /></label>
+            <input
+              type="date"
+              value={form.prdpExpiry}
+              onChange={(e) => update("prdpExpiry", e.target.value)}
+              onBlur={() => handleBlur("prdpExpiry")}
+              className={ic("prdpExpiry")}
+            />
+            <FieldError msg={fieldErrors.prdpExpiry} />
+          </div>
+
+          <div className="space-y-1">
+            <label className={fieldLabel}>Vehicle Disk Expiry<Req /></label>
+            <input
+              type="date"
+              value={form.vehicleDiskExpiry}
+              onChange={(e) => update("vehicleDiskExpiry", e.target.value)}
+              onBlur={() => handleBlur("vehicleDiskExpiry")}
+              className={ic("vehicleDiskExpiry")}
+            />
+            <FieldError msg={fieldErrors.vehicleDiskExpiry} />
+          </div>
+
+          <div className="space-y-1 sm:col-span-2">
+            <label className={fieldLabel}>
+              Operating Areas <span className="text-slate-400 font-normal text-[12px]">(optional)</span>
+            </label>
+            <input
+              placeholder="e.g. Sandton, Midrand, Pretoria"
+              value={form.operatingAreas}
+              onChange={(e) => update("operatingAreas", e.target.value)}
+              className={ic("operatingAreas")}
+            />
+          </div>
+        </div>
+      </div>
+
       {/* Image Button */}
 
       <div className="space-y-3">
@@ -1303,7 +1485,11 @@ const removeCarImage = (index: number) => {
                       <FileUploadArea label="Proof of Residence" field="proof_of_residence" accept=".pdf,.jpg,.jpeg,.png" required />
                     )}
                     {form.role === "driver" && (
-                      <FileUploadArea label="Driver's License" field="drivers_license" accept=".pdf,.jpg,.jpeg,.png" required />
+                      <>
+                        <FileUploadArea label="Driver's License" field="drivers_license" accept=".pdf,.jpg,.jpeg,.png" required />
+                        <FileUploadArea label="PrDP Document" field="prdp_document" accept=".pdf,.jpg,.jpeg,.png" required />
+                        <FileUploadArea label="Vehicle Disk Document" field="vehicle_disk_document" accept=".pdf,.jpg,.jpeg,.png" required />
+                      </>
                     )}
                     {form.role === "professional" && (
                       <>

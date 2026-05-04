@@ -82,12 +82,15 @@ const DriverDashboard = () => {
     }, [fetchData]);
 
     useEffect(() => {
+        if (activeTab === "vehicles") {
+            return;
+        }
         const intervalId = window.setInterval(() => {
             fetchData(false, false);
         }, 10000);
 
         return () => window.clearInterval(intervalId);
-    }, [fetchData]);
+    }, [fetchData, activeTab]);
 
     useEffect(() => {
         if (authUser?.role !== "driver" || !navigator.geolocation) {
@@ -409,7 +412,23 @@ const DriverDashboard = () => {
                     </Paper>
                 );
             case "vehicles":
-                return <VehicleManagement initialVehicles={data?.driver_services || []} />;
+                {
+                    const approvedVehicles =
+                        data?.driver_services?.length
+                            ? data.driver_services
+                            : data?.current_user?.data?.driver_services?.length
+                                ? data.current_user.data.driver_services
+                                : data?.current_user?.data?.car_details
+                                    ? [data.current_user.data.car_details]
+                                    : [];
+                return (
+                    <VehicleManagement
+                        initialVehicles={approvedVehicles}
+                        pendingVehicles={data?.pending_driver_services || []}
+                        hasPendingVehicleUpdate={Boolean(data?.vehicle_update_pending)}
+                    />
+                );
+                }
             case "messages":
                 return (
                     <Box sx={{ animation: 'fadeIn 0.5s' }}>

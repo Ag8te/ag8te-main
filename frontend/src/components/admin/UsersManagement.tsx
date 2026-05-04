@@ -76,17 +76,33 @@ interface User {
     id_document_url?: string | null;
     proof_of_residence_url?: string | null;
     driver_license_url?: string | null;
+    prdp_document_url?: string | null;
+    vehicle_disk_document_url?: string | null;
     cv_resume_url?: string | null;
     qualification_urls?: string[];
     professional_services?: string[];
     provider_services?: string[];
     driver_services?: Array<string | Record<string, any>>;
+    driver_license_number?: string | null;
+    driver_license_code?: string | null;
+    driver_license_expiry?: string | null;
+    prdp_number?: string | null;
+    prdp_expiry?: string | null;
+    vehicle_disk_expiry?: string | null;
+    operating_areas?: string[];
+    driver_compliance?: {
+        ready_for_approval: boolean;
+        missing_fields: string[];
+        missing_field_labels: string[];
+    };
     profile_data?: Record<string, any> | null;
     registration_documents?: {
         profile_image_url?: string | null;
         id_document_url?: string | null;
         proof_of_residence_url?: string | null;
         driver_license_url?: string | null;
+        prdp_document_url?: string | null;
+        vehicle_disk_document_url?: string | null;
         cv_resume_url?: string | null;
         qualification_urls?: string[];
     };
@@ -133,6 +149,13 @@ export const UsersManagement = () => {
         next_of_kin_name: "",
         next_of_kin_phone: "",
         next_of_kin_email: "",
+        driver_license_number: "",
+        driver_license_code: "",
+        driver_license_expiry: "",
+        prdp_number: "",
+        prdp_expiry: "",
+        vehicle_disk_expiry: "",
+        operating_areas: "",
         highest_qualification: "",
         professional_body: "",
         is_paid: false,
@@ -143,8 +166,6 @@ export const UsersManagement = () => {
 
     const [professionalServices, setProfessionalServices] = useState<string[]>([]);
     const [providerServices, setProviderServices] = useState<string[]>([]);
-    const [driverVehicles, setDriverVehicles] = useState<string[]>([]);
-
     const buildDocumentEntries = (user: User | null) => {
         if (!user) return [];
 
@@ -155,6 +176,8 @@ export const UsersManagement = () => {
             { label: "ID Document", url: docs.id_document_url || user.id_document_url || "" },
             { label: "Proof of Residence", url: docs.proof_of_residence_url || user.proof_of_residence_url || "" },
             { label: "Driver's License", url: docs.driver_license_url || user.driver_license_url || "" },
+            { label: "PrDP Document", url: docs.prdp_document_url || user.prdp_document_url || "" },
+            { label: "Vehicle Disk Document", url: docs.vehicle_disk_document_url || user.vehicle_disk_document_url || "" },
             { label: "CV / Resume", url: docs.cv_resume_url || user.cv_resume_url || "" },
         ].filter((doc) => Boolean(doc.url));
 
@@ -166,17 +189,6 @@ export const UsersManagement = () => {
         });
 
         return entries;
-    };
-
-    const mapDriverVehicles = (driverServices?: Array<string | Record<string, any>>) => {
-        if (!Array.isArray(driverServices)) return [];
-        return driverServices.map((item) => {
-            if (typeof item === "string") return item;
-            const carMake = item?.car_make || item?.make || "";
-            const carModel = item?.car_model || item?.model || "";
-            const plate = item?.registration || item?.license_plate || item?.plate || "";
-            return [carMake, carModel, plate].filter(Boolean).join(" ").trim() || "Registered vehicle";
-        });
     };
 
     const normalizeUserDetail = (user: any): User => {
@@ -196,12 +208,22 @@ export const UsersManagement = () => {
             professional_services: user?.professional_services ?? profile?.professional_services ?? [],
             provider_services: user?.provider_services ?? profile?.provider_services ?? [],
             driver_services: user?.driver_services ?? profile?.driver_services ?? [],
+            driver_license_number: user?.driver_license_number ?? profile?.driver_license_number ?? "",
+            driver_license_code: user?.driver_license_code ?? profile?.driver_license_code ?? "",
+            driver_license_expiry: user?.driver_license_expiry ?? profile?.driver_license_expiry ?? "",
+            prdp_number: user?.prdp_number ?? profile?.prdp_number ?? "",
+            prdp_expiry: user?.prdp_expiry ?? profile?.prdp_expiry ?? "",
+            vehicle_disk_expiry: user?.vehicle_disk_expiry ?? profile?.vehicle_disk_expiry ?? "",
+            operating_areas: user?.operating_areas ?? profile?.operating_areas ?? [],
             qualification_urls: user?.qualification_urls ?? profile?.qualification_urls ?? [],
+            driver_compliance: user?.driver_compliance,
             registration_documents: user?.registration_documents ?? {
                 profile_image_url: user?.profile_image_url ?? null,
                 id_document_url: user?.id_document_url ?? null,
                 proof_of_residence_url: user?.proof_of_residence_url ?? null,
                 driver_license_url: user?.driver_license_url ?? null,
+                prdp_document_url: user?.prdp_document_url ?? null,
+                vehicle_disk_document_url: user?.vehicle_disk_document_url ?? null,
                 cv_resume_url: user?.cv_resume_url ?? null,
                 qualification_urls: user?.qualification_urls ?? profile?.qualification_urls ?? [],
             },
@@ -411,6 +433,13 @@ export const UsersManagement = () => {
                 next_of_kin_name: detailedUser.next_of_kin_name || "",
                 next_of_kin_phone: detailedUser.next_of_kin_phone || "",
                 next_of_kin_email: detailedUser.next_of_kin_email || "",
+                driver_license_number: detailedUser.driver_license_number || "",
+                driver_license_code: detailedUser.driver_license_code || "",
+                driver_license_expiry: detailedUser.driver_license_expiry || "",
+                prdp_number: detailedUser.prdp_number || "",
+                prdp_expiry: detailedUser.prdp_expiry || "",
+                vehicle_disk_expiry: detailedUser.vehicle_disk_expiry || "",
+                operating_areas: Array.isArray(detailedUser.operating_areas) ? detailedUser.operating_areas.join(", ") : "",
                 highest_qualification: detailedUser.highest_qualification || "",
                 professional_body: detailedUser.professional_body || "",
                 is_paid: detailedUser.is_paid || false,
@@ -425,8 +454,6 @@ export const UsersManagement = () => {
             setProviderServices(
                 Array.isArray(detailedUser.provider_services) ? detailedUser.provider_services : []
             );
-            setDriverVehicles(mapDriverVehicles(detailedUser.driver_services));
-
             setIsEditModalOpen(true);
         } catch (error: any) {
             toast({
@@ -455,6 +482,13 @@ export const UsersManagement = () => {
             next_of_kin_name: "",
             next_of_kin_phone: "",
             next_of_kin_email: "",
+            driver_license_number: "",
+            driver_license_code: "",
+            driver_license_expiry: "",
+            prdp_number: "",
+            prdp_expiry: "",
+            vehicle_disk_expiry: "",
+            operating_areas: "",
             highest_qualification: "",
             professional_body: "",
             is_paid: false,
@@ -464,7 +498,6 @@ export const UsersManagement = () => {
         });
         setProfessionalServices([]);
         setProviderServices([]);
-        setDriverVehicles([]);
         setIsEditModalOpen(true); // Reusing the same modal for simplicity
     };
 
@@ -484,14 +517,6 @@ export const UsersManagement = () => {
     };
     const removeProviderService = (index: number) => setProviderServices(providerServices.filter((_, i) => i !== index));
 
-    const addDriverVehicle = () => setDriverVehicles([...driverVehicles, ""]);
-    const updateDriverVehicle = (index: number, val: string) => {
-        const updated = [...driverVehicles];
-        updated[index] = val;
-        setDriverVehicles(updated);
-    };
-    const removeDriverVehicle = (index: number) => setDriverVehicles(driverVehicles.filter((_, i) => i !== index));
-
     const buildUserPayload = () => {
         const professionalServicePayload = professionalServices
             .map((service) => service.trim())
@@ -501,6 +526,10 @@ export const UsersManagement = () => {
             .map((service) => service.trim())
             .filter(Boolean)
             .map((name) => ({ name }));
+        const operatingAreasPayload = editFormData.operating_areas
+            .split(",")
+            .map((area) => area.trim())
+            .filter(Boolean);
 
         const payload: Record<string, any> = {
             first_name: editFormData.first_name.trim(),
@@ -517,6 +546,13 @@ export const UsersManagement = () => {
                 contact_number: editFormData.next_of_kin_phone.trim(),
                 contact_email: editFormData.next_of_kin_email.trim(),
             },
+            driver_license_number: editFormData.driver_license_number.trim(),
+            driver_license_code: editFormData.driver_license_code.trim(),
+            driver_license_expiry: editFormData.driver_license_expiry || null,
+            prdp_number: editFormData.prdp_number.trim(),
+            prdp_expiry: editFormData.prdp_expiry || null,
+            vehicle_disk_expiry: editFormData.vehicle_disk_expiry || null,
+            operating_areas: operatingAreasPayload,
             highest_qualification: editFormData.highest_qualification.trim(),
             professional_body: editFormData.professional_body.trim(),
             is_paid: editFormData.is_paid,
@@ -1182,43 +1218,169 @@ export const UsersManagement = () => {
                                 {editFormData.role === 'driver' && (
                                     <section className="space-y-4 animate-in slide-in-from-top-2 duration-300">
                                         <div className="flex items-center gap-2 px-1">
-                                            <h4 className="text-[11px] font-extrabold text-[#5e35b1] uppercase tracking-wider">Fleet Details</h4>
+                                            <h4 className="text-[11px] font-extrabold text-[#5e35b1] uppercase tracking-wider">Driver Compliance</h4>
                                             <div className="h-px flex-1 bg-slate-100" />
                                         </div>
                                         <div className="space-y-6 bg-white p-6  border border-slate-200 shadow-sm">
-                                            <div className="flex justify-between items-center px-1">
-                                                <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Vehicles</Label>
-                                                <Button
-                                                    type="button"
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={addDriverVehicle}
-                                                    className="h-8 text-[#5e35b1] hover:text-[#4527a0] hover:bg-purple-50 font-bold  text-xs"
-                                                >
-                                                    <Plus className="w-3.5 h-3.5 mr-1" />
-                                                    Register
-                                                </Button>
-                                            </div>
-                                            <div className="grid grid-cols-1 gap-2">
-                                                {driverVehicles.map((s, i) => (
-                                                    <div key={i} className="flex gap-2">
-                                                        <Input
-                                                            value={s}
-                                                            onChange={(e) => updateDriverVehicle(i, e.target.value)}
-                                                            placeholder="Registration Number"
-                                                            className="font-bold flex-1"
-                                                        />
-                                                        <Button
-                                                            type="button"
-                                                            variant="outline"
-                                                            size="icon"
-                                                            onClick={() => removeDriverVehicle(i)}
-                                                            className="h-11 w-11  border-slate-200 text-slate-400 hover:text-red-600 hover:border-red-100 hover:bg-red-50"
-                                                        >
-                                                            <CloseIcon className="w-4 h-4" />
-                                                        </Button>
+                                            {selectedUser?.driver_compliance && (
+                                                <div className={`border px-4 py-3 ${selectedUser.driver_compliance.ready_for_approval ? "border-emerald-200 bg-emerald-50" : "border-amber-200 bg-amber-50"}`}>
+                                                    <div className="flex items-center justify-between gap-3">
+                                                        <div>
+                                                            <p className="text-xs font-black uppercase tracking-widest text-slate-500">Approval Readiness</p>
+                                                            <p className={`mt-1 text-sm font-bold ${selectedUser.driver_compliance.ready_for_approval ? "text-emerald-700" : "text-amber-700"}`}>
+                                                                {selectedUser.driver_compliance.ready_for_approval ? "Driver compliance pack is complete." : "Driver compliance pack is incomplete."}
+                                                            </p>
+                                                        </div>
+                                                        <Badge className={selectedUser.driver_compliance.ready_for_approval ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-amber-100 text-amber-700 border-amber-200"}>
+                                                            {selectedUser.driver_compliance.ready_for_approval ? "Ready" : "Action Needed"}
+                                                        </Badge>
                                                     </div>
-                                                ))}
+                                                    {!selectedUser.driver_compliance.ready_for_approval && (
+                                                        <div className="mt-3 flex flex-wrap gap-2">
+                                                            {selectedUser.driver_compliance.missing_field_labels.map((label) => (
+                                                                <span key={label} className="inline-flex items-center px-2.5 py-1 text-[11px] font-bold bg-white text-amber-700 border border-amber-200">
+                                                                    {label}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="driver_license_number" className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">Driver License Number</Label>
+                                                    <Input
+                                                        id="driver_license_number"
+                                                        value={editFormData.driver_license_number}
+                                                        onChange={(e) => setEditFormData({ ...editFormData, driver_license_number: e.target.value })}
+                                                        className="font-bold"
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="driver_license_code" className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">Driver License Code</Label>
+                                                    <Input
+                                                        id="driver_license_code"
+                                                        value={editFormData.driver_license_code}
+                                                        onChange={(e) => setEditFormData({ ...editFormData, driver_license_code: e.target.value.toUpperCase() })}
+                                                        className="font-bold"
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="driver_license_expiry" className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">Driver License Expiry</Label>
+                                                    <Input
+                                                        id="driver_license_expiry"
+                                                        type="date"
+                                                        value={editFormData.driver_license_expiry}
+                                                        onChange={(e) => setEditFormData({ ...editFormData, driver_license_expiry: e.target.value })}
+                                                        className="font-bold"
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="prdp_number" className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">PrDP Number</Label>
+                                                    <Input
+                                                        id="prdp_number"
+                                                        value={editFormData.prdp_number}
+                                                        onChange={(e) => setEditFormData({ ...editFormData, prdp_number: e.target.value })}
+                                                        className="font-bold"
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="prdp_expiry" className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">PrDP Expiry</Label>
+                                                    <Input
+                                                        id="prdp_expiry"
+                                                        type="date"
+                                                        value={editFormData.prdp_expiry}
+                                                        onChange={(e) => setEditFormData({ ...editFormData, prdp_expiry: e.target.value })}
+                                                        className="font-bold"
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="vehicle_disk_expiry" className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">Vehicle Disk Expiry</Label>
+                                                    <Input
+                                                        id="vehicle_disk_expiry"
+                                                        type="date"
+                                                        value={editFormData.vehicle_disk_expiry}
+                                                        onChange={(e) => setEditFormData({ ...editFormData, vehicle_disk_expiry: e.target.value })}
+                                                        className="font-bold"
+                                                    />
+                                                </div>
+                                                <div className="space-y-2 md:col-span-2">
+                                                    <Label htmlFor="operating_areas" className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">Operating Areas</Label>
+                                                    <Input
+                                                        id="operating_areas"
+                                                        value={editFormData.operating_areas}
+                                                        onChange={(e) => setEditFormData({ ...editFormData, operating_areas: e.target.value })}
+                                                        placeholder="e.g. Sandton, Midrand, Pretoria"
+                                                        className="font-bold"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-3">
+                                                <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Registered Vehicles</Label>
+                                                {Array.isArray(selectedUser?.driver_services) && selectedUser?.driver_services.length > 0 ? (
+                                                    <div className="grid grid-cols-1 gap-4">
+                                                        {selectedUser.driver_services.map((vehicle: any, index: number) => {
+                                                            const images = Array.isArray(vehicle?.images) ? vehicle.images.filter(Boolean) : [];
+                                                            return (
+                                                                <div key={`${vehicle?.registration_number || vehicle?.plate || index}`} className="border border-slate-200 bg-slate-50 p-4 space-y-3">
+                                                                    <div className="flex items-start justify-between gap-3">
+                                                                        <div>
+                                                                            <p className="text-sm font-bold text-slate-900">
+                                                                                {[vehicle?.car_make || vehicle?.make, vehicle?.car_model || vehicle?.model].filter(Boolean).join(" ") || "Registered vehicle"}
+                                                                            </p>
+                                                                            <p className="text-xs text-slate-500 mt-1">
+                                                                                Plate: {vehicle?.registration_number || vehicle?.license_plate || vehicle?.plate || "—"}
+                                                                            </p>
+                                                                        </div>
+                                                                        <Badge className="bg-slate-100 text-slate-700 border-slate-200">
+                                                                            {(vehicle?.car_type || "vehicle").toString().replace(/_/g, " ")}
+                                                                        </Badge>
+                                                                    </div>
+                                                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                                                                        <div>
+                                                                            <p className="text-slate-400 font-bold uppercase tracking-widest">Year</p>
+                                                                            <p className="mt-1 font-semibold text-slate-700">{vehicle?.car_year || vehicle?.year || "—"}</p>
+                                                                        </div>
+                                                                        <div>
+                                                                            <p className="text-slate-400 font-bold uppercase tracking-widest">Color</p>
+                                                                            <p className="mt-1 font-semibold text-slate-700">{vehicle?.color || "—"}</p>
+                                                                        </div>
+                                                                        <div>
+                                                                            <p className="text-slate-400 font-bold uppercase tracking-widest">Seats</p>
+                                                                            <p className="mt-1 font-semibold text-slate-700">{vehicle?.seats || "—"}</p>
+                                                                        </div>
+                                                                        <div>
+                                                                            <p className="text-slate-400 font-bold uppercase tracking-widest">Disk Expiry</p>
+                                                                            <p className="mt-1 font-semibold text-slate-700">{vehicle?.disk_expiry || selectedUser?.vehicle_disk_expiry || "—"}</p>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                                                                        <span className="inline-flex items-center px-2.5 py-1 font-bold bg-white border border-slate-200 text-slate-700">
+                                                                            {images.length} image{images.length === 1 ? "" : "s"}
+                                                                        </span>
+                                                                        {vehicle?.disk_document && (
+                                                                            <a
+                                                                                href={getImageUrl(vehicle.disk_document)}
+                                                                                target="_blank"
+                                                                                rel="noreferrer"
+                                                                                className="inline-flex items-center gap-1 px-2.5 py-1 font-bold bg-white border border-slate-200 text-[#5e35b1] hover:bg-purple-50"
+                                                                            >
+                                                                                <ExternalLink className="w-3.5 h-3.5" />
+                                                                                View Disk
+                                                                            </a>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                ) : (
+                                                    <div className="border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-500">
+                                                        No structured vehicle record is attached to this driver yet.
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     </section>

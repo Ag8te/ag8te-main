@@ -78,6 +78,12 @@ class UpdateProfileSchema(Schema):
     professional_body = fields.Str(allow_none=True, load_default=None)
     operating_areas = fields.List(fields.Str(), allow_none=True, load_default=None)
     availability = fields.Dict(allow_none=True, load_default=None)
+    driver_license_number = fields.Str(allow_none=True, load_default=None)
+    driver_license_code = fields.Str(allow_none=True, load_default=None)
+    driver_license_expiry = fields.Str(allow_none=True, load_default=None)
+    prdp_number = fields.Str(allow_none=True, load_default=None)
+    prdp_expiry = fields.Str(allow_none=True, load_default=None)
+    vehicle_disk_expiry = fields.Str(allow_none=True, load_default=None)
     # Role-specific fields
     professional_services = fields.List(fields.Nested(ServiceSchema), allow_none=True, load_default=None)
     provider_services = fields.List(fields.Nested(ServiceSchema), allow_none=True, load_default=None)

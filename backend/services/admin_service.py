@@ -9,6 +9,7 @@ from sqlalchemy import and_, or_
 from backend.extensions import db
 from backend.models import User, ServiceRequest, ServiceType, UserSelectedService, Payment, PendingProfileUpdate, AppSetting, Agent
 from backend.services.email_service import EmailService
+from backend.services.request_service import RequestService
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +79,14 @@ class AdminService:
             'sa_id': 'sa_id', 'sa_citizen': 'sa_citizen', 'username': 'username',
             'highest_qualification': 'highest_qualification', 'professional_body': 'professional_body',
             'professional_services': 'professional_services', 'provider_services': 'provider_services',
-            'driver_vehicles': 'driver_services', 'driver_services': 'driver_services'
+            'driver_vehicles': 'driver_services', 'driver_services': 'driver_services',
+            'driver_license_number': 'driver_license_number',
+            'driver_license_code': 'driver_license_code',
+            'driver_license_expiry': 'driver_license_expiry',
+            'prdp_number': 'prdp_number',
+            'prdp_expiry': 'prdp_expiry',
+            'vehicle_disk_expiry': 'vehicle_disk_expiry',
+            'operating_areas': 'operating_areas',
         }
         for k, target in mappings.items():
             if k in data: profile_data[target] = data[k]
@@ -104,6 +112,25 @@ class AdminService:
         user = User.query.get(user_id)
         if not user:
             return None, "NOT_FOUND"
+
+        if user.role == 'driver':
+            compliance = RequestService.get_driver_cab_eligibility(
+                user,
+                require_fresh_location=False,
+                require_approval=False,
+                require_payment=False,
+                require_active=False,
+            )
+            if not compliance.get('eligible'):
+                return None, {
+                    'code': 'DRIVER_COMPLIANCE_INCOMPLETE',
+                    'details': {
+                        'missing_fields': compliance.get('missing_fields') or [],
+                        'missing_field_labels': RequestService.humanize_driver_missing_fields(
+                            compliance.get('missing_fields') or []
+                        ),
+                    },
+                }
             
         user.is_approved = True
         if user.role in ('professional', 'service-provider'):
@@ -453,9 +480,18 @@ class AdminService:
             'professional_services': profile_data.get('professional_services') or [],
             'provider_services': profile_data.get('provider_services') or [],
             'driver_services': profile_data.get('driver_services') or [],
+            'driver_license_number': profile_data.get('driver_license_number'),
+            'driver_license_code': profile_data.get('driver_license_code'),
+            'driver_license_expiry': profile_data.get('driver_license_expiry'),
+            'prdp_number': profile_data.get('prdp_number'),
+            'prdp_expiry': profile_data.get('prdp_expiry'),
+            'vehicle_disk_expiry': profile_data.get('vehicle_disk_expiry'),
+            'operating_areas': profile_data.get('operating_areas') or [],
             'id_document_url': id_document_url,
             'proof_of_residence_url': profile_data.get('proof_of_residence_url'),
             'driver_license_url': profile_data.get('driver_license_url'),
+            'prdp_document_url': profile_data.get('prdp_document_url'),
+            'vehicle_disk_document_url': profile_data.get('vehicle_disk_document_url'),
             'cv_resume_url': profile_data.get('cv_resume_url'),
             'qualification_urls': qualification_urls,
             'registration_documents': {
@@ -463,10 +499,28 @@ class AdminService:
                 'id_document_url': id_document_url,
                 'proof_of_residence_url': profile_data.get('proof_of_residence_url'),
                 'driver_license_url': profile_data.get('driver_license_url'),
+                'prdp_document_url': profile_data.get('prdp_document_url'),
+                'vehicle_disk_document_url': profile_data.get('vehicle_disk_document_url'),
                 'cv_resume_url': profile_data.get('cv_resume_url'),
                 'qualification_urls': qualification_urls,
             }
         })
+
+        if user.role == 'driver':
+            compliance = RequestService.get_driver_cab_eligibility(
+                user,
+                require_fresh_location=False,
+                require_approval=False,
+                require_payment=False,
+                require_active=False,
+            )
+            data['driver_compliance'] = {
+                'ready_for_approval': compliance.get('eligible', False),
+                'missing_fields': compliance.get('missing_fields') or [],
+                'missing_field_labels': RequestService.humanize_driver_missing_fields(
+                    compliance.get('missing_fields') or []
+                ),
+            }
             
         # Pending updates
         pending = PendingProfileUpdate.query.filter_by(user_id=user_id, status='pending').first()

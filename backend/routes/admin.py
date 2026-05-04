@@ -29,6 +29,7 @@ from backend.models.shop import Inventory, ShopCategory, ShopSubcategory, ShopPr
 from backend.services.admin_service import AdminService
 from backend.services.payment_service import PaymentService
 from backend.services.agent_service import AgentService
+from backend.services.request_service import RequestService
 from backend.utils.decorators import require_admin, require_auth
 from backend.utils.response import error_response, success_response
 
@@ -113,6 +114,23 @@ def approve_user(user_id):
     try:
         user_dict, error = AdminService.approve_user(user_id)
         if error:
+            if isinstance(error, dict):
+                error_code = error.get("code", "INTERNAL_ERROR")
+                details = error.get("details")
+                message = "Failed to approve user"
+                if error_code == "DRIVER_COMPLIANCE_INCOMPLETE":
+                    missing = ", ".join((details or {}).get("missing_field_labels") or [])
+                    message = (
+                        f"Driver compliance is incomplete. Missing: {missing}"
+                        if missing else
+                        "Driver compliance is incomplete."
+                    )
+                return error_response(
+                    error_code,
+                    message,
+                    details,
+                    400,
+                )
             return error_response(
                 error,
                 "Failed to approve user",
@@ -226,6 +244,7 @@ def update_user(user_id):
         user = User.query.get(user_id)
         if not user:
             return error_response("NOT_FOUND", "User not found", None, 404)
+        was_approved = bool(user.is_approved)
 
         schema = UpdateProfileSchema()
         request_data = {}
@@ -240,6 +259,12 @@ def update_user(user_id):
                 "sa_id",
                 "highest_qualification",
                 "professional_body",
+                "driver_license_number",
+                "driver_license_code",
+                "driver_license_expiry",
+                "prdp_number",
+                "prdp_expiry",
+                "vehicle_disk_expiry",
             ]:
                 if key in request.form:
                     request_data[key] = request.form[key] or None
@@ -262,6 +287,7 @@ def update_user(user_id):
                 "professional_services",
                 "provider_services",
                 "driver_services",
+                "operating_areas",
             ]:
                 if key in request.form:
                     try:
@@ -395,6 +421,12 @@ def update_user(user_id):
             "sa_id",
             "highest_qualification",
             "professional_body",
+            "driver_license_number",
+            "driver_license_code",
+            "driver_license_expiry",
+            "prdp_number",
+            "prdp_expiry",
+            "vehicle_disk_expiry",
         ]:
             if key in request_data and request_data[key] == "":
                 request_data[key] = None
@@ -439,6 +471,13 @@ def update_user(user_id):
                 "professional_body": "professional_body",
                 "professional_services": "professional_services",
                 "driver_services": "driver_services",
+                "driver_license_number": "driver_license_number",
+                "driver_license_code": "driver_license_code",
+                "driver_license_expiry": "driver_license_expiry",
+                "prdp_number": "prdp_number",
+                "prdp_expiry": "prdp_expiry",
+                "vehicle_disk_expiry": "vehicle_disk_expiry",
+                "operating_areas": "operating_areas",
             }
 
             for key, data_key in field_mappings.items():
@@ -495,6 +534,34 @@ def update_user(user_id):
 
         # Update the JSONB field
         user.data = updated_data
+
+        final_is_approved = bool(user.is_approved)
+        approval_transition_requested = user.role == "driver" and not was_approved and final_is_approved
+        if approval_transition_requested:
+            compliance = RequestService.get_driver_cab_eligibility(
+                user,
+                require_fresh_location=False,
+                require_approval=False,
+                require_payment=False,
+                require_active=False,
+            )
+            if not compliance.get("eligible"):
+                missing_labels = RequestService.humanize_driver_missing_fields(
+                    compliance.get("missing_fields") or []
+                )
+                return error_response(
+                    "DRIVER_COMPLIANCE_INCOMPLETE",
+                    (
+                        f"Driver compliance is incomplete. Missing: {', '.join(missing_labels)}"
+                        if missing_labels else
+                        "Driver compliance is incomplete."
+                    ),
+                    {
+                        "missing_fields": compliance.get("missing_fields") or [],
+                        "missing_field_labels": missing_labels,
+                    },
+                    400,
+                )
 
         db.session.commit()
 

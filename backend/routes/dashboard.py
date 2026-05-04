@@ -8,7 +8,7 @@ from flask import Blueprint, request, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from marshmallow import Schema, fields, ValidationError
 from sqlalchemy import or_, and_, func
-from backend.models import User, Wallet, WalletTransaction, Order, ServiceRequest, Payment, AppSetting, WithdrawalRequest
+from backend.models import User, Wallet, WalletTransaction, Order, ServiceRequest, Payment, AppSetting, WithdrawalRequest, PendingProfileUpdate
 from backend.services.payment_service import PaymentService
 from backend.services.wallet_service import WalletService
 from backend.services.agent_service import AgentService
@@ -104,11 +104,16 @@ def get_dashboard():
             
             # Get available ride requests (pending cab requests that match driver's car type)
             user_data = user.data or {}
-            driver_services = user_data.get('driver_services', [])
+            driver_services = user_data.get('driver_services') or []
+            legacy_car_details = user_data.get('car_details') or {}
+            if not driver_services and isinstance(legacy_car_details, dict) and legacy_car_details:
+                driver_services = [legacy_car_details]
             
             # Get driver's car types
             driver_car_types = set()
             for service in driver_services:
+                if not isinstance(service, dict):
+                    continue
                 car_type = service.get('car_type')
                 if car_type:
                     driver_car_types.add(car_type.lower())
@@ -139,7 +144,18 @@ def get_dashboard():
 
             available_ride_requests_payload = [_ride_request_with_client(r) for r in available_ride_requests]
             
-            driver_services = (user.data or {}).get('driver_services', [])
+            driver_services = (user.data or {}).get('driver_services') or []
+            if not driver_services and isinstance((user.data or {}).get('car_details'), dict):
+                fallback_vehicle = (user.data or {}).get('car_details') or {}
+                if fallback_vehicle:
+                    driver_services = [fallback_vehicle]
+            pending_vehicle_update = PendingProfileUpdate.query.filter_by(
+                user_id=user.id,
+                status='pending'
+            ).order_by(PendingProfileUpdate.created_at.desc()).first()
+            pending_driver_services = []
+            if pending_vehicle_update and isinstance(pending_vehicle_update.payload, dict):
+                pending_driver_services = pending_vehicle_update.payload.get('driver_services') or []
         
         elif user.role == 'professional':
             # Get recent professional jobs (3 most recent) - jobs professional has accepted
@@ -299,6 +315,8 @@ def get_dashboard():
         if driver_earnings is not None:
             payload['driver_earnings'] = driver_earnings
             payload['driver_services'] = driver_services
+            payload['pending_driver_services'] = pending_driver_services
+            payload['vehicle_update_pending'] = bool(pending_driver_services)
         if professional_earnings is not None:
             payload['professional_earnings'] = professional_earnings
             payload['professional_services'] = professional_services

@@ -147,15 +147,62 @@ class AuthService:
         else:
             user_data['passport_number'] = registration_data.get('id_number')
 
+        def _normalize_driver_services(reg_data):
+            raw_driver_services = reg_data.get('driver_services') or []
+            normalized_services = []
+
+            for service in raw_driver_services:
+                if not isinstance(service, dict):
+                    continue
+                normalized_services.append({
+                    'car_make': service.get('car_make') or service.get('make') or '',
+                    'car_model': service.get('car_model') or service.get('model') or '',
+                    'car_year': service.get('car_year') or service.get('year'),
+                    'registration_number': service.get('registration_number') or service.get('registration') or service.get('license_plate') or service.get('plate') or '',
+                    'car_type': service.get('car_type') or '',
+                    'color': service.get('color') or '',
+                    'seats': service.get('seats'),
+                    'disk_expiry': service.get('disk_expiry') or service.get('vehicle_disk_expiry'),
+                    'disk_document': service.get('disk_document') or service.get('vehicle_disk_document_url'),
+                    'images': service.get('images') or [],
+                })
+
+            if normalized_services:
+                return normalized_services
+
+            car_details = reg_data.get('car_details') or {}
+            if not isinstance(car_details, dict) or not any(car_details.values()):
+                return []
+
+            return [{
+                'car_make': car_details.get('car_make') or car_details.get('make') or '',
+                'car_model': car_details.get('car_model') or car_details.get('model') or '',
+                'car_year': car_details.get('car_year') or car_details.get('year'),
+                'registration_number': car_details.get('registration_number') or car_details.get('registration') or car_details.get('license_plate') or car_details.get('plate') or '',
+                'car_type': car_details.get('car_type') or '',
+                'color': car_details.get('color') or '',
+                'seats': car_details.get('seats'),
+                'disk_expiry': car_details.get('disk_expiry') or reg_data.get('vehicle_disk_expiry'),
+                'disk_document': car_details.get('disk_document') or reg_data.get('vehicle_disk_document_url'),
+                'images': car_details.get('images') or [],
+            }]
+
         # Handle specific roles
         if role == 'professional':
             user_data['highest_qualification'] = registration_data.get('highest_qualification')
             user_data['professional_body'] = registration_data.get('professional_body')
             user_data['professional_services'] = registration_data.get('professional_services', [])
         elif role == 'driver':
-            user_data['driver_services'] = registration_data.get('driver_services', [])
+            user_data['driver_services'] = _normalize_driver_services(registration_data)
             if registration_data.get('car_details'):
                 user_data['car_details'] = registration_data.get('car_details')
+            user_data['driver_license_number'] = registration_data.get('driver_license_number')
+            user_data['driver_license_code'] = registration_data.get('driver_license_code')
+            user_data['driver_license_expiry'] = registration_data.get('driver_license_expiry')
+            user_data['prdp_number'] = registration_data.get('prdp_number')
+            user_data['prdp_expiry'] = registration_data.get('prdp_expiry')
+            user_data['vehicle_disk_expiry'] = registration_data.get('vehicle_disk_expiry')
+            user_data['operating_areas'] = registration_data.get('operating_areas') or []
         elif role == 'service-provider':
             user_data['provider_services'] = registration_data.get('provider_services', [])
 
@@ -179,7 +226,16 @@ class AuthService:
             
         if 'drivers_license' in files:
             user_data['driver_license_url'] = cls.handle_file_upload(files['drivers_license'], 'license', upload_folder)
-            
+
+        if 'prdp_document' in files:
+            user_data['prdp_document_url'] = cls.handle_file_upload(files['prdp_document'], 'prdp', upload_folder)
+
+        if 'vehicle_disk_document' in files:
+            vehicle_disk_url = cls.handle_file_upload(files['vehicle_disk_document'], 'disk', upload_folder)
+            user_data['vehicle_disk_document_url'] = vehicle_disk_url
+            if vehicle_disk_url and user_data.get('driver_services'):
+                user_data['driver_services'][0]['disk_document'] = vehicle_disk_url
+
         if 'cv_resume' in files:
             user_data['cv_resume_url'] = cls.handle_file_upload(files['cv_resume'], 'cv', upload_folder)
             
@@ -208,11 +264,17 @@ class AuthService:
                         url = cls.handle_file_upload(f, 'vehicle', upload_folder)
                         if url:
                             db.session.add(VehicleImage(user_id=user.id, car_index=car_index, image_url=url))
+                            if car_index < len(user_data.get('driver_services', [])):
+                                images = user_data['driver_services'][car_index].setdefault('images', [])
+                                images.append(url)
                 elif key == 'car_images':
                     for f in files.getlist(key):
                         url = cls.handle_file_upload(f, 'vehicle', upload_folder)
                         if url:
                             db.session.add(VehicleImage(user_id=user.id, car_index=0, image_url=url))
+                            if user_data.get('driver_services'):
+                                images = user_data['driver_services'][0].setdefault('images', [])
+                                images.append(url)
         
         if role == 'service-provider':
             user.data = user_data

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
     Box,
     Typography,
@@ -36,23 +36,32 @@ interface Vehicle {
     car_model: string;
     car_year: number;
     registration_number: string;
-    car_type: 'standard' | 'premium' | 'suv';
-    color: string; // NEW
-    images: File[]; // NEW (multiple photos)
-    disk_document: File | null; // NEW (vehicle disk
-    preview_images?: string[]; // for UI preview only
-    disk_preview?: string; // file name preview
-
+    car_type: 'standard' | 'premium' | 'suv' | 'sedan' | 'luxury' | 'small_hatchback';
+    color: string;
+    images: File[];
+    disk_document: File | null;
+    preview_images?: string[];
+    disk_preview?: string;
+    approval_status?: 'approved' | 'pending';
 }
 
 interface VehicleManagementProps {
     initialVehicles: Vehicle[];
+    pendingVehicles?: Vehicle[];
+    hasPendingVehicleUpdate?: boolean;
 }
 
-export const VehicleManagement = ({ initialVehicles }: VehicleManagementProps) => {
+export const VehicleManagement = ({
+    initialVehicles,
+    pendingVehicles = [],
+    hasPendingVehicleUpdate = false,
+}: VehicleManagementProps) => {
     const { toast } = useToast();
     const theme = useTheme();
-    const normalizeVehicle = (vehicle: any): Vehicle => ({
+    const approvedSignatureRef = useRef("");
+    const pendingSignatureRef = useRef("");
+
+    const normalizeVehicle = (vehicle: any, approvalStatus: Vehicle["approval_status"] = "approved"): Vehicle => ({
         car_make: vehicle?.car_make || vehicle?.make || "",
         car_model: vehicle?.car_model || vehicle?.model || "",
         car_year: Number(vehicle?.car_year || vehicle?.year) || new Date().getFullYear(),
@@ -67,20 +76,56 @@ export const VehicleManagement = ({ initialVehicles }: VehicleManagementProps) =
         disk_preview: typeof vehicle?.disk_document === "string"
             ? vehicle.disk_document
             : (typeof vehicle?.disk_preview === "string" ? vehicle.disk_preview : ""),
+        approval_status: approvalStatus,
     });
 
+    const getVehicleSignature = (vehicleList: any[] = []) =>
+        JSON.stringify(
+            vehicleList.map((vehicle) => ({
+                car_make: vehicle?.car_make || vehicle?.make || "",
+                car_model: vehicle?.car_model || vehicle?.model || "",
+                car_year: Number(vehicle?.car_year || vehicle?.year) || new Date().getFullYear(),
+                registration_number: vehicle?.registration_number || vehicle?.registration || vehicle?.license_plate || vehicle?.plate || "",
+                car_type: vehicle?.car_type || "standard",
+                color: vehicle?.color || "",
+                images: Array.isArray(vehicle?.images) ? vehicle.images.filter((img: any) => typeof img === "string") : [],
+                disk_document: typeof vehicle?.disk_document === "string" ? vehicle.disk_document : "",
+            }))
+        );
+
     const [vehicles, setVehicles] = useState<Vehicle[]>((initialVehicles || []).map(normalizeVehicle));
+    const [pendingQueue, setPendingQueue] = useState<Vehicle[]>((pendingVehicles || []).map((vehicle) => normalizeVehicle(vehicle, "pending")));
     const [saving, setSaving] = useState(false);
+    const [localPendingSubmission, setLocalPendingSubmission] = useState(false);
+    const vehicleApprovalPending = hasPendingVehicleUpdate || localPendingSubmission;
 
     useEffect(() => {
-        setVehicles((initialVehicles || []).map(normalizeVehicle));
+        const nextSignature = getVehicleSignature(initialVehicles || []);
+        if (nextSignature !== approvedSignatureRef.current) {
+            approvedSignatureRef.current = nextSignature;
+            setVehicles((initialVehicles || []).map(normalizeVehicle));
+        }
     }, [initialVehicles]);
-    
-    //updated added new vehicle features
-    const addVehicle = () => {
-        setVehicles([...vehicles, { car_make: "", car_model: "", car_year: new Date().getFullYear(), registration_number: "", car_type: 'standard', color: "", images: [], disk_document: null}]);
 
-        
+    useEffect(() => {
+        const nextSignature = getVehicleSignature(pendingVehicles || []);
+        if (nextSignature !== pendingSignatureRef.current) {
+            pendingSignatureRef.current = nextSignature;
+            setPendingQueue((pendingVehicles || []).map((vehicle) => normalizeVehicle(vehicle, "pending")));
+            setLocalPendingSubmission(false);
+        }
+    }, [pendingVehicles]);
+    
+    const addVehicle = () => {
+        if (vehicleApprovalPending) {
+            toast({
+                title: "Approval Pending",
+                description: "Your last vehicle submission is still waiting for admin approval.",
+                variant: "destructive"
+            });
+            return;
+        }
+        setVehicles([...vehicles, { car_make: "", car_model: "", car_year: new Date().getFullYear(), registration_number: "", car_type: 'standard', color: "", images: [], disk_document: null}]);
     };
 
 
@@ -100,7 +145,14 @@ export const VehicleManagement = ({ initialVehicles }: VehicleManagementProps) =
     };
 
     const handleSave = async () => {
-         console.log(vehicles);
+    if (vehicleApprovalPending) {
+        toast({
+            title: "Approval Pending",
+            description: "Wait for admin approval before submitting another vehicle update.",
+            variant: "destructive"
+        });
+        return;
+    }
     // Validation
     for (let v of vehicles) {
         if (!v.car_make.trim()) {
@@ -168,6 +220,11 @@ export const VehicleManagement = ({ initialVehicles }: VehicleManagementProps) =
         });
 
         if (res.success) {
+            setPendingQueue(vehicles.map((vehicle) => ({
+                ...vehicle,
+                approval_status: "pending",
+            })));
+            setLocalPendingSubmission(true);
             toast({
                 title: "Update Submitted",
                 description: "Your vehicle changes have been submitted for admin approval."
@@ -194,13 +251,14 @@ export const VehicleManagement = ({ initialVehicles }: VehicleManagementProps) =
                     </Avatar>
                     <Box>
                         <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>My Vehicles</Typography>
-                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>Manage your registered fleet and categories.</Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>Approved vehicles are visible to riders. New vehicle submissions need admin approval first.</Typography>
                     </Box>
                 </Stack>
                 <Button
                     variant="outlined"
                     startIcon={<PlusIcon />}
                     onClick={addVehicle}
+                    disabled={vehicleApprovalPending}
                     sx={{ fontWeight: 700, borderRadius: 2 }}
                 >
                     Add Vehicle
@@ -208,11 +266,25 @@ export const VehicleManagement = ({ initialVehicles }: VehicleManagementProps) =
             </Box>
 
             <Box sx={{ p: 3 }}>
+                {vehicleApprovalPending && (
+                    <Alert
+                        severity="warning"
+                        sx={{ mb: 3, borderRadius: 2 }}
+                    >
+                        A vehicle update is waiting for admin approval. Riders and cab requests will continue using your currently approved vehicles until that review is completed.
+                    </Alert>
+                )}
+
                 {vehicles.length > 0 ? (
                     <Stack spacing={3}>
                         {vehicles.map((vehicle, index) => (
                             <Card key={index} variant="outlined" sx={{ borderRadius: 2, position: 'relative', overflow: 'visible' }}>
                                 <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+                                    <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
+                                        <Alert severity="success" icon={false} sx={{ py: 0, px: 1.5, alignItems: 'center' }}>
+                                            Approved
+                                        </Alert>
+                                    </Stack>
                                     <Box sx={{ position: 'absolute', right: -12, top: -12 }}>
                                         <IconButton
                                             size="small"
@@ -465,6 +537,69 @@ export const VehicleManagement = ({ initialVehicles }: VehicleManagementProps) =
                     </Box>
                 )}
 
+                {pendingQueue.length > 0 && (
+                    <Box sx={{ mt: 4 }}>
+                        <Divider sx={{ mb: 3 }} />
+                        <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 2 }}>
+                            Pending Approval
+                        </Typography>
+                        <Stack spacing={3}>
+                            {pendingQueue.map((vehicle, index) => (
+                                <Card key={`pending-${index}`} variant="outlined" sx={{ borderRadius: 2, borderStyle: 'dashed', bgcolor: alpha(theme.palette.warning.main, 0.04) }}>
+                                    <CardContent sx={{ p: 3 }}>
+                                        <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
+                                            <Alert severity="warning" icon={false} sx={{ py: 0, px: 1.5, alignItems: 'center' }}>
+                                                Awaiting admin approval
+                                            </Alert>
+                                        </Stack>
+                                        <Grid container spacing={2}>
+                                            <Grid size={{ xs: 12, md: 4 }}>
+                                                <TextField fullWidth label="Car Make" size="small" value={vehicle.car_make} InputProps={{ readOnly: true }} />
+                                            </Grid>
+                                            <Grid size={{ xs: 12, md: 4 }}>
+                                                <TextField fullWidth label="Car Model" size="small" value={vehicle.car_model} InputProps={{ readOnly: true }} />
+                                            </Grid>
+                                            <Grid size={{ xs: 12, md: 4 }}>
+                                                <TextField fullWidth label="Category" size="small" value={String(vehicle.car_type).replace(/_/g, " ")} InputProps={{ readOnly: true }} />
+                                            </Grid>
+                                            <Grid size={{ xs: 12, md: 4 }}>
+                                                <TextField fullWidth label="Year" size="small" value={vehicle.car_year ?? ""} InputProps={{ readOnly: true }} />
+                                            </Grid>
+                                            <Grid size={{ xs: 12, md: 4 }}>
+                                                <TextField fullWidth label="Registration Number" size="small" value={vehicle.registration_number} InputProps={{ readOnly: true }} />
+                                            </Grid>
+                                            <Grid size={{ xs: 12, md: 4 }}>
+                                                <TextField fullWidth label="Color" size="small" value={vehicle.color || ""} InputProps={{ readOnly: true }} />
+                                            </Grid>
+                                            {!!vehicle.preview_images?.length && (
+                                                <Grid size={{ xs: 12 }}>
+                                                    <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                                                        {vehicle.preview_images.map((img, imageIndex) => (
+                                                            <Box
+                                                                key={`pending-image-${imageIndex}`}
+                                                                component="img"
+                                                                src={img.startsWith('/uploads/') ? getImageUrl(img) : img}
+                                                                sx={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 2, border: '1px solid #ddd' }}
+                                                            />
+                                                        ))}
+                                                    </Stack>
+                                                </Grid>
+                                            )}
+                                            {!!vehicle.disk_preview && (
+                                                <Grid size={{ xs: 12 }}>
+                                                    <Typography variant="caption" sx={{ fontWeight: 700 }}>
+                                                        Disk document: {vehicle.disk_preview}
+                                                    </Typography>
+                                                </Grid>
+                                            )}
+                                        </Grid>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </Stack>
+                    </Box>
+                )}
+
                 <Alert
                     severity="info"
                     icon={<SettingsIcon fontSize="small" />}
@@ -480,7 +615,7 @@ export const VehicleManagement = ({ initialVehicles }: VehicleManagementProps) =
                 <Button
                     variant="contained"
                     size="large"
-                    disabled={saving}
+                    disabled={saving || vehicleApprovalPending}
                     onClick={handleSave}
                     startIcon={saving ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
                     sx={{
