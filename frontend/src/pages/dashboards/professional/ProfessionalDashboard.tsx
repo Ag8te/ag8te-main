@@ -39,6 +39,7 @@ import { ProfileSettings } from "@/components/dashboards/ProfileSettings";
 import { apiFetch } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const ProfessionalDashboard = () => {
     const { toast } = useToast();
@@ -48,6 +49,8 @@ const ProfessionalDashboard = () => {
     const [data, setData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [selectedJobForRating, setSelectedJobForRating] = useState<{ id: string, client_name?: string } | null>(null);
+    const navigate = useNavigate();
+    console.log("FULL DASHBOARD DATA:", data);
 
     const navItems = [
         { id: "overview", label: "Overview", icon: LayoutTemplate },
@@ -240,7 +243,10 @@ const ProfessionalDashboard = () => {
                                     <Box>
                                         <Typography variant="h6" sx={{ fontWeight: 800, mb: 2 }}>Case Inbox</Typography>
                                         <JobInbox
-                                            jobs={data?.available_professional_requests || []}
+                                            jobs={[
+                                                 ...(data?.available_professional_requests || []),
+                                                 ...(data?.active_professional_jobs || [])
+                                                  ]}
                                             role="professional"
                                             onJobAccepted={fetchData}
                                         />
@@ -338,7 +344,7 @@ const ProfessionalDashboard = () => {
                     <Box sx={{ animation: 'fadeIn 0.5s', textAlign: 'center', py: 10 }}>
                         <Typography variant="h5" fontWeight={700} mb={2}>Profile Management</Typography>
                         <Typography variant="body1" color="text.secondary" mb={4}>Manage your personal information, documents, and availability in the unified profile center.</Typography>
-                        <Button variant="contained" size="large" onClick={() => window.location.href = '/profile'}>
+                        <Button variant="contained" size="large" onClick={() => navigate('/profile')}>
                             Go to Profile Page
                         </Button>
                     </Box>

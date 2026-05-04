@@ -147,7 +147,7 @@ def update_profile():
         if error:
             status_code = 403 if error == "NOT_APPROVED" else 400
             if error == "INTERNAL_ERROR": status_code = 500
-            return error_response(error, 'Failed to update profile', None, status_code)
+            return error_response(error, 'Previous changes pending you cannot make new ones', None, status_code)
             
         return success_response(result, 'Profile update processed successfully')
         
@@ -156,7 +156,7 @@ def update_profile():
         return error_response('VALIDATION_ERROR', 'Invalid input data', e.messages, 400)
     except Exception as e:
         current_app.logger.error(f"Update profile error: {str(e)}")
-        return error_response('INTERNAL_ERROR', 'Failed to update profile', None, 500)
+        return error_response('INTERNAL_ERROR', 'Previous changes pending you cannot make new ones', None, 500)
 
 
 @bp.route('/upload-photo', methods=['POST'])

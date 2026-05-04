@@ -38,6 +38,7 @@ import { ProfileSettings } from "@/components/dashboards/ProfileSettings";
 import { apiFetch } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const ServiceProviderDashboard = () => {
     const { toast } = useToast();
@@ -47,6 +48,7 @@ const ServiceProviderDashboard = () => {
     const [data, setData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [selectedJobForRating, setSelectedJobForRating] = useState<{ id: string, client_name?: string } | null>(null);
+    const navigate = useNavigate();
 
     const navItems = [
         { id: "overview", label: "Overview", icon: LayoutTemplate },
@@ -337,7 +339,7 @@ const ServiceProviderDashboard = () => {
                     <Box sx={{ animation: 'fadeIn 0.5s', textAlign: 'center', py: 10 }}>
                         <Typography variant="h5" fontWeight={700} mb={2}>Profile Management</Typography>
                         <Typography variant="body1" color="text.secondary" mb={4}>Manage your personal information, documents, and availability in the unified profile center.</Typography>
-                        <Button variant="contained" size="large" onClick={() => window.location.href = '/profile'}>
+                        <Button variant="contained" size="large" onClick={() => navigate('/profile')}>
                             Go to Profile Page
                         </Button>
                     </Box>
