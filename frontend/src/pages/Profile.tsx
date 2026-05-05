@@ -45,18 +45,28 @@ const Profile = () => {
             contact_email: user?.data?.next_of_kin?.contact_email || "",
         },
         operating_areas: user?.data?.operating_areas || [],
-        availability: user?.data?.availability || {
-        is_online: false, // for driver
-        schedule: {
-        monday: true,
-        tuesday: true,
-        wednesday: true,
-        thursday: true,
-        friday: true,
-        saturday: false,
-        sunday: false
-    }
-}
+        availability: (() => {
+            // ← FIX: always build a full availability object by merging
+            // saved data with defaults so regular_hours is always populated
+            // previously if availability existed but had no regular_hours
+            // the || never triggered and the UI rendered empty
+            const DEFAULT_HOURS = {
+                monday: { enabled: true, start: "08:00", end: "17:00" },
+                tuesday: { enabled: true, start: "08:00", end: "17:00" },
+                wednesday: { enabled: true, start: "08:00", end: "17:00" },
+                thursday: { enabled: true, start: "08:00", end: "17:00" },
+                friday: { enabled: true, start: "08:00", end: "17:00" },
+                saturday: { enabled: false, start: "08:00", end: "17:00" },
+                sunday: { enabled: false, start: "08:00", end: "17:00" },
+            };
+            const saved = user?.data?.availability || {};
+            return {
+                is_online: saved.is_online ?? false,
+                // ← use saved regular_hours if they exist, otherwise use defaults
+                regular_hours: saved.regular_hours || DEFAULT_HOURS,
+                blocked_dates: saved.blocked_dates || []
+            };
+        })()
     });
 
     
@@ -415,25 +425,28 @@ const ToggleSwitch = ({ enabled, onToggle }: { enabled: boolean; onToggle: () =>
         <h3 className="text-xl font-bold mb-6">Weekly Availability</h3>
 
         <div className="space-y-3">
-            {Object.entries(formData.availability.schedule).map(([day, value]) => (
+            {Object.entries(formData.availability.regular_hours || {}).map(([day, config]: [string, any]) => (
                 <div
                     key={day}
                     className="flex items-center justify-between p-4 rounded-xl bg-slate-50 border"
                 >
                     <span className="capitalize font-semibold">
-                        {day} (09:00 - 17:00)
+                        {day} ({config.start} - {config.end})
+                        
                     </span>
 
                     <ToggleSwitch
-                        enabled={value as boolean}
+                        enabled={config.enabled as boolean}
                         onToggle={() =>
                             setFormData((prev: any) => ({
                                 ...prev,
                                 availability: {
                                     ...prev.availability,
-                                    schedule: {
-                                        ...prev.availability.schedule,
-                                        [day]: !value
+                                    regular_hours: {
+                                        ...prev.availability.regular_hours,
+                                        [day]: {
+                                            ...prev.availability.regular_hours[day],enabled: !config.enabled
+                                        }
                                     }
                                 }
                             }))

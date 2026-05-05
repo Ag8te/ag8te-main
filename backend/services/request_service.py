@@ -187,11 +187,12 @@ class RequestService:
                 service_request.details['is_rfq'] = True
             else:
                 pid = service_request.details.get('professional_id') or service_request.details.get('provider_id')
-                if pid:
-                    service_request.provider_id = uuid.UUID(pid)
-                    # Availability check
-                    available, error = RequestService.check_provider_availability(service_request.provider_id, data['date'], data['time'])
-                    if not available:
+                if not pid:
+                    return None, "PROVIDER_ID_REQUIRED"
+                service_request.provider_id = uuid.UUID(pid)
+                # Availability check
+                available, error = RequestService.check_provider_availability(service_request.provider_id, data['date'], data['time'])
+                if not available:
                         return None, error
 
         if data.get('notes'):
@@ -536,8 +537,8 @@ class RequestService:
             end = day_config.get('end', '17:00')
             if not (start <= time_str < end):
                 return False, "PROV_OUT_OF_HOURS"
-        except Exception:
-            pass
+        except ValueError:
+            return False, "INVALID_DATETIME_FORMAT"
             
         # Busy slots
         busy = ServiceRequest.query.filter(

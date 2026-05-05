@@ -167,13 +167,14 @@ const BookService = () => {
     }
 
     const availability = provider?.data?.availability;
-    if (!availability) {
-      const currentTime = date === todayStr ? getCurrentTimeSAST() : "00:00";
-      setAvailableTimeSlots(DEFAULT_TIME_SLOTS.filter(slot => slot > currentTime));
+    if (!availability?.regular_hours) {
+      // provider has not configured availability yet, show all default time slots
+      setAvailableTimeSlots(DEFAULT_TIME_SLOTS);
       return;
     }
 
-    const selectedDate = new Date(date);
+    const [year, month, dayNum] = date.split('-').map(Number);
+    const selectedDate = new Date(year, month - 1, dayNum);
     const dayName = DAYS_OF_WEEK[selectedDate.getDay()] as string;
     const dayConfig = availability.regular_hours?.[dayName];
 
@@ -288,7 +289,20 @@ const BookService = () => {
         setStep("done");
         toast({ title: "Booking confirmed!", description: `Your request with ${provider?.data?.full_name || 'the provider'} has been submitted.` });
       } else {
-        toast({ title: "Checkout failed", description: res.message || "Failed to initiate payment", variant: "destructive" });
+        const errorMap: Record<string, string> = {
+          "PROV_DATE_BLOCKED": "The provider is unavailable on the selected date.",
+          "PROV_OUT_OF_HOURS": "The selected time is outside the provider's working hours.",
+          "TIME_SLOT_TAKEN": "This time slot has already been booked. Please choose another.",
+          "INVALID_DATE_FORMAT": "Invalid date selected. Please try again.",
+          "PROVIDER_ID_REQUIRED": "No provider selected. Please go back and try again.",
+        };
+        const friendlyMessage = res.message && errorMap[res.message]
+          ? errorMap[res.message]
+          : res.message || "Failed to initiate payment";
+        toast({ title: "Booking Failed",
+                description: friendlyMessage,
+                variant: "destructive"
+         });
       }
     } catch (err: any) {
       toast({ title: "Error", description: err.message || "Failed to process booking", variant: "destructive" });

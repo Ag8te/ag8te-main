@@ -183,12 +183,20 @@ def get_dashboard():
                 and_(
                     ServiceRequest.request_type == 'professional',
                     ServiceRequest.status == 'pending',
-                    ServiceRequest.provider_id.is_(None)
+                or_(
+                    ServiceRequest.provider_id.is_(None),
+                    ServiceRequest.provider_id == user.id
+                    #directly booked for this specific professional
                 )
+              ) 
             ).order_by(ServiceRequest.created_at.desc()).limit(10).all()
             
             # Filter by gender matching
             for req in pending_professional_requests:
+                if req.provider_id and str(req.provider_id) == str(user.id):
+                    available_professional_requests.append(req)
+                    continue
+
                 request_details = req.details or {}
                 request_gender_pref = request_details.get('gender')
                 
@@ -243,12 +251,20 @@ def get_dashboard():
                 and_(
                     ServiceRequest.request_type == 'provider',
                     ServiceRequest.status == 'pending',
-                    ServiceRequest.provider_id.is_(None)
+                    or_(
+                        ServiceRequest.provider_id.is_(None),
+                        ServiceRequest.provider_id == user.id
+                    )
+                    
                 )
             ).order_by(ServiceRequest.created_at.desc()).limit(10).all()
             
             # Filter by gender matching
             for req in pending_provider_requests:
+                if req.provider_id and str(req.provider_id) == str(user.id):
+                    available_service_provider_requests.append(req)
+                    continue
+                    
                 request_details = req.details or {}
                 request_gender_pref = request_details.get('gender')
                 
