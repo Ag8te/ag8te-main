@@ -715,6 +715,7 @@ const removeCarImage = (index: number) => {
       const result = await register(formData);
       if (result.success) {
         if (result.data?.redirect_url) {
+          localStorage.setItem("user", JSON.stringify(result.data.user));
           localStorage.setItem("registrationPaymentUser", JSON.stringify(result.data.user));
           window.location.href = result.data.redirect_url;
           return;

@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react";
 import { apiFetch } from "@/lib/api";
+import { requiresRegistrationPayment } from "@/lib/registration-payment";
 
 export interface User {
   id: string;
@@ -29,8 +30,25 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUserState] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  const syncUserState = useCallback((nextUser: User | null) => {
+    if (nextUser) {
+      localStorage.setItem("user", JSON.stringify(nextUser));
+
+      if (requiresRegistrationPayment(nextUser)) {
+        localStorage.setItem("registrationPaymentUser", JSON.stringify(nextUser));
+      } else {
+        localStorage.removeItem("registrationPaymentUser");
+      }
+    } else {
+      localStorage.removeItem("user");
+      localStorage.removeItem("registrationPaymentUser");
+    }
+
+    setUserState(nextUser);
+  }, []);
 
   // Check connection on mount
   useEffect(() => {
@@ -42,7 +60,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             headers: { Authorization: `Bearer ${token}` }
           });
           if (result.success && result.data) {
-            setUser(result.data.user);
+            syncUserState(result.data.user);
           } else {
             if (localStorage.getItem("token")) localStorage.removeItem("token");
             if (localStorage.getItem("adminToken")) {
@@ -60,7 +78,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     initAuth();
-  }, []);
+  }, [syncUserState]);
 
   const login = useCallback(async (email: string, password: string, role: string) => {
     try {
@@ -70,20 +88,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (result.success) {
         if (result.data?.payment_required) {
+          localStorage.setItem("user", JSON.stringify(result.data.user));
           localStorage.setItem("registrationPaymentUser", JSON.stringify(result.data.user));
           return { success: true, data: result.data };
         }
 
         localStorage.setItem("token", result.data.token);
-        localStorage.setItem("user", JSON.stringify(result.data.user));
-        setUser(result.data.user);
+        syncUserState(result.data.user);
         return { success: true, data: result.data };
       }
       return { success: false, error: result.message || "Login failed" };
     } catch (error: any) {
       return { success: false, error: error.message || "An error occurred during login" };
     }
-  }, []);
+  }, [syncUserState]);
 
   const adminLogin = useCallback(async (email: string, password: string) => {
     try {
@@ -94,7 +112,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (result.success) {
         localStorage.setItem("adminToken", result.data.token);
         localStorage.setItem("adminUser", JSON.stringify(result.data.user));
-        setUser(result.data.user);
+        setUserState(result.data.user);
         return { success: true, data: result.data };
       }
       return { success: false, error: result.message || "Login failed" };
@@ -121,8 +139,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         if (result.data?.token) {
           localStorage.setItem("token", result.data.token);
-          localStorage.setItem("user", JSON.stringify(result.data.user));
-          setUser(result.data.user);
+          syncUserState(result.data.user);
         }
         return { success: true, data: result.data };
       }
@@ -130,19 +147,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (error: any) {
       return { success: false, error: error.message || "An error occurred during registration" };
     }
-  }, []);
+  }, [syncUserState]);
 
   const logout = useCallback(() => {
     localStorage.removeItem("token");
     localStorage.removeItem("adminToken");
     localStorage.removeItem("adminUser");
-    localStorage.removeItem("user");
-    localStorage.removeItem("registrationPaymentUser");
-    setUser(null);
-  }, []);
+    syncUserState(null);
+  }, [syncUserState]);
 
   return (
-    <AuthContext.Provider value={{ user, login, adminLogin, register, logout, setUser, isAuthenticated: !!user, isLoading }}>
+    <AuthContext.Provider value={{ user, login, adminLogin, register, logout, setUser: syncUserState, isAuthenticated: !!user, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

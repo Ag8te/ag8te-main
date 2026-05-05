@@ -51,7 +51,7 @@ def _prefer_configured_public_url(value: str | None, config_key: str) -> str | N
 def _config_default_frontend() -> str:
     if current_app.config.get("FLASK_ENV") == "production":
         return "https://mzansiserve.co.za"
-    return "http://localhost:8080"
+    return "http://localhost"
 
 
 def _config_default_backend() -> str:

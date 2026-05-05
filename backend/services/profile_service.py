@@ -33,14 +33,10 @@ class ProfileService:
     @staticmethod
     def get_profile_info(user_id):
         """Fetch comprehensive profile information for a user WITH pending diff preview"""
-
         user = User.query.get(user_id)
         if not user:
             return None, "USER_NOT_FOUND"
 
-    # -------------------------
-    # Existing logic (UNCHANGED)
-    # -------------------------
         id_document_url = None
         if user.file_urls and isinstance(user.file_urls, list) and len(user.file_urls) > 0:
             id_document_url = user.file_urls[0]
@@ -51,38 +47,15 @@ class ProfileService:
             user_id=user.id, status='pending'
         ).order_by(PendingProfileUpdate.created_at.desc()).first()
 
-    # -------------------------
-    # NEW: Build pending preview (DIFF)
-    # -------------------------
         pending_data = None
-
         if pending:
-            current_data = user.data or {}
             payload = pending.payload or {}
-
             diff = ProfileService.build_profile_diff(user, payload)
-            
-        if key == "next_of_kin":
-            current_nok = current_data.get("next_of_kin", {})
-
-            diff["next_of_kin"] = {
-            "old": current_nok,
-            "new": new_value
+            pending_data = {
+                **pending.to_dict(),
+                "diff": diff,
             }
-        else:
-                diff[key] = {
-                "old": current_data.get(key),
-                "new": new_value
-        }
 
-        pending_data = {
-        **pending.to_dict(),
-        "diff": diff
-            }
- 
-    # -------------------------
-    # Final response (UNCHANGED STRUCTURE)
-    # -------------------------
         return {
             'user': user.to_dict(),
             'profile_data': user.data or {},

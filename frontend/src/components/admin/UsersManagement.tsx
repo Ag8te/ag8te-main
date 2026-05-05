@@ -14,6 +14,7 @@ import {
     UserCircle,
     CheckCircle2,
     XCircle,
+    AlertCircle,
     Info,
     Mail,
     Plus,
@@ -227,6 +228,86 @@ export const UsersManagement = () => {
                 cv_resume_url: user?.cv_resume_url ?? null,
                 qualification_urls: user?.qualification_urls ?? profile?.qualification_urls ?? [],
             },
+        };
+    };
+
+    const getVerificationDisplay = (user: User | null) => {
+        if (!user) {
+            return {
+                label: "Pending",
+                badgeClassName: "text-orange-600 bg-orange-50",
+                textClassName: "text-orange-600",
+            };
+        }
+
+        if (user.is_approved) {
+            return {
+                label: "Approved",
+                badgeClassName: "text-green-600 bg-green-50",
+                textClassName: "text-green-600",
+            };
+        }
+
+        if (user.id_verification_status === "verified") {
+            return {
+                label: "Verified",
+                badgeClassName: "text-green-600 bg-green-50",
+                textClassName: "text-green-600",
+            };
+        }
+
+        if (user.id_verification_status === "rejected") {
+            return {
+                label: "Rejected",
+                badgeClassName: "text-red-600 bg-red-50",
+                textClassName: "text-red-600",
+            };
+        }
+
+        if (user.id_verification_status) {
+            return {
+                label: user.id_verification_status.replace(/_/g, " "),
+                badgeClassName: "text-orange-600 bg-orange-50",
+                textClassName: "text-orange-600",
+            };
+        }
+
+        return {
+            label: "Not Uploaded",
+            badgeClassName: "text-gray-400 bg-gray-50",
+            textClassName: "text-gray-400",
+        };
+    };
+
+    const getPaymentDisplay = (user: User | null) => {
+        if (!user) {
+            return {
+                label: "Unknown",
+                badgeClassName: "text-gray-500 bg-gray-50",
+                icon: Info,
+            };
+        }
+
+        if (user.role === "client") {
+            return {
+                label: "Not required",
+                badgeClassName: "text-slate-600 bg-slate-100",
+                icon: Info,
+            };
+        }
+
+        if (user.is_paid) {
+            return {
+                label: "Paid",
+                badgeClassName: "text-green-600 bg-green-50",
+                icon: CheckCircle2,
+            };
+        }
+
+        return {
+            label: "Payment due",
+            badgeClassName: "text-amber-700 bg-amber-50",
+            icon: AlertCircle,
         };
     };
 
@@ -727,17 +808,16 @@ export const UsersManagement = () => {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            {user.is_paid ? (
-                                                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-green-600 bg-green-50 px-2.5 py-1">
-                                                    <CheckCircle2 className="h-3.5 w-3.5" />
-                                                    Paid
-                                                </span>
-                                            ) : (
-                                                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-red-600 bg-red-50 px-2.5 py-1">
-                                                    <XCircle className="h-3.5 w-3.5" />
-                                                    Not paid
-                                                </span>
-                                            )}
+                                            {(() => {
+                                                const paymentDisplay = getPaymentDisplay(user);
+                                                const PaymentIcon = paymentDisplay.icon;
+                                                return (
+                                                    <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 capitalize ${paymentDisplay.badgeClassName}`}>
+                                                        <PaymentIcon className="h-3.5 w-3.5" />
+                                                        {paymentDisplay.label}
+                                                    </span>
+                                                );
+                                            })()}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             {user.is_active ? (
@@ -751,18 +831,14 @@ export const UsersManagement = () => {
                                             )}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-[#697586]">
-                                            {user.id_verification_status ? (
-                                                <span className={`text-xs font-bold px-2 py-1  ${user.id_verification_status === 'verified'
-                                                    ? 'text-green-600 bg-green-50'
-                                                    : user.id_verification_status === 'rejected'
-                                                        ? 'text-red-600 bg-red-50'
-                                                        : 'text-orange-600 bg-orange-50'
-                                                    }`}>
-                                                    {user.id_verification_status.toUpperCase()}
-                                                </span>
-                                            ) : (
-                                                <span className="text-xs text-gray-400">Not Uploaded</span>
-                                            )}
+                                            {(() => {
+                                                const verificationDisplay = getVerificationDisplay(user);
+                                                return (
+                                                    <span className={`text-xs font-bold px-2 py-1 capitalize ${verificationDisplay.badgeClassName}`}>
+                                                        {verificationDisplay.label}
+                                                    </span>
+                                                );
+                                            })()}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                             <div className="flex items-center justify-end gap-2">
@@ -1004,7 +1080,14 @@ export const UsersManagement = () => {
                                     <div className="flex items-center gap-3 text-slate-500">
                                         <ShieldCheck className="w-5 h-5 text-emerald-500" />
                                         <p className="text-xs font-medium">
-                                            Verification status: <span className="text-emerald-600 font-bold uppercase">{selectedUser?.id_verification_status || 'Pending'}</span>
+                                            {(() => {
+                                                const verificationDisplay = getVerificationDisplay(selectedUser);
+                                                return (
+                                                    <>
+                                                        Verification status: <span className={`font-bold capitalize ${verificationDisplay.textClassName}`}>{verificationDisplay.label}</span>
+                                                    </>
+                                                );
+                                            })()}
                                         </p>
                                     </div>
                                 </div>

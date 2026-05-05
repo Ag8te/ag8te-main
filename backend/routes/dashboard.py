@@ -312,6 +312,9 @@ def get_dashboard():
             'active_professional_jobs': [_ride_request_with_client(r) for r in active_professional_jobs] if user.role == 'professional' else [],
             'active_service_provider_jobs': [_ride_request_with_client(r) for r in active_service_provider_jobs] if user.role == 'service-provider' else []
         }
+        if user.role == 'driver':
+            # Keep the legacy cab-specific key for the current dashboard UI.
+            payload['available_cab_requests'] = payload['available_ride_requests']
         if driver_earnings is not None:
             payload['driver_earnings'] = driver_earnings
             payload['driver_services'] = driver_services
