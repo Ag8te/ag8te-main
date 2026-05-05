@@ -241,7 +241,7 @@ class ProfileService:
     def _prepare_payload(user, data, files):
       payload = {}
       
-
+ 
       # =========================
       # BASIC FIELD MAPPING (UNCHANGED)
       # =========================
@@ -252,18 +252,58 @@ class ProfileService:
           'highest_qualification', 'professional_body'
       ):
           if key in data and data[key] is not None:
-              payload[key] = data[key]
+              payload[key] = data[key]   
+          
+       
+      def normalize_services(services):
+           cleaned = []
+           
+           if not isinstance(services, list):
+                return cleaned
+            
+           for s in services:
+               if not isinstance(s, dict):
+                   continue
+               
+               name = (s.get('name') or '').strip()
+               description = (s.get('description') or '').strip()
+               hourly_rate = s.get('hourly_rate')
+               
+               try:
+                   hourly_rate = float(hourly_rate) if hourly_rate not in (None, '') else None
+               except (ValueError, TypeError):
+                    hourly_rate = None
+                    
+               if not name:
+                    continue
+                
+               cleaned.append({
+                    'name': name,
+                    'description': description,
+                    'hourly_rate': hourly_rate
 
+                })
+               
+           return cleaned
+       
       # =========================
        # CLEAN AVAILABILITY STRUCTURE (UNCHANGED)
       # =========================
-      if 'availability' in data and data['availability'] is not None:
-          availability = data['availability']
-
-          if isinstance(availability, dict):
-              payload['availability'] = {
-                  'is_online': bool(availability.get('is_online', False))
-              }
+      if 'professional_services' in payload:
+            payload['professional_services'] = normalize_services(payload['professional_services'])
+            
+      if 'provider_services' in payload:
+            payload['provider_services'] = normalize_services(payload['provider_services'])
+      #if 'availability' in data and data['availability'] is not None:
+       #   availability = data['availability']
+      if 'availability' in payload and isinstance(payload['availability'], dict):
+            payload['availability'] = {
+                'is_online': bool(payload['availability'].get('is_online', False))
+            }
+         # if isinstance(availability, dict):
+          #    payload['availability'] = {
+            #      'is_online': bool(availability.get('is_online', False))
+            #  }
 
       # =========================
       # FILE HANDLING

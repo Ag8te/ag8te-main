@@ -180,7 +180,7 @@ export const ServiceManagement = ({ initialServices, role }: ServiceManagementPr
                                                 )}
                                             />
                                         </Grid>
-                                        {role === 'professional' && (
+                                      
                                             <Grid size={{ xs: 12, md: 4 }}>
                                                 <TextField
                                                     fullWidth
@@ -201,7 +201,7 @@ export const ServiceManagement = ({ initialServices, role }: ServiceManagementPr
                                                     }}
                                                 />
                                             </Grid>
-                                        )}
+                                        
                                         <Grid size={12}>
                                             <TextField
                                                 fullWidth
