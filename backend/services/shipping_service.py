@@ -164,6 +164,7 @@ class ShiplogicService:
     @staticmethod
     def _collection_address(settings: Dict[str, Any]) -> Dict[str, Any]:
         return {
+            "type": "business" if settings.get("collection_company") else "residential",
             "company": settings.get("collection_company") or None,
             "name": settings.get("collection_name"),
             "phone": settings.get("collection_phone"),
@@ -183,6 +184,7 @@ class ShiplogicService:
         full_name = (recipient.get("name") or f"{first_name} {last_name}").strip()
 
         return {
+            "type": "business" if (shipping.get("company") or shipping.get("building_name")) else "residential",
             "company": shipping.get("company") or None,
             "name": full_name or recipient.get("email") or "Customer",
             "phone": recipient.get("phone"),
@@ -196,6 +198,26 @@ class ShiplogicService:
             "unit_number": shipping.get("unit_number") or None,
             "building_name": shipping.get("building_name") or None,
             "instructions": shipping.get("delivery_instructions") or None,
+        }
+
+    @staticmethod
+    def _collection_contact(settings: Dict[str, Any]) -> Dict[str, Any]:
+        return {
+            "name": settings.get("collection_name") or settings.get("collection_company") or "Collection contact",
+            "mobile_number": settings.get("collection_phone"),
+            "email": settings.get("collection_email") or None,
+        }
+
+    @staticmethod
+    def _delivery_contact(recipient: Dict[str, Any]) -> Dict[str, Any]:
+        first_name = (recipient.get("first_name") or "").strip()
+        last_name = (recipient.get("last_name") or "").strip()
+        full_name = (recipient.get("name") or f"{first_name} {last_name}").strip()
+
+        return {
+            "name": full_name or recipient.get("email") or "Customer",
+            "mobile_number": recipient.get("phone"),
+            "email": recipient.get("email") or None,
         }
 
     @staticmethod
@@ -404,23 +426,32 @@ class ShiplogicService:
     def _normalize_rate(raw_rate: Dict[str, Any], settings: Dict[str, Any]) -> Dict[str, Any]:
         base_amount = round(ShiplogicService._quote_amount(raw_rate), 2)
         total_amount, markup_amount = ShiplogicService._apply_markup(base_amount, settings)
+        service_level = raw_rate.get("service_level") if isinstance(raw_rate.get("service_level"), dict) else {}
         service_code = (
             raw_rate.get("service_level_code")
             or raw_rate.get("service_code")
+            or service_level.get("code")
             or raw_rate.get("rate_id")
+            or service_level.get("id")
             or raw_rate.get("id")
         )
         service_name = (
             raw_rate.get("service_level_name")
             or raw_rate.get("service_name")
+            or service_level.get("name")
             or raw_rate.get("name")
+            or service_level.get("description")
             or raw_rate.get("description")
             or "Courier delivery"
         )
         eta_days = raw_rate.get("estimated_days") or raw_rate.get("eta_days") or raw_rate.get("delivery_days")
-        estimated_delivery_date = raw_rate.get("estimated_delivery_date")
+        estimated_delivery_date = (
+            raw_rate.get("estimated_delivery_date")
+            or service_level.get("delivery_date_to")
+            or service_level.get("delivery_date_from")
+        )
         return {
-            "quote_id": str(raw_rate.get("rate_id") or raw_rate.get("id") or service_code or service_name),
+            "quote_id": str(raw_rate.get("rate_id") or raw_rate.get("id") or service_level.get("id") or service_code or service_name),
             "carrier": raw_rate.get("carrier") or raw_rate.get("courier_name") or settings.get("courier_name") or "The Courier Guy",
             "service_level_code": service_code,
             "service_name": service_name,
@@ -558,6 +589,8 @@ class ShiplogicService:
         payload = ShiplogicService._build_quote_payload(order.items or [], address, recipient, settings)
         payload.update(
             {
+                "collection_contact": ShiplogicService._collection_contact(settings),
+                "delivery_contact": ShiplogicService._delivery_contact(recipient),
                 "tracking_reference": order.id,
                 "reference": order.id,
                 "declared_value": float(order.total or 0.0),
