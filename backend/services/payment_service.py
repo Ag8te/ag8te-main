@@ -126,6 +126,7 @@ class PaymentService:
     def handle_order_payment(order_id, external_id, callback_status=None):
         """Process order completion after payment"""
         from backend.models import Order, Payment
+        from backend.services.shipping_service import ShiplogicService
         order = Order.query.get(order_id)
         payment = Payment.query.filter_by(external_id=external_id).first()
         
@@ -139,19 +140,50 @@ class PaymentService:
             payment.status = 'completed'
 
         if verified_status == 'completed':
-            if order.status != 'paid':
+            newly_paid = order.status != 'paid'
+            shipping = dict(order.shipping or {})
+            shipping_status = (shipping.get('shipment_status') or '').strip().lower()
+            shipping_status_updated = False
+
+            if shipping and shipping_status in ('', 'awaiting_payment', 'quoted'):
+                shipping['shipment_status'] = 'awaiting_shipment'
+                if shipping.get('shipment_error') in (None, '', 'Shipping service is disabled'):
+                    shipping['shipment_error'] = None
+                order.shipping = shipping
+                shipping_status_updated = True
+
+            if newly_paid:
                 order.status = 'paid'
                 if payment:
                     payment.status = 'completed'
                     order.payment_id = str(payment.id)
+            elif payment and payment.status != 'completed':
+                payment.status = 'completed'
+
+            if newly_paid or shipping_status_updated:
                 db.session.commit()
                 
+            if newly_paid:
                 # Update inventory
                 try:
                     from backend.services.inventory_service import update_inventory_on_order_payment
                     update_inventory_on_order_payment(order)
                 except Exception as e:
                     logger.error(f"Inventory update failed for order {order_id}: {e}")
+
+                # Create shipment automatically for paid shop orders when Courier Guy is configured.
+                shiplogic_settings = ShiplogicService.get_settings()
+                if ShiplogicService.is_enabled(shiplogic_settings) and shiplogic_settings.get('automatic_shipment_creation', True):
+                    try:
+                        shipment_success, shipment_error = ShiplogicService.create_shipment_for_order(order)
+                        if not shipment_success and shipment_error:
+                            ShiplogicService.mark_shipment_error(order, shipment_error)
+                    except Exception as e:
+                        logger.error(f"Shipment creation failed for order {order_id}: {e}")
+                        try:
+                            ShiplogicService.mark_shipment_error(order, str(e))
+                        except Exception:
+                            logger.exception("Could not persist shipment error state for %s", order_id)
                 
                 # Send email
                 try:

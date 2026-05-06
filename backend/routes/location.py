@@ -8,7 +8,8 @@ from datetime import datetime
 from flask_jwt_extended import get_jwt_identity
 
 from backend.extensions import db
-from backend.models import User
+from backend.models import ServiceRequest, User
+from backend.services.request_service import RequestService
 from backend.utils.decorators import require_role
 from backend.utils.response import error_response, success_response
 
@@ -89,8 +90,36 @@ def update_current_location():
         user.data = user_data
         db.session.commit()
 
+        redispatched_request_ids = []
+        dispatch_changed = False
+        driver_eligibility = RequestService.get_driver_cab_eligibility(
+            user,
+            require_fresh_location=True,
+        )
+        if driver_eligibility.get('eligible'):
+            pending_cab_requests = ServiceRequest.query.filter(
+                ServiceRequest.request_type == 'cab',
+                ServiceRequest.status == 'pending',
+                ServiceRequest.provider_id.is_(None)
+            ).order_by(ServiceRequest.created_at.desc()).limit(20).all()
+
+            for service_request in pending_cab_requests:
+                if RequestService.refresh_pending_cab_dispatch_if_needed(
+                    service_request,
+                    retry_after_seconds=0,
+                ):
+                    dispatch_changed = True
+                updated_details = dict(service_request.details or {})
+                updated_targeted_ids = list(updated_details.get('targeted_driver_ids') or [])
+                if str(user.id) in updated_targeted_ids:
+                    redispatched_request_ids.append(service_request.id)
+
+            if dispatch_changed:
+                db.session.commit()
+
         return success_response({
-            'location': user_data['current_location']
+            'location': user_data['current_location'],
+            'redispatched_request_ids': redispatched_request_ids,
         }, 'Location updated successfully')
     except Exception as e:
         current_app.logger.error(f"Update current location error: {str(e)}")

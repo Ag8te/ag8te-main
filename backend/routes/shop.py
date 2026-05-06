@@ -1,6 +1,7 @@
 """
 Shop Routes
 """
+from urllib.parse import quote
 from flask import Blueprint, request, current_app
 from backend.models import ShopCategory, ShopSubcategory, ShopProduct, Order, User
 from backend.models.shop import Inventory
@@ -8,10 +9,11 @@ from backend.extensions import db
 from backend.utils.response import success_response, error_response
 from backend.utils.decorators import require_auth
 from backend.services.payment_service import PaymentService
+from backend.services.shipping_service import ShiplogicService
 from datetime import datetime
 import secrets
 import uuid
-from backend.utils.url import get_public_backend_base_url, get_request_frontend_base_url
+from backend.utils.url import get_public_backend_base_url, get_request_frontend_base_url, get_request_frontend_return_path
 
 bp = Blueprint('shop', __name__)
 
@@ -140,6 +142,55 @@ def list_subcategories():
     except Exception as e:
         current_app.logger.error(f"List subcategories error: {str(e)}")
         return error_response('INTERNAL_ERROR', 'Failed to list subcategories', None, 500)
+
+
+@bp.route('/shipping/rates', methods=['POST'])
+@require_auth
+def get_shipping_rates():
+    """Quote Courier Guy / Shiplogic shipping rates for the current cart."""
+    try:
+        data = request.get_json(silent=True) or {}
+        items = data.get('items') or []
+        shipping = data.get('shipping') or {}
+        recipient = data.get('recipient') or {}
+
+        if not items:
+            return error_response('INVALID_REQUEST', 'Cart items are required to calculate shipping.', None, 400)
+
+        required_shipping = ['street_address', 'suburb', 'city', 'province', 'postal_code']
+        missing_shipping = [field for field in required_shipping if not shipping.get(field)]
+        if missing_shipping:
+            return error_response(
+                'VALIDATION_ERROR',
+                'Shipping address is incomplete.',
+                {'missing_fields': missing_shipping},
+                400
+            )
+
+        required_recipient = ['first_name', 'last_name', 'email', 'phone']
+        missing_recipient = [field for field in required_recipient if not recipient.get(field)]
+        if missing_recipient:
+            return error_response(
+                'VALIDATION_ERROR',
+                'Recipient information is incomplete.',
+                {'missing_fields': missing_recipient},
+                400
+            )
+
+        quote_result = ShiplogicService.quote_order(items, shipping, recipient)
+        readiness = ShiplogicService.get_readiness()
+        return success_response({
+            'shipping_ready': readiness.get('ready'),
+            'serviceable': quote_result.get('serviceable'),
+            'serviceability_message': quote_result.get('serviceability_message'),
+            'courier': 'The Courier Guy',
+            'rates': quote_result.get('rates') or [],
+        })
+    except ValueError as e:
+        return error_response('INVALID_REQUEST', str(e), None, 400)
+    except Exception as e:
+        current_app.logger.error(f"Get shipping rates error: {str(e)}")
+        return error_response('INTERNAL_ERROR', 'Failed to get shipping rates', None, 500)
 
 @bp.route('/orders', methods=['POST'])
 @require_auth
@@ -270,9 +321,10 @@ def initiate_order_payment(order_id):
         # Create callback URLs
         base_url = get_public_backend_base_url()
         frontend_url = get_request_frontend_base_url()
-        success_url = f"{base_url}/api/payments/order-callback?callback_status=success&external_id={external_id}&order_id={order_id}&frontend_url={frontend_url}"
-        cancel_url = f"{base_url}/api/payments/order-callback?callback_status=cancel&external_id={external_id}&order_id={order_id}&frontend_url={frontend_url}"
-        failure_url = f"{base_url}/api/payments/order-callback?callback_status=failure&external_id={external_id}&order_id={order_id}&frontend_url={frontend_url}"
+        return_path = quote(get_request_frontend_return_path('/shopping-history'), safe='')
+        success_url = f"{base_url}/api/payments/order-callback?callback_status=success&external_id={external_id}&order_id={order_id}&frontend_url={frontend_url}&return_path={return_path}"
+        cancel_url = f"{base_url}/api/payments/order-callback?callback_status=cancel&external_id={external_id}&order_id={order_id}&frontend_url={frontend_url}&return_path={return_path}"
+        failure_url = f"{base_url}/api/payments/order-callback?callback_status=failure&external_id={external_id}&order_id={order_id}&frontend_url={frontend_url}&return_path={return_path}"
         
         # Create Yoco checkout
         checkout_result = PaymentService.create_checkout(

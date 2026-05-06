@@ -1,5 +1,10 @@
-import { useState, useEffect, useCallback } from "react";
+import { Suspense, lazy, useState, useEffect, useCallback, type ComponentType } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+    Box,
+    CircularProgress,
+    Typography,
+} from "@mui/material";
 import {
     Dashboard as LayoutTemplate,
     People as Users,
@@ -20,27 +25,34 @@ import {
 } from "@mui/icons-material";
 import { useToast } from "@/hooks/use-toast";
 import { apiFetch } from "@/lib/api";
-import { UsersManagement } from "@/components/admin/UsersManagement";
-import { RequestsManagement } from "@/components/admin/RequestsManagement";
-import { ProductsManagement } from "@/components/admin/ProductsManagement";
-import { ContentManagement } from "@/components/admin/ContentManagement";
-import { WithdrawalsManagement } from "@/components/admin/WithdrawalsManagement";
-import { AgentsManagement } from "@/components/admin/AgentsManagement";
-import { PendingUpdatesManagement } from "@/components/admin/PendingUpdatesManagement";
-import { SettingsManagement } from "@/components/admin/SettingsManagement";
-import { FAQManagement } from "@/components/admin/FAQManagement";
-import { CategoriesManagement } from "@/components/admin/CategoriesManagement";
-import { ServicesManagement } from "@/components/admin/ServicesManagement";
-import { SalesFinance } from "@/components/admin/SalesFinance";
-import { CarouselManagement } from "@/components/admin/CarouselManagement";
-import { ApiLogsManagement } from "@/components/admin/ApiLogsManagement";
-import { ReportsManagement } from "@/components/admin/ReportsManagement";
-import { GlobalChatsManagement } from "@/components/admin/GlobalChatsManagement";
-import { AffiliatesManagement } from "@/components/admin/AffiliatesManagement";
-import { PaymentSettings } from "@/components/admin/PaymentSettings";
-import LandingPageManagement from "@/components/admin/LandingPageManagement";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
-import Overview from "@/components/admin/Overview";
+
+const lazyNamed = (factory: () => Promise<Record<string, any>>, exportName: string) =>
+    lazy(async () => {
+        const module = await factory();
+        return { default: module[exportName] };
+    });
+
+const Overview = lazy(() => import("@/components/admin/Overview"));
+const UsersManagement = lazyNamed(() => import("@/components/admin/UsersManagement"), "UsersManagement");
+const RequestsManagement = lazyNamed(() => import("@/components/admin/RequestsManagement"), "RequestsManagement");
+const ProductsManagement = lazyNamed(() => import("@/components/admin/ProductsManagement"), "ProductsManagement");
+const ContentManagement = lazyNamed(() => import("@/components/admin/ContentManagement"), "ContentManagement");
+const WithdrawalsManagement = lazyNamed(() => import("@/components/admin/WithdrawalsManagement"), "WithdrawalsManagement");
+const AgentsManagement = lazyNamed(() => import("@/components/admin/AgentsManagement"), "AgentsManagement");
+const PendingUpdatesManagement = lazyNamed(() => import("@/components/admin/PendingUpdatesManagement"), "PendingUpdatesManagement");
+const SettingsManagement = lazyNamed(() => import("@/components/admin/SettingsManagement"), "SettingsManagement");
+const FAQManagement = lazyNamed(() => import("@/components/admin/FAQManagement"), "FAQManagement");
+const CategoriesManagement = lazyNamed(() => import("@/components/admin/CategoriesManagement"), "CategoriesManagement");
+const ServicesManagement = lazyNamed(() => import("@/components/admin/ServicesManagement"), "ServicesManagement");
+const SalesFinance = lazyNamed(() => import("@/components/admin/SalesFinance"), "SalesFinance");
+const CarouselManagement = lazyNamed(() => import("@/components/admin/CarouselManagement"), "CarouselManagement");
+const ApiLogsManagement = lazyNamed(() => import("@/components/admin/ApiLogsManagement"), "ApiLogsManagement");
+const ReportsManagement = lazyNamed(() => import("@/components/admin/ReportsManagement"), "ReportsManagement");
+const GlobalChatsManagement = lazyNamed(() => import("@/components/admin/GlobalChatsManagement"), "GlobalChatsManagement");
+const AffiliatesManagement = lazyNamed(() => import("@/components/admin/AffiliatesManagement"), "AffiliatesManagement");
+const PaymentSettings = lazyNamed(() => import("@/components/admin/PaymentSettings"), "PaymentSettings");
+const LandingPageManagement = lazy(() => import("@/components/admin/LandingPageManagement"));
 
 type TabKey =
     | "overview"
@@ -132,6 +144,17 @@ const NAV_STRUCTURE = [
     }
 ];
 
+const AdminSectionFallback = () => (
+    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 320 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, color: 'text.secondary' }}>
+            <CircularProgress size={22} />
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                Loading section...
+            </Typography>
+        </Box>
+    </Box>
+);
+
 const AdminDashboard = () => {
     const navigate = useNavigate();
     const { toast } = useToast();
@@ -141,6 +164,12 @@ const AdminDashboard = () => {
     const [recentOrders, setRecentOrders] = useState<any[]>([]);
     const [recentRequests, setRecentRequests] = useState<any[]>([]);
     const [loadingStats, setLoadingStats] = useState(false);
+
+    const renderLazySection = (Component: ComponentType<any>) => (
+        <Suspense fallback={<AdminSectionFallback />}>
+            <Component />
+        </Suspense>
+    );
 
     useEffect(() => {
         const token = localStorage.getItem("adminToken");
@@ -213,53 +242,55 @@ useEffect(() => {
         switch (activeTab) {
             case "overview":
                 return (
-                    <Overview
-                        stats={stats}
-                        recentOrders={recentOrders}
-                        recentRequests={recentRequests}
-                        loading={loadingStats}
-                        onRefresh={fetchDashboardData}
-                    />
+                    <Suspense fallback={<AdminSectionFallback />}>
+                        <Overview
+                            stats={stats}
+                            recentOrders={recentOrders}
+                            recentRequests={recentRequests}
+                            loading={loadingStats}
+                            onRefresh={fetchDashboardData}
+                        />
+                    </Suspense>
                 );
             case "users":
-                return <UsersManagement />;
+                return renderLazySection(UsersManagement);
             case "requests":
-                return <RequestsManagement />;
+                return renderLazySection(RequestsManagement);
             case "products":
-                return <ProductsManagement />;
+                return renderLazySection(ProductsManagement);
             case "faqs":
-                return <FAQManagement />;
+                return renderLazySection(FAQManagement);
             case "categories":
-                return <CategoriesManagement />;
+                return renderLazySection(CategoriesManagement);
             case "services":
-                return <ServicesManagement />;
+                return renderLazySection(ServicesManagement);
             case "sales":
-                return <SalesFinance />;
+                return renderLazySection(SalesFinance);
             case "carousel":
-                return <CarouselManagement />;
+                return renderLazySection(CarouselManagement);
             case "landing":
-                return <LandingPageManagement />;
+                return renderLazySection(LandingPageManagement);
             case "cms":
             case "legal":
-                return <ContentManagement />;
+                return renderLazySection(ContentManagement);
             case "settings":
-                return <SettingsManagement />;
+                return renderLazySection(SettingsManagement);
             case "payment-settings":
-                return <PaymentSettings />;
+                return renderLazySection(PaymentSettings);
             case "withdrawals":
-                return <WithdrawalsManagement />;
+                return renderLazySection(WithdrawalsManagement);
             case "agents":
-                return <AgentsManagement />;
+                return renderLazySection(AgentsManagement);
             case "pending-updates":
-                return <PendingUpdatesManagement />;
+                return renderLazySection(PendingUpdatesManagement);
             case "affiliates":
-                return <AffiliatesManagement />;
+                return renderLazySection(AffiliatesManagement);
             case "api-logs":
-                return <ApiLogsManagement />;
+                return renderLazySection(ApiLogsManagement);
             case "user-reports":
-                return <ReportsManagement />;
+                return renderLazySection(ReportsManagement);
             case "global-chats":
-                return <GlobalChatsManagement />;
+                return renderLazySection(GlobalChatsManagement);
             default:
                 return null;
         }
@@ -282,4 +313,3 @@ useEffect(() => {
 
 
 export default AdminDashboard;
-

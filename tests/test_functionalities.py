@@ -1,7 +1,7 @@
 import pytest
 import json
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from unittest.mock import patch
 from backend.models import User, Wallet, ServiceRequest, WithdrawalRequest, Order, Payment
 from backend.extensions import db
@@ -40,6 +40,41 @@ def create_admin(db_session):
     db_session.session.commit()
     return admin
 
+def make_driver_approval_ready(user):
+    future_date = (datetime.utcnow() + timedelta(days=365)).date().isoformat()
+    driver_data = dict(user.data or {})
+    driver_data.update({
+        "driver_license_number": "DL-TEST-12345",
+        "driver_license_code": "B",
+        "driver_license_expiry": future_date,
+        "prdp_number": "PRDP-TEST-12345",
+        "prdp_expiry": future_date,
+        "proof_of_residence_url": "/uploads/tests/proof-of-residence.pdf",
+        "driver_license_url": "/uploads/tests/drivers-license.pdf",
+        "prdp_document_url": "/uploads/tests/prdp-document.pdf",
+        "vehicle_disk_document_url": "/uploads/tests/vehicle-disk.pdf",
+        "vehicle_disk_expiry": future_date,
+        "driver_services": [
+            {
+                "car_make": "Toyota",
+                "car_model": "Corolla",
+                "car_year": "2024",
+                "registration_number": "TEST123GP",
+                "car_type": "sedan",
+                "color": "White",
+                "seats": 4,
+                "images": [
+                    "/uploads/tests/vehicle-1.jpg",
+                    "/uploads/tests/vehicle-2.jpg",
+                    "/uploads/tests/vehicle-3.jpg",
+                ],
+                "disk_document": "/uploads/tests/vehicle-disk.pdf",
+                "disk_expiry": future_date,
+            }
+        ],
+    })
+    user.data = driver_data
+
 def test_1_2_3_registration_approval_login(client, app, db_session):
     roles = ['client', 'driver', 'professional', 'service-provider']
     password = "password123"
@@ -68,7 +103,9 @@ def test_1_2_3_registration_approval_login(client, app, db_session):
                 u.email_verified = True
                 if role != 'client':
                     u.is_paid = True
-                if role == 'professional':
+                if role == 'driver':
+                    make_driver_approval_ready(u)
+                elif role == 'professional':
                     u.data = {"professional_services": [{"name": "Web Design", "hourly_rate": 500}]}
                 elif role == 'service-provider':
                     u.data = {"provider_services": [{"name": "Cleaning", "description": "Home cleaning"}]}
@@ -129,6 +166,7 @@ def test_12_wallet_withdrawal(client, app, db_session):
         u = User.query.get(user_id)
         u.email_verified = True
         u.is_paid = True
+        make_driver_approval_ready(u)
         db_session.session.commit()
     client.patch(f'/api/admin/users/{user_id}/approve', headers=admin_headers)
     

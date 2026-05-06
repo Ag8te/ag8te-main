@@ -7,7 +7,7 @@ import {
   Car, Home, Smartphone, Lamp, Briefcase,
   UserCheck, Shirt, Microwave, X, ShoppingCart, Package, ShoppingBag,
   Wrench, Scissors, Laptop, Paintbrush, Utensils, Zap, BookOpen, Music, Film,
-  Navigation, Loader2
+  Navigation, Loader2, ShieldCheck
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -622,6 +622,12 @@ export default function Shop() {
                     <Badge className={`bg-white/90 backdrop-blur-md text-[#222222] border-none text-[10px] font-bold px-2 py-0.5 rounded-lg shadow-sm w-fit uppercase ${item.item_type === 'banner_ad' ? 'ring-2 ring-amber-400' : ''}`}>
                       {item.item_type === 'shop' ? 'Shop Product' : item.item_type === 'ads' ? 'Ad' : 'Sponsored Ad'}
                     </Badge>
+                    {item.item_type === 'shop' && (
+                      <Badge className="bg-emerald-500/95 backdrop-blur-md text-white border-none text-[10px] font-black px-2.5 py-1 rounded-lg shadow-sm w-fit uppercase tracking-wide">
+                        <ShieldCheck className="mr-1 h-3.5 w-3.5" />
+                        Verified Seller
+                      </Badge>
+                    )}
                   </div>
                   <button
                     onClick={(e) => toggleWishlist(e, item.id)}
@@ -670,14 +676,38 @@ export default function Shop() {
                     </div>
                   </div>
 
+                  {item.item_type === 'shop' && (
+                    <div className="mb-4 flex items-start gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/70 px-3.5 py-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-white text-emerald-600 shadow-sm">
+                        <ShieldCheck className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700">
+                          Verified Partner
+                        </p>
+                        <p className="truncate text-sm font-bold text-emerald-950">
+                          {item.seller}
+                        </p>
+                        <p className="text-[11px] leading-relaxed text-emerald-700/85">
+                          Trusted checkout and platform-backed order support.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="mt-auto pt-4 border-t border-slate-50 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500 uppercase overflow-hidden">
-                        {item.item_type === 'shop' ? <ShoppingBag className="w-3 h-3" /> : item.seller.charAt(0)}
+                      <div className={`flex items-center justify-center text-[10px] font-bold uppercase overflow-hidden ${item.item_type === 'shop' ? 'w-8 h-8 rounded-2xl bg-emerald-100 text-emerald-700' : 'w-6 h-6 rounded-full bg-slate-100 text-slate-500'}`}>
+                        {item.item_type === 'shop' ? <ShieldCheck className="w-4 h-4" /> : item.seller.charAt(0)}
                       </div>
-                      <span className="text-[11px] font-bold text-slate-500 truncate max-w-[90px]">
-                        {item.seller}
-                      </span>
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
+                          {item.item_type === 'shop' ? 'Verified' : 'Seller'}
+                        </p>
+                        <span className="block truncate text-[11px] font-bold text-slate-600 max-w-[110px]">
+                          {item.seller}
+                        </span>
+                      </div>
                     </div>
                     <div className="flex gap-1 shrink-0">
                       {item.item_type === 'ads' && (
@@ -691,7 +721,10 @@ export default function Shop() {
                         </>
                       )}
                       {item.item_type === 'shop' && (
-                        <span className="text-[10px] font-bold text-emerald-500 bg-emerald-50 px-2 py-1 rounded-md">VERIFIED</span>
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white shadow-sm">
+                          <ShieldCheck className="h-3 w-3" />
+                          Trusted
+                        </span>
                       )}
                       {item.item_type === 'banner_ad' && (
                         <span className="text-[10px] font-bold text-amber-500 bg-amber-50 px-2 py-1 rounded-md">SPONSORED</span>
