@@ -9,7 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 
-const categories = ["Transport", "Professionals", "Services"] as const;
+const categories = ["Services"] as const;
 
 const Services = () => {
   const [search, setSearch] = useState("");
@@ -67,7 +67,7 @@ const Services = () => {
         subcategory: firstService?.name || "General Services",
         servicesList: p.services?.map((s: any) => s.name) || [],
         rating: 4.8, reviews: 0, location: "Available",
-        price: firstService?.hourly_rate ? `R${firstService.hourly_rate}` : "Quote", priceUnit: "varies",
+        price: firstService?.hourly_rate ? `R${firstService.hourly_rate}` : "Quote", priceUnit: "/Hour",
         description: firstService?.description || "Reliable service provider for your needs.",
         verified: user.is_approved,
         image: user.profile_image_url || `https://i.pravatar.cc/150?u=${user.id + 20}`,
@@ -76,7 +76,7 @@ const Services = () => {
       };
     });
 
-    return [...mappedPros, ...mappedProviders];
+    return mappedProviders;
   }, [prosResult, providersResult]);
 
   const isLoading = loadingPros || loadingProviders;

@@ -136,24 +136,29 @@ def update_profile():
         
         # 🔥 Attach files to each vehicle
         for i, vehicle in enumerate(request_data.get("driver_services", [])):
+            if not isinstance(vehicle, dict):
+                continue
+            
+               
     # Disk document
-             disk_key = f"vehicles[{i}][disk_document]"
-             if disk_key in request.form:
+            disk_key = f"vehicles[{i}][disk_document]"
+            if disk_key in request.files:
             
                  vehicle["disk_document"] = request.files[disk_key]
 
     # Multiple images
-                 image_key = f"vehicles[{i}][images]"
-                 vehicle["images"] = request.files.getlist(image_key)
+            image_key = f"vehicles[{i}][images]"
+            vehicle["images"] = request.files.getlist(image_key)
         
         data = schema.load(request_data, partial=True)
         data = {k: v for k, v in data.items() if v is not None}
         
         result, error = ProfileService.handle_profile_update(user_id, data, request.files)
         if error:
+            current_app.logger.error(f"PROFILE UPDATE ERROR: {error}")
             status_code = 403 if error == "NOT_APPROVED" else 400
             if error == "INTERNAL_ERROR": status_code = 500
-            return error_response(error, 'Previous changes pending you cannot make new ones', None, status_code)
+            return error_response(error, error, None, status_code)
             
         return success_response(result, 'Profile update processed successfully')
         

@@ -11,6 +11,7 @@ from flask_jwt_extended import get_jwt_identity
 from marshmallow import Schema, ValidationError, fields, validate
 from sqlalchemy import and_, or_, func
 
+from backend.services.email_service import EmailService
 from backend.extensions import db
 from backend.models import AppSetting, Payment, ServiceRequest, User, Wallet, DriverRating, ClientRating, ProfessionalRating, ProviderRating, Order
 from backend.services.wallet_service import WalletService
@@ -129,8 +130,21 @@ def create_request():
         user_id = get_jwt_identity()
 
         service_request, error = RequestService.create_request(data, user_id)
+        
+        provider = None
+        if service_request and service_request.request_type in ("professional", "provider") and service_request.provider_id:
+            provider = User.query.get(service_request.provider_id)
+            requester = User.query.get(service_request.requester_id)
+            if provider and provider.email:
+                try:
+                    EmailService.send_booking_notification(provider, service_request, requester)
+                except Exception as e:
+                    current_app.logger.error(f"Error sending booking notification: {str(e)}")
+
         if error:
             return error_response(error, 'Failed to create request', None, 400)
+        
+        db.session.commit()
 
         wallet = Wallet.query.filter_by(user_id=user_id).first()
         return success_response({
@@ -521,6 +535,14 @@ def accept_request(request_id):
             service_request.details = details
         
         service_request.provider_id = user_id
+        provider = User.query.get(user_id)
+        
+        if provider and provider.email:
+            try:
+                EmailService.send_request_accepted_email(provider, service_request)
+            except Exception as e:
+                current_app.logger.error(f"Error sending request accepted email: {str(e)}")
+        
         service_request.status = 'accepted'
         db.session.commit()
         
