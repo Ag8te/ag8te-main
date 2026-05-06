@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { apiFetch } from "@/lib/api";
+import { buildRegistrationPaymentUrl, requiresRegistrationPayment } from "@/lib/registration-payment";
 
 interface GoogleCredentialResponse {
   credential?: string;
@@ -58,9 +59,9 @@ const Login = () => {
   };
 
   const navigateByRole = (u: any) => {
-    if (!u.is_paid && u.role !== 'client' && u.role !== 'admin') {
+    if (requiresRegistrationPayment(u)) {
       localStorage.setItem("registrationPaymentUser", JSON.stringify(u));
-      navigate(`/verify-email?status=pending_payment`);
+      navigate(buildRegistrationPaymentUrl(redirectTo || undefined));
       return;
     }
 

@@ -39,6 +39,13 @@ export interface Product {
   reviews: number;
   inStock: boolean;
   description: string;
+  shipping_profile?: {
+    description?: string | null;
+    weight_kg?: number | null;
+    length_cm?: number | null;
+    width_cm?: number | null;
+    height_cm?: number | null;
+  } | null;
 }
 
 export interface Booking {
