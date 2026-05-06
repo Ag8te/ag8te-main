@@ -8,6 +8,12 @@ import { apiFetch, API_BASE_URL, getImageUrl } from "@/lib/api";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
+import {
+    formatShipmentStatus,
+    getDeliveryEtaLabel,
+    getDeliveryServiceLabel,
+    getTrackingSummary,
+} from "@/lib/shipping";
 import { motion } from "framer-motion";
 import { BookingDetailsModal } from "@/components/dashboards/BookingDetailsModal";
 
@@ -213,15 +219,18 @@ const ShoppingHistory = () => {
                                                         <div className="grid flex-1 gap-4 sm:grid-cols-3">
                                                             <div>
                                                                 <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700">Delivery Service</p>
-                                                                <p className="mt-1 text-sm font-bold text-emerald-950">{order.shipping?.quote?.service_name || "Courier Guy"}</p>
+                                                                <p className="mt-1 text-sm font-bold text-emerald-950">{getDeliveryServiceLabel(order.shipping)}</p>
+                                                                {getDeliveryEtaLabel(order.shipping) ? (
+                                                                    <p className="mt-1 text-xs font-medium text-emerald-700">{getDeliveryEtaLabel(order.shipping)}</p>
+                                                                ) : null}
                                                             </div>
                                                             <div>
                                                                 <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700">Shipment Status</p>
-                                                                <p className="mt-1 text-sm font-bold capitalize text-emerald-950">{(order.shipping?.shipment_status || "awaiting shipment").replace(/_/g, " ")}</p>
+                                                                <p className="mt-1 text-sm font-bold capitalize text-emerald-950">{formatShipmentStatus(order.shipping?.shipment_status)}</p>
                                                             </div>
                                                             <div>
                                                                 <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700">Tracking Reference</p>
-                                                                <p className="mt-1 text-sm font-bold text-emerald-950">{order.shipping?.tracking_reference || order.shipping?.shipment?.tracking_reference || "Pending"}</p>
+                                                                <p className="mt-1 text-sm font-bold text-emerald-950">{getTrackingSummary(order.shipping)}</p>
                                                             </div>
                                                         </div>
                                                     </div>

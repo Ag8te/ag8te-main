@@ -177,12 +177,14 @@ def get_shipping_rates():
                 400
             )
 
-        rates = ShiplogicService.get_rates_for_order(items, shipping, recipient)
+        quote_result = ShiplogicService.quote_order(items, shipping, recipient)
         readiness = ShiplogicService.get_readiness()
         return success_response({
             'shipping_ready': readiness.get('ready'),
+            'serviceable': quote_result.get('serviceable'),
+            'serviceability_message': quote_result.get('serviceability_message'),
             'courier': 'The Courier Guy',
-            'rates': rates,
+            'rates': quote_result.get('rates') or [],
         })
     except ValueError as e:
         return error_response('INVALID_REQUEST', str(e), None, 400)

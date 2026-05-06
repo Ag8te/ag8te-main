@@ -10,6 +10,12 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { API_BASE_URL, getImageUrl } from "@/lib/api";
 import { TripLiveMap } from "@/components/trips/TripLiveMap";
+import {
+    formatShipmentStatus,
+    getDeliveryEtaLabel,
+    getDeliveryServiceLabel,
+    getTrackingSummary,
+} from "@/lib/shipping";
 
 interface BookingDetailsModalProps {
     isOpen: boolean;
@@ -173,15 +179,18 @@ export const BookingDetailsModal = ({ isOpen, onClose, data, type }: BookingDeta
                                             <div className="grid gap-4 sm:grid-cols-3">
                                                 <div>
                                                     <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700 mb-1">Service</p>
-                                                    <p className="font-bold text-emerald-950">{data.shipping?.quote?.service_name || "Courier Guy"}</p>
+                                                    <p className="font-bold text-emerald-950">{getDeliveryServiceLabel(data.shipping)}</p>
+                                                    {getDeliveryEtaLabel(data.shipping) ? (
+                                                        <p className="mt-1 text-xs font-medium text-emerald-700">{getDeliveryEtaLabel(data.shipping)}</p>
+                                                    ) : null}
                                                 </div>
                                                 <div>
                                                     <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700 mb-1">Shipment Status</p>
-                                                    <p className="font-bold capitalize text-emerald-950">{String(data.shipping?.shipment_status || "awaiting shipment").replace(/_/g, " ")}</p>
+                                                    <p className="font-bold capitalize text-emerald-950">{formatShipmentStatus(data.shipping?.shipment_status)}</p>
                                                 </div>
                                                 <div>
                                                     <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700 mb-1">Tracking Ref</p>
-                                                    <p className="font-bold text-emerald-950">{data.shipping?.tracking_reference || data.shipping?.shipment?.tracking_reference || "Pending"}</p>
+                                                    <p className="font-bold text-emerald-950">{getTrackingSummary(data.shipping)}</p>
                                                 </div>
                                             </div>
                                         </div>

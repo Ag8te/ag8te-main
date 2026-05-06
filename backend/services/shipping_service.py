@@ -207,6 +207,44 @@ class ShiplogicService:
         return number if number > 0 else fallback
 
     @staticmethod
+    def _format_estimate_label(eta_days: Optional[Any], estimated_delivery_date: Optional[str]) -> str:
+        if estimated_delivery_date:
+            return f"Estimated by {estimated_delivery_date}"
+        try:
+            eta_number = int(eta_days) if eta_days is not None else None
+        except (TypeError, ValueError):
+            eta_number = None
+        if eta_number:
+            return f"{eta_number} business day{'s' if eta_number != 1 else ''}"
+        return "Delivery ETA supplied by courier"
+
+    @staticmethod
+    def _normalize_shipment_status(status: Optional[str]) -> str:
+        normalized = (status or "").strip().lower().replace(" ", "_").replace("-", "_")
+        mapping = {
+            "created": "booked",
+            "booked": "booked",
+            "quoted": "quoted",
+            "pending": "awaiting_shipment",
+            "awaiting_payment": "quoted",
+            "awaiting_shipment": "awaiting_shipment",
+            "ready_for_collection": "ready_for_collection",
+            "collected": "dispatched",
+            "in_transit": "dispatched",
+            "dispatched": "dispatched",
+            "out_for_delivery": "out_for_delivery",
+            "onboard_for_delivery": "out_for_delivery",
+            "delivered": "delivered",
+            "failed": "delivery_failed",
+            "delivery_failed": "delivery_failed",
+            "returned": "returned",
+            "returning": "returned",
+            "cancelled": "cancelled",
+            "canceled": "cancelled",
+        }
+        return mapping.get(normalized, normalized or "awaiting_shipment")
+
+    @staticmethod
     def _load_products_for_items(items: List[Dict[str, Any]]) -> Dict[str, ShopProduct]:
         product_ids = []
         for item in items:
@@ -380,6 +418,7 @@ class ShiplogicService:
             or "Courier delivery"
         )
         eta_days = raw_rate.get("estimated_days") or raw_rate.get("eta_days") or raw_rate.get("delivery_days")
+        estimated_delivery_date = raw_rate.get("estimated_delivery_date")
         return {
             "quote_id": str(raw_rate.get("rate_id") or raw_rate.get("id") or service_code or service_name),
             "carrier": raw_rate.get("carrier") or raw_rate.get("courier_name") or settings.get("courier_name") or "The Courier Guy",
@@ -390,7 +429,8 @@ class ShiplogicService:
             "markup_amount": markup_amount,
             "currency": raw_rate.get("currency") or "ZAR",
             "estimated_days": eta_days,
-            "estimated_delivery_date": raw_rate.get("estimated_delivery_date"),
+            "estimated_delivery_date": estimated_delivery_date,
+            "delivery_estimate_label": ShiplogicService._format_estimate_label(eta_days, estimated_delivery_date),
             "raw": raw_rate,
         }
 
@@ -414,11 +454,11 @@ class ShiplogicService:
         return [payload] if payload else []
 
     @staticmethod
-    def get_rates_for_order(
+    def quote_order(
         items: List[Dict[str, Any]],
         shipping: Dict[str, Any],
         recipient: Dict[str, Any],
-    ) -> List[Dict[str, Any]]:
+    ) -> Dict[str, Any]:
         settings = ShiplogicService.get_settings()
         if not settings.get("enabled"):
             raise ValueError("Courier Guy shipping is currently disabled.")
@@ -429,8 +469,26 @@ class ShiplogicService:
         payload = ShiplogicService._build_quote_payload(items, shipping, recipient, settings)
         raw = ShiplogicService._request("POST", "/rates", settings=settings, payload=payload)
         normalized = [ShiplogicService._normalize_rate(item, settings) for item in ShiplogicService._extract_rate_items(raw)]
+        serviceable = len(normalized) > 0
+        serviceability_message = (
+            "Delivery options are available for this address."
+            if serviceable
+            else "Courier Guy could not service this address with the current basket."
+        )
         normalized.sort(key=lambda item: item.get("amount") or 0.0)
-        return normalized
+        return {
+            "serviceable": serviceable,
+            "serviceability_message": serviceability_message,
+            "rates": normalized,
+        }
+
+    @staticmethod
+    def get_rates_for_order(
+        items: List[Dict[str, Any]],
+        shipping: Dict[str, Any],
+        recipient: Dict[str, Any],
+    ) -> List[Dict[str, Any]]:
+        return ShiplogicService.quote_order(items, shipping, recipient).get("rates") or []
 
     @staticmethod
     def resolve_selected_rate(selected_quote: Optional[Dict[str, Any]], rates: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
@@ -466,7 +524,9 @@ class ShiplogicService:
             or raw.get("service_name")
             or quote.get("service_name")
         )
-        shipment_status = raw.get("status") or raw.get("shipment_status") or raw.get("state") or "created"
+        shipment_status = ShiplogicService._normalize_shipment_status(
+            raw.get("status") or raw.get("shipment_status") or raw.get("state") or "created"
+        )
         return {
             "id": shipment_id,
             "tracking_reference": tracking_reference,

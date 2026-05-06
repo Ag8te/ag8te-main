@@ -140,13 +140,30 @@ class PaymentService:
             payment.status = 'completed'
 
         if verified_status == 'completed':
-            if order.status != 'paid':
+            newly_paid = order.status != 'paid'
+            shipping = dict(order.shipping or {})
+            shipping_status = (shipping.get('shipment_status') or '').strip().lower()
+            shipping_status_updated = False
+
+            if shipping and shipping_status in ('', 'awaiting_payment', 'quoted'):
+                shipping['shipment_status'] = 'awaiting_shipment'
+                if shipping.get('shipment_error') in (None, '', 'Shipping service is disabled'):
+                    shipping['shipment_error'] = None
+                order.shipping = shipping
+                shipping_status_updated = True
+
+            if newly_paid:
                 order.status = 'paid'
                 if payment:
                     payment.status = 'completed'
                     order.payment_id = str(payment.id)
+            elif payment and payment.status != 'completed':
+                payment.status = 'completed'
+
+            if newly_paid or shipping_status_updated:
                 db.session.commit()
                 
+            if newly_paid:
                 # Update inventory
                 try:
                     from backend.services.inventory_service import update_inventory_on_order_payment

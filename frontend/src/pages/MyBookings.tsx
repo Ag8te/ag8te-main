@@ -21,6 +21,12 @@ import { BookingDetailsModal } from "@/components/dashboards/BookingDetailsModal
 import { TripLiveMap } from "@/components/trips/TripLiveMap";
 import { cn } from "@/lib/utils";
 import { formatUTCtoSAST } from "@/lib/dateUtils";
+import {
+  formatShipmentStatus,
+  getDeliveryEtaLabel,
+  getDeliveryServiceLabel,
+  getTrackingSummary,
+} from "@/lib/shipping";
 
 type Tab = 'services' | 'rides' | 'orders';
 
@@ -598,19 +604,22 @@ const MyBookings = () => {
                           <div>
                             <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700">Delivery Service</p>
                             <p className="mt-1 text-sm font-bold text-emerald-950">
-                              {order.shipping?.quote?.service_name || "Courier Guy"}
+                              {getDeliveryServiceLabel(order.shipping)}
                             </p>
+                            {getDeliveryEtaLabel(order.shipping) ? (
+                              <p className="mt-1 text-xs font-medium text-emerald-700">{getDeliveryEtaLabel(order.shipping)}</p>
+                            ) : null}
                           </div>
                           <div>
                             <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700">Shipment Status</p>
                             <p className="mt-1 text-sm font-bold capitalize text-emerald-950">
-                              {(order.shipping?.shipment_status || "awaiting shipment").replace(/_/g, " ")}
+                              {formatShipmentStatus(order.shipping?.shipment_status)}
                             </p>
                           </div>
                           <div>
                             <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700">Tracking Reference</p>
                             <p className="mt-1 text-sm font-bold text-emerald-950">
-                              {order.shipping?.tracking_reference || order.shipping?.shipment?.tracking_reference || "Pending"}
+                              {getTrackingSummary(order.shipping)}
                             </p>
                           </div>
                         </div>

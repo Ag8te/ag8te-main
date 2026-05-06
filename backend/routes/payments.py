@@ -100,11 +100,12 @@ def _resolve_shipping_quote(data):
     selected_quote = data.get('shipping_quote') or None
 
     if ShiplogicService.is_enabled():
-        rates = ShiplogicService.get_rates_for_order(
+        quote_result = ShiplogicService.quote_order(
             data.get('items') or [],
             shipping,
             recipient,
         )
+        rates = quote_result.get('rates') or []
         matched = ShiplogicService.resolve_selected_rate(selected_quote, rates)
         if not matched:
             raise ValueError('Selected Courier Guy delivery option is no longer available. Please refresh rates and try again.')
@@ -219,7 +220,7 @@ def create_order():
             'quote': resolved_shipping_quote,
             'subtotal': items_subtotal,
             'shipping_amount': shipping_amount,
-            'shipment_status': 'awaiting_payment',
+            'shipment_status': 'quoted',
         }
         new_order = Order(
             id=order_id,

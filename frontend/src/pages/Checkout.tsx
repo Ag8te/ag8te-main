@@ -33,6 +33,7 @@ type ShippingQuote = {
   currency?: string;
   estimated_days?: number | null;
   estimated_delivery_date?: string | null;
+  delivery_estimate_label?: string;
 };
 
 type DeliveryAddress = {
@@ -59,6 +60,10 @@ const Checkout = () => {
   const [shippingOptions, setShippingOptions] = useState<ShippingQuote[]>([]);
   const [selectedShippingId, setSelectedShippingId] = useState<string | null>(null);
   const [shippingError, setShippingError] = useState("");
+  const [shippingInsight, setShippingInsight] = useState<{
+    serviceable: boolean;
+    serviceability_message?: string;
+  } | null>(null);
   const [yocoEnabled, setYocoEnabled] = useState(true);
 
   const [formData, setFormData] = useState({
@@ -121,10 +126,11 @@ const Checkout = () => {
   ].join("::");
 
   useEffect(() => {
-    if (shippingOptions.length > 0 || selectedShippingId || shippingError) {
+    if (shippingOptions.length > 0 || selectedShippingId || shippingError || shippingInsight) {
       setShippingOptions([]);
       setSelectedShippingId(null);
       setShippingError("");
+      setShippingInsight(null);
     }
   }, [quoteFingerprint]);
 
@@ -229,15 +235,20 @@ const Checkout = () => {
       });
 
       const rates = response.data?.rates || [];
+      setShippingInsight({
+        serviceable: Boolean(response.data?.serviceable ?? rates.length > 0),
+        serviceability_message: response.data?.serviceability_message,
+      });
       setShippingOptions(rates);
       if (rates.length > 0) {
         setSelectedShippingId(rates[0].quote_id);
       } else {
-        setShippingError("No Courier Guy delivery options were returned for this address.");
+        setShippingError(response.data?.serviceability_message || "No Courier Guy delivery options were returned for this address.");
       }
     } catch (error: any) {
       const message = error.message || "We could not fetch Courier Guy rates right now.";
       setShippingError(message);
+      setShippingInsight(null);
       toast({
         title: "Shipping quote failed",
         description: message,
@@ -485,6 +496,12 @@ const Checkout = () => {
                   </div>
                 )}
 
+                {shippingInsight?.serviceable && shippingInsight.serviceability_message && (
+                  <div className="mb-6 rounded-2xl border border-emerald-100 bg-emerald-50 px-5 py-4 text-sm font-medium text-emerald-700">
+                    {shippingInsight.serviceability_message}
+                  </div>
+                )}
+
                 {shippingOptions.length > 0 ? (
                   <div className="grid gap-4 sm:grid-cols-2">
                     {shippingOptions.map((option) => {
@@ -508,7 +525,7 @@ const Checkout = () => {
                               </p>
                               <h3 className="mt-1 text-lg font-bold text-[#222222]">{option.service_name}</h3>
                               <p className="mt-1 text-sm text-slate-500 font-medium">
-                                {option.estimated_days ? `${option.estimated_days} business day${option.estimated_days === 1 ? "" : "s"}` : "Delivery ETA supplied by courier"}
+                                {option.delivery_estimate_label || (option.estimated_days ? `${option.estimated_days} business day${option.estimated_days === 1 ? "" : "s"}` : "Delivery ETA supplied by courier")}
                               </p>
                             </div>
                             <div className="text-right shrink-0">
