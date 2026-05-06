@@ -94,7 +94,12 @@ export const JobInbox = ({ jobs, role, onJobAccepted }: JobInboxProps) => {
             });
 
             if (res.success) {
-                toast({ title: "Ride Declined", description: "The next nearby driver will be notified." });
+                if (role === 'driver') {
+                    toast({ title: "Ride Declined", description: "The next nearby driver will be notified." });
+                    onJobAccepted();
+                } else {
+                    toast({ title: "Job Rejected", description: "The booking request was rejected successfully." });
+                }
                 onJobAccepted();
             }
         } catch (err: any) {
@@ -103,7 +108,7 @@ export const JobInbox = ({ jobs, role, onJobAccepted }: JobInboxProps) => {
             setRejectingId(null);
         }
     };
-
+    
     const handleSubmitQuote = async () => {
         if (!quotingJob || !quoteAmount) return;
         setIsQuoting(true);
@@ -112,7 +117,7 @@ export const JobInbox = ({ jobs, role, onJobAccepted }: JobInboxProps) => {
                 method: 'POST',
                 body: JSON.stringify({ quote_amount: parseFloat(quoteAmount) })
             });
-
+            
             if (res.success) {
                 // After quoting, we also "Accept" it to move it to active jobs
                 await handleAccept(quotingJob.id);
@@ -125,13 +130,13 @@ export const JobInbox = ({ jobs, role, onJobAccepted }: JobInboxProps) => {
             setIsQuoting(false);
         }
     };
-
+    
     const getJobTitle = (job: Job) => {
         if (job.request_type === 'cab') return "Transport Request";
         if (job.request_type === 'professional') return job.details?.service_name || "Professional Service";
         return job.details?.service_name || "General Service";
     };
-
+    
     const renderLocation = (locationData: any) => {
         if (!locationData) return "Address not specified";
         const loc = locationData.location || locationData.pickup || locationData;
@@ -141,10 +146,10 @@ export const JobInbox = ({ jobs, role, onJobAccepted }: JobInboxProps) => {
     };
 
     const getOfferSecondsRemaining = (job: Job) => {
-        const updatedAt = job.details?.dispatch_updated_at;
-        if (!updatedAt) return null;
+        const expiresAtValue = job.details?.dispatch_expires_at;
+        if (!expiresAtValue) return null;
 
-        const expiresAt = new Date(updatedAt).getTime() + 30000;
+        const expiresAt = new Date(expiresAtValue).getTime();
         const secondsRemaining = Math.max(0, Math.ceil((expiresAt - now) / 1000));
         return Number.isFinite(secondsRemaining) ? secondsRemaining : null;
     };

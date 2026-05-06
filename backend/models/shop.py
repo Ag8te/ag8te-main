@@ -56,6 +56,7 @@ class ShopSubcategory(db.Model):
 class ShopProduct(db.Model):
     """Shop product model"""
     __tablename__ = 'shop_products'
+    SHIPPING_PROFILE_KIND = "__shipping_profile__"
     
     id = db.Column(db.Text, primary_key=True)
     name = db.Column(db.Text, nullable=False)
@@ -81,12 +82,111 @@ class ShopProduct(db.Model):
         db.CheckConstraint("status IN ('active', 'inactive')", name='check_product_status'),
         db.CheckConstraint("product_type IN ('simple', 'variable', 'grouped', 'external')", name='check_product_type'),
     )
+
+    @staticmethod
+    def normalize_shipping_profile(profile):
+        """Normalize optional shipping metadata stored with the product."""
+        if not isinstance(profile, dict):
+            return None
+
+        description = (
+            str(
+                profile.get('description')
+                or profile.get('shipping_description')
+                or ''
+            )
+            .strip()
+        )
+
+        def _positive_number(key):
+            value = profile.get(key)
+            if value in (None, ''):
+                return None
+            try:
+                number = float(value)
+            except (TypeError, ValueError):
+                return None
+            return round(number, 2) if number > 0 else None
+
+        normalized = {
+            'description': description or None,
+            'weight_kg': _positive_number('weight_kg'),
+            'length_cm': _positive_number('length_cm'),
+            'width_cm': _positive_number('width_cm'),
+            'height_cm': _positive_number('height_cm'),
+        }
+
+        if any(value not in (None, '') for value in normalized.values()):
+            return normalized
+        return None
+
+    @classmethod
+    def extract_shipping_profile(cls, attributes):
+        """Read the hidden shipping profile from product attributes."""
+        if isinstance(attributes, dict):
+            return cls.normalize_shipping_profile(
+                attributes.get('shipping_profile') or attributes.get(cls.SHIPPING_PROFILE_KIND)
+            )
+
+        if isinstance(attributes, list):
+            for entry in attributes:
+                if not isinstance(entry, dict):
+                    continue
+                if entry.get('_kind') == cls.SHIPPING_PROFILE_KIND or entry.get('type') == cls.SHIPPING_PROFILE_KIND:
+                    return cls.normalize_shipping_profile(entry.get('value') if isinstance(entry.get('value'), dict) else entry)
+
+        return None
+
+    @classmethod
+    def without_shipping_profile(cls, attributes):
+        """Return product attributes without the hidden shipping profile payload."""
+        if isinstance(attributes, dict):
+            cleaned = dict(attributes)
+            cleaned.pop('shipping_profile', None)
+            cleaned.pop(cls.SHIPPING_PROFILE_KIND, None)
+            return cleaned
+
+        if isinstance(attributes, list):
+            return [
+                entry
+                for entry in attributes
+                if not (
+                    isinstance(entry, dict)
+                    and (
+                        entry.get('_kind') == cls.SHIPPING_PROFILE_KIND
+                        or entry.get('type') == cls.SHIPPING_PROFILE_KIND
+                    )
+                )
+            ]
+
+        return attributes if attributes is not None else []
+
+    @classmethod
+    def with_shipping_profile(cls, attributes, shipping_profile):
+        """Persist the shipping profile while preserving the existing attribute shape."""
+        base = cls.without_shipping_profile(attributes)
+        normalized = cls.normalize_shipping_profile(shipping_profile)
+
+        if isinstance(base, dict):
+            if normalized:
+                merged = dict(base)
+                merged['shipping_profile'] = normalized
+                return merged
+            return base
+
+        if not isinstance(base, list):
+            base = []
+
+        if normalized:
+            return [*base, {'_kind': cls.SHIPPING_PROFILE_KIND, **normalized}]
+        return base
     
     def to_dict(self):
         """Convert to dictionary"""
         inventory_data = None
         if self.inventory:
             inventory_data = self.inventory.to_dict()
+        shipping_profile = self.extract_shipping_profile(self.attributes)
         
         return {
             'id': self.id,
@@ -98,7 +198,8 @@ class ShopProduct(db.Model):
             'in_stock': self.in_stock,
             'status': self.status,
             'product_type': self.product_type,
-            'attributes': self.attributes,
+            'attributes': self.without_shipping_profile(self.attributes),
+            'shipping_profile': shipping_profile,
             'variations': self.variations,
             'grouped_products': self.grouped_products,
             'external_url': self.external_url,
@@ -184,4 +285,3 @@ class Inventory(db.Model):
     
     def __repr__(self):
         return f'<Inventory {self.product_id}: {self.quantity}>'
-

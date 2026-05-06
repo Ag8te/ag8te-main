@@ -4,11 +4,18 @@ import {
     X, Calendar, MapPin, Clock, CreditCard,
     Package, ShoppingBag, Car, Wrench,
     User, CheckCircle2, ChevronRight,
-    ArrowRight, Info, ShieldCheck
+    ArrowRight, Info, ShieldCheck, Truck
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { API_BASE_URL, getImageUrl } from "@/lib/api";
+import { TripLiveMap } from "@/components/trips/TripLiveMap";
+import {
+    formatShipmentStatus,
+    getDeliveryEtaLabel,
+    getDeliveryServiceLabel,
+    getTrackingSummary,
+} from "@/lib/shipping";
 
 interface BookingDetailsModalProps {
     isOpen: boolean;
@@ -51,14 +58,16 @@ export const BookingDetailsModal = ({ isOpen, onClose, data, type }: BookingDeta
 
     const getRideStageLabel = () => {
         if (type !== 'ride') return null;
-        const details = data.details || {};
-        if (data.status === 'completed' || details.cab_arrived_at_location) return 'Completed';
-        if (details.cab_trip_started) return 'On Trip';
-        if (details.cab_driver_arrived) return 'Driver Arrived';
-        if (data.status === 'accepted') return 'Driver En Route';
-        if (details.dispatch_state === 'no_drivers_available') return 'Waiting for Drivers';
-        if (data.status === 'pending' && data.payment_status === 'paid') return 'Finding Driver';
-        return data.status;
+        switch (data.ride_stage) {
+            case 'completed': return 'Completed';
+            case 'on_trip': return 'On Trip';
+            case 'driver_arrived': return 'Driver Arrived';
+            case 'driver_assigned': return 'Driver En Route';
+            case 'no_drivers_available': return 'Waiting for Drivers';
+            case 'searching': return 'Finding Driver';
+            case 'awaiting_payment': return 'Awaiting Payment';
+            default: return data.status;
+        }
     };
 
     return (
@@ -161,6 +170,33 @@ export const BookingDetailsModal = ({ isOpen, onClose, data, type }: BookingDeta
                                     </div>
                                 </div>
 
+                                {type === 'order' && (data.shipping?.quote || data.shipping?.shipment_status || data.shipping?.tracking_reference) && (
+                                    <div className="space-y-3">
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                            <Truck size={12} /> Delivery Tracking
+                                        </p>
+                                        <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
+                                            <div className="grid gap-4 sm:grid-cols-3">
+                                                <div>
+                                                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700 mb-1">Service</p>
+                                                    <p className="font-bold text-emerald-950">{getDeliveryServiceLabel(data.shipping)}</p>
+                                                    {getDeliveryEtaLabel(data.shipping) ? (
+                                                        <p className="mt-1 text-xs font-medium text-emerald-700">{getDeliveryEtaLabel(data.shipping)}</p>
+                                                    ) : null}
+                                                </div>
+                                                <div>
+                                                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700 mb-1">Shipment Status</p>
+                                                    <p className="font-bold capitalize text-emerald-950">{formatShipmentStatus(data.shipping?.shipment_status)}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700 mb-1">Tracking Ref</p>
+                                                    <p className="font-bold text-emerald-950">{getTrackingSummary(data.shipping)}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
                                 {type === 'ride' && (
                                     <>
                                         <div className="space-y-3">
@@ -204,6 +240,9 @@ export const BookingDetailsModal = ({ isOpen, onClose, data, type }: BookingDeta
                                                 {data.driver_name || data.details?.provider_name || data.details?.professional_name || "Pending Assignment"}
                                             </p>
                                             <p className="text-xs text-slate-500">Verified ads Partner</p>
+                                            {type === 'ride' && data.driver_phone && (
+                                                <p className="text-xs text-slate-400 mt-1">{data.driver_phone}</p>
+                                            )}
                                         </div>
                                         {data.provider_id && (
                                             <div className="ml-auto">
@@ -249,8 +288,41 @@ export const BookingDetailsModal = ({ isOpen, onClose, data, type }: BookingDeta
                                             </div>
                                         </div>
                                     )}
+
+                                    {type === 'ride' && data.driver_current_location?.updated_at && (
+                                        <div className="flex items-start gap-4 p-5 bg-blue-50 rounded-3xl border border-blue-100">
+                                            <Info className="h-5 w-5 text-blue-500 shrink-0 mt-0.5" />
+                                            <div>
+                                                <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-1">Driver Tracking</p>
+                                                <p className="font-bold text-[#222222]">
+                                                    {data.ride_stage === 'driver_assigned'
+                                                        ? 'Your driver is on the way.'
+                                                        : data.ride_stage === 'driver_arrived'
+                                                            ? 'Your driver has arrived at pickup.'
+                                                            : data.ride_stage === 'on_trip'
+                                                                ? 'Trip is currently in progress.'
+                                                                : 'Latest driver location update received.'}
+                                                </p>
+                                                <p className="text-xs text-slate-500 mt-1">
+                                                    Last location sync: {new Date(data.driver_current_location.updated_at).toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' })}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
+
+                            {type === 'ride' && data.ride_stage === 'on_trip' && (
+                                <div className="space-y-4">
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Live Trip Map</p>
+                                    <TripLiveMap
+                                        currentLocation={data.driver_current_location}
+                                        destination={data.location_data?.dropoff}
+                                        currentLabel="Driver live location"
+                                        destinationLabel="Trip destination"
+                                    />
+                                </div>
+                            )}
 
                             {/* Items Section (Orders only) */}
                             {type === 'order' && data.items && data.items.length > 0 && (

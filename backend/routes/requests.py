@@ -4,19 +4,21 @@ Service Request Routes
 import math
 import secrets
 from datetime import datetime
+from urllib.parse import quote
 
 from flask import Blueprint, request, current_app
 from flask_jwt_extended import get_jwt_identity
 from marshmallow import Schema, ValidationError, fields, validate
 from sqlalchemy import and_, or_, func
 
+from backend.services.email_service import EmailService
 from backend.extensions import db
 from backend.models import AppSetting, Payment, ServiceRequest, User, Wallet, DriverRating, ClientRating, ProfessionalRating, ProviderRating, Order
 from backend.services.wallet_service import WalletService
 from backend.services.payment_service import PaymentService
 from backend.utils.decorators import require_auth, require_role
 from backend.utils.response import error_response, success_response
-from backend.utils.url import get_public_backend_base_url
+from backend.utils.url import get_public_backend_base_url, get_request_frontend_base_url, get_request_frontend_return_path
 
 bp = Blueprint('requests', __name__)
 
@@ -128,8 +130,21 @@ def create_request():
         user_id = get_jwt_identity()
 
         service_request, error = RequestService.create_request(data, user_id)
+        
+        provider = None
+        if service_request and service_request.request_type in ("professional", "provider") and service_request.provider_id:
+            provider = User.query.get(service_request.provider_id)
+            requester = User.query.get(service_request.requester_id)
+            if provider and provider.email:
+                try:
+                    EmailService.send_booking_notification(provider, service_request, requester)
+                except Exception as e:
+                    current_app.logger.error(f"Error sending booking notification: {str(e)}")
+
         if error:
             return error_response(error, 'Failed to create request', None, 400)
+        
+        db.session.commit()
 
         wallet = Wallet.query.filter_by(user_id=user_id).first()
         return success_response({
@@ -347,6 +362,8 @@ def list_requests():
         for req in all_requests:
             # Clients always see their own requests
             if user.role == 'client':
+                if req.request_type == 'cab' and RequestService.refresh_pending_cab_dispatch_if_needed(req):
+                    dispatch_changed = True
                 if req.requester_id and str(req.requester_id) == str(user.id):
                     filtered_requests.append(req)
                 continue
@@ -360,7 +377,7 @@ def list_requests():
             # For pending requests not yet accepted, apply matching logic
             if req.status == 'pending' and (req.provider_id is None or str(req.provider_id) != str(user.id)):
                 request_details = req.details or {}
-                if req.request_type == 'cab' and RequestService.refresh_expired_cab_dispatch_if_needed(req):
+                if req.request_type == 'cab' and RequestService.refresh_pending_cab_dispatch_if_needed(req):
                     dispatch_changed = True
                 
                 if user.role == 'driver':
@@ -412,13 +429,11 @@ def list_requests():
         )
         requests_data = []
         for r in paginated_requests:
-            d = r.to_dict()
+            d = RequestService.serialize_request(r)
             d['has_driver_rating'] = r.id in rated_driver_ids
             d['has_professional_rating'] = r.id in rated_professional_ids
             d['has_provider_rating'] = r.id in rated_provider_ids
-            details = r.details or {}
-            if r.request_type == 'cab':
-                d['dispatch_state'] = details.get('dispatch_state')
+            details = d.get('details') or {}
             # For cab requests with an accepted driver, include driver display info
             if r.provider_id and r.provider:
                 provider_user = r.provider
@@ -427,11 +442,7 @@ def list_requests():
                 last = (pdata.get('surname') or '').strip()
                 name = f"{first} {last}".strip() or 'Provider'
                 
-                if r.request_type == 'cab':
-                    d['driver_name'] = name
-                    d['driver_profile_image_url'] = provider_user.profile_image_url
-                    d['driver_id'] = str(provider_user.id)
-                elif r.request_type in ('professional', 'provider'):
+                if r.request_type in ('professional', 'provider'):
                     # Use business name for service providers if available
                     if r.request_type == 'provider' and pdata.get('business_name'):
                         name = pdata.get('business_name')
@@ -439,12 +450,6 @@ def list_requests():
                     d['provider_profile_image_url'] = provider_user.profile_image_url
                     d['provider_banner_url'] = provider_user.banner_url if hasattr(provider_user, 'banner_url') else None
                     d['provider_id_assigned'] = str(provider_user.id)
-            
-            if r.request_type == 'cab' and not d.get('driver_name'):
-                selected_driver = details.get('selected_driver') or {}
-                d['driver_name'] = selected_driver.get('name')
-                d['driver_phone'] = selected_driver.get('phone')
-                d['driver_vehicle'] = selected_driver
 
             # Also attach service images if they exist in preferences
             if details and 'service_image_url' in details:
@@ -471,8 +476,11 @@ def get_request(request_id):
         
         if not service_request:
             return error_response('NOT_FOUND', 'Service request not found', None, 404)
+
+        if RequestService.refresh_pending_cab_dispatch_if_needed(service_request):
+            db.session.commit()
         
-        return success_response(service_request.to_dict())
+        return success_response(RequestService.serialize_request(service_request))
         
     except Exception as e:
         current_app.logger.error(f"Get request error: {str(e)}")
@@ -523,13 +531,23 @@ def accept_request(request_id):
             details['dispatch_state'] = 'driver_assigned'
             details['accepted_at'] = datetime.utcnow().isoformat()
             details['accepted_driver_id'] = user_id
+            details['assigned_driver'] = RequestService._build_driver_snapshot(user)
             service_request.details = details
         
         service_request.provider_id = user_id
+        provider = User.query.get(user_id)
+        
+        if provider and provider.email:
+            try:
+                EmailService.send_request_accepted_email(provider, service_request)
+            except Exception as e:
+                current_app.logger.error(f"Error sending request accepted email: {str(e)}")
+        
         service_request.status = 'accepted'
         db.session.commit()
         
-        return success_response(service_request.to_dict(), 'Request accepted successfully')
+        payload = RequestService.serialize_request(service_request) if service_request.request_type == 'cab' else service_request.to_dict()
+        return success_response(payload, 'Request accepted successfully')
         
     except Exception as e:
         current_app.logger.error(f"Accept request error: {str(e)}")
@@ -593,9 +611,11 @@ def pay_quote(request_id):
         amount_cents = int(round(float(service_request.payment_amount) * 100))
         external_id = f"quote_pay_{request_id}_{secrets.token_hex(6)}"
         base_url = request.host_url.rstrip('/')
-        success_url = f"{base_url}/api/payments/request-callback?callback_status=success&external_id={external_id}&request_id={request_id}"
-        cancel_url = f"{base_url}/api/payments/request-callback?callback_status=cancel&external_id={external_id}&request_id={request_id}"
-        failure_url = f"{base_url}/api/payments/request-callback?callback_status=failure&external_id={external_id}&request_id={request_id}"
+        frontend_url = get_request_frontend_base_url()
+        return_path = quote(get_request_frontend_return_path('/my-bookings?tab=services'), safe='')
+        success_url = f"{base_url}/api/payments/request-callback?callback_status=success&external_id={external_id}&request_id={request_id}&frontend_url={frontend_url}&return_path={return_path}"
+        cancel_url = f"{base_url}/api/payments/request-callback?callback_status=cancel&external_id={external_id}&request_id={request_id}&frontend_url={frontend_url}&return_path={return_path}"
+        failure_url = f"{base_url}/api/payments/request-callback?callback_status=failure&external_id={external_id}&request_id={request_id}&frontend_url={frontend_url}&return_path={return_path}"
 
         checkout = PaymentService.create_checkout(
             amount=amount_cents,
@@ -713,15 +733,15 @@ def cancel_request(request_id):
 
 
 def _require_cab_requester(service_request, user_id):
-    """Ensure request is cab, accepted, and user is the requester or assigned driver."""
+    """Ensure request is cab, accepted, and user is the requester."""
     if not service_request:
         return 'NOT_FOUND', 'Service request not found', 404
     if service_request.request_type != 'cab':
         return 'INVALID_REQUEST', 'Not a cab request', 400
     if service_request.status != 'accepted':
         return 'INVALID_REQUEST', 'Request must be accepted', 400
-    if str(service_request.requester_id) != user_id and str(service_request.provider_id) != user_id:
-        return 'FORBIDDEN', 'Only requester or assigned driver can perform this action', 403
+    if str(service_request.requester_id) != user_id:
+        return 'FORBIDDEN', 'Only the requester can perform this action', 403
     return None, None, None
 
 
@@ -744,20 +764,22 @@ def _require_cab_requester_can_rate(service_request, user_id):
 @bp.route('/<request_id>/cab-driver-arrived', methods=['PATCH'])
 @require_auth
 def cab_driver_arrived(request_id):
-    """Mark that the driver has arrived (requester only)."""
+    """Mark that the driver has arrived (assigned driver only)."""
     try:
         user_id = get_jwt_identity()
         service_request = ServiceRequest.query.get(request_id)
-        err_code, err_msg, status = _require_cab_requester(service_request, user_id)
+        err_code, err_msg, status = _require_cab_driver(service_request, user_id)
         if err_code:
             return error_response(err_code, err_msg, None, status)
         # Reassign details so SQLAlchemy detects JSONB change
         details = dict(service_request.details or {})
         details['cab_driver_arrived'] = True
         details['dispatch_state'] = 'driver_arrived'
+        details['driver_arrived_at'] = datetime.utcnow().isoformat()
+        details['assigned_driver'] = RequestService._build_driver_snapshot(service_request.provider)
         service_request.details = details
         db.session.commit()
-        return success_response(service_request.to_dict(), 'Driver marked as arrived')
+        return success_response(RequestService.serialize_request(service_request), 'Driver marked as arrived')
     except Exception as e:
         current_app.logger.error(f"Cab driver arrived error: {str(e)}")
         return error_response('INTERNAL_ERROR', 'Failed to update', None, 500)
@@ -781,9 +803,10 @@ def cab_start_trip(request_id):
         details['cab_trip_started'] = True
         details['trip_started_at'] = datetime.utcnow().isoformat()
         details['dispatch_state'] = 'on_trip'
+        details['assigned_driver'] = RequestService._build_driver_snapshot(service_request.provider)
         service_request.details = details
         db.session.commit()
-        return success_response(service_request.to_dict(), 'Trip started successfully')
+        return success_response(RequestService.serialize_request(service_request), 'Trip started successfully')
     except Exception as e:
         current_app.logger.error(f"Cab start trip error: {str(e)}")
         return error_response('INTERNAL_ERROR', 'Failed to update', None, 500)
@@ -792,11 +815,11 @@ def cab_start_trip(request_id):
 @bp.route('/<request_id>/cab-arrived-at-location', methods=['PATCH'])
 @require_auth
 def cab_arrived_at_location(request_id):
-    """Mark that requester has arrived at location (requester only)."""
+    """Mark that the trip has ended at the dropoff location (assigned driver only)."""
     try:
         user_id = get_jwt_identity()
         service_request = ServiceRequest.query.get(request_id)
-        err_code, err_msg, status = _require_cab_requester(service_request, user_id)
+        err_code, err_msg, status = _require_cab_driver(service_request, user_id)
         if err_code:
             return error_response(err_code, err_msg, None, status)
         details = service_request.details or {}
@@ -807,10 +830,12 @@ def cab_arrived_at_location(request_id):
             return error_response('INVALID_REQUEST', 'Trip must be started before completing drop off', None, 400)
         details['cab_arrived_at_location'] = True
         details['dispatch_state'] = 'completed'
+        details['trip_completed_at'] = datetime.utcnow().isoformat()
+        details['assigned_driver'] = RequestService._build_driver_snapshot(service_request.provider)
         service_request.details = details
         service_request.status = 'completed'
         db.session.commit()
-        return success_response(service_request.to_dict(), 'Arrived at location. You can rate your driver.')
+        return success_response(RequestService.serialize_request(service_request), 'Arrived at location. You can rate your driver.')
     except Exception as e:
         current_app.logger.error(f"Cab arrived at location error: {str(e)}")
         return error_response('INTERNAL_ERROR', 'Failed to update', None, 500)
@@ -834,7 +859,7 @@ def cab_mark_no_show(request_id):
         service_request.provider_id = None
         RequestService.refresh_cab_dispatch(service_request, declined_driver_id=previous_driver_id)
         db.session.commit()
-        return success_response(service_request.to_dict(), 'Driver marked as no-show. Request is available for another driver.')
+        return success_response(RequestService.serialize_request(service_request), 'Driver marked as no-show. Request is available for another driver.')
     except Exception as e:
         current_app.logger.error(f"Cab mark no-show error: {str(e)}")
         return error_response('INTERNAL_ERROR', 'Failed to update', None, 500)
@@ -961,7 +986,7 @@ def request_another_driver(request_id):
         service_request.provider_id = None
         RequestService.refresh_cab_dispatch(service_request, declined_driver_id=previous_driver_id)
         db.session.commit()
-        return success_response(service_request.to_dict(), 'Request is now pending for another driver.')
+        return success_response(RequestService.serialize_request(service_request), 'Request is now pending for another driver.')
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f"Request another driver error: {str(e)}")

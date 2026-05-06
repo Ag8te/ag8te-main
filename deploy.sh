@@ -72,14 +72,14 @@ echo ""
 # ─── Stream logs ─────────────────────────────────────────────────────────────
 if [[ "$ACTION" == "logs" ]]; then
   info "Streaming logs from VM (Ctrl+C to stop)…"
-  remote "cd $REMOTE_DIR && docker compose logs -f --tail=100"
+  remote "cd $REMOTE_DIR && docker compose --env-file .env logs -f --tail=100"
   exit 0
 fi
 
 # ─── Restart only ────────────────────────────────────────────────────────────
 if [[ "$ACTION" == "restart" ]]; then
   info "Restarting containers on VM…"
-  remote "cd $REMOTE_DIR && docker compose up -d"
+  remote "cd $REMOTE_DIR && docker compose --env-file .env up -d"
   success "Containers restarted."
   exit 0
 fi
@@ -232,7 +232,7 @@ success ".env uploaded."
 
 if [[ "$ACTION" == "env" ]]; then
   info "Recreating containers to pick up new .env…"
-  remote "cd $REMOTE_DIR && docker compose up -d"
+  remote "cd $REMOTE_DIR && docker compose --env-file .env up -d"
   success "Done — env-only deploy complete."
   exit 0
 fi
@@ -319,7 +319,7 @@ remote "
 
   # Build & bring up (detached)
   # docker-entrypoint.sh handles: flask db upgrade + flask seed-all (if RUN_SEEDERS=true)
-  RUN_SEEDERS=$RUN_SEEDERS PUBLIC_IP=\$PUBLIC_IP HOST=\$HOST docker compose up --build -d
+  RUN_SEEDERS=$RUN_SEEDERS PUBLIC_IP=\$PUBLIC_IP HOST=\$HOST docker compose --env-file .env up --build -d
 
   # Clean up dangling images
   docker image prune -f 2>/dev/null || true
@@ -334,7 +334,7 @@ remote "
   docker compose ps
   echo ''
   echo '--- Last 15 log lines ---'
-  docker compose logs --tail=15
+  docker compose --env-file .env logs --tail=15
 "
 
 info "Step 5/5 — Deployment summary"

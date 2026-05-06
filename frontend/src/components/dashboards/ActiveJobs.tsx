@@ -26,6 +26,7 @@ import {
 import { JobActionButtons } from "./JobActionButtons";
 import { apiFetch } from "@/lib/api";
 import { ChatOverlay } from "../ChatOverlay";
+import { TripLiveMap } from "@/components/trips/TripLiveMap";
 
 interface ActiveJobsProps {
     jobs: any[];
@@ -86,6 +87,11 @@ export const ActiveJobs = ({ jobs, role, onStatusUpdate }: ActiveJobsProps) => {
             {jobs.map((job) => {
                 const client = clientInfos[job.id];
                 const location = renderLocation(job.location_data);
+                const showLiveTripMap =
+                    role === 'driver' &&
+                    job.request_type === 'cab' &&
+                    job.details?.cab_trip_started &&
+                    !job.details?.cab_arrived_at_location;
 
                 return (
                     <Paper
@@ -184,6 +190,16 @@ export const ActiveJobs = ({ jobs, role, onStatusUpdate }: ActiveJobsProps) => {
                                     onStatusUpdate={onStatusUpdate}
                                 />
                             </Box>
+
+                            {showLiveTripMap ? (
+                                <TripLiveMap
+                                    className="mt-6"
+                                    currentLocation={job.driver_current_location}
+                                    destination={job.location_data?.dropoff}
+                                    currentLabel="Your live location"
+                                    destinationLabel="Passenger destination"
+                                />
+                            ) : null}
                         </Box>
                     </Paper>
                 );

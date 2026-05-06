@@ -50,6 +50,13 @@ interface Product {
     grouped_products?: any;
     external_url?: string;
     button_text?: string;
+    shipping_profile?: {
+        description?: string | null;
+        weight_kg?: number | null;
+        length_cm?: number | null;
+        width_cm?: number | null;
+        height_cm?: number | null;
+    } | null;
     inventory?: {
         quantity: number;
     };
@@ -69,6 +76,22 @@ interface Subcategory {
     id: string;
     title: string;
 }
+
+const emptyShippingProfile = {
+    description: "",
+    weight_kg: "",
+    length_cm: "",
+    width_cm: "",
+    height_cm: ""
+};
+
+const getShippingProfileForm = (product?: Product | null) => ({
+    description: product?.shipping_profile?.description || "",
+    weight_kg: product?.shipping_profile?.weight_kg ? String(product.shipping_profile.weight_kg) : "",
+    length_cm: product?.shipping_profile?.length_cm ? String(product.shipping_profile.length_cm) : "",
+    width_cm: product?.shipping_profile?.width_cm ? String(product.shipping_profile.width_cm) : "",
+    height_cm: product?.shipping_profile?.height_cm ? String(product.shipping_profile.height_cm) : ""
+});
 
 export const ProductsManagement = () => {
     const { toast } = useToast();
@@ -103,7 +126,12 @@ export const ProductsManagement = () => {
         button_text: "Buy Product",
         attributes: "[]",
         variations: "[]",
-        grouped_products: "[]"
+        grouped_products: "[]",
+        shipping_description: "",
+        shipping_weight_kg: "",
+        shipping_length_cm: "",
+        shipping_width_cm: "",
+        shipping_height_cm: ""
     });
     const [formLoading, setFormLoading] = useState(false);
 
@@ -217,6 +245,7 @@ export const ProductsManagement = () => {
     const handleOpenModal = (product: Product | null = null) => {
         setEditingProduct(product);
         if (product) {
+            const shippingProfile = getShippingProfileForm(product);
             setFormData({
                 name: product.name,
                 description: product.description || "",
@@ -229,7 +258,12 @@ export const ProductsManagement = () => {
                 button_text: product.button_text || "Buy Product",
                 attributes: product.attributes ? JSON.stringify(product.attributes) : "[]",
                 variations: product.variations ? JSON.stringify(product.variations) : "[]",
-                grouped_products: product.grouped_products ? JSON.stringify(product.grouped_products) : "[]"
+                grouped_products: product.grouped_products ? JSON.stringify(product.grouped_products) : "[]",
+                shipping_description: shippingProfile.description,
+                shipping_weight_kg: shippingProfile.weight_kg,
+                shipping_length_cm: shippingProfile.length_cm,
+                shipping_width_cm: shippingProfile.width_cm,
+                shipping_height_cm: shippingProfile.height_cm
             });
             setExistingImages(product.images ? product.images.map(img => ({ id: img.id, url: img.image_url })) : []);
         } else {
@@ -245,7 +279,12 @@ export const ProductsManagement = () => {
                 button_text: "Buy Product",
                 attributes: "[]",
                 variations: "[]",
-                grouped_products: "[]"
+                grouped_products: "[]",
+                shipping_description: emptyShippingProfile.description,
+                shipping_weight_kg: emptyShippingProfile.weight_kg,
+                shipping_length_cm: emptyShippingProfile.length_cm,
+                shipping_width_cm: emptyShippingProfile.width_cm,
+                shipping_height_cm: emptyShippingProfile.height_cm
             });
             setExistingImages([]);
         }
@@ -338,6 +377,11 @@ export const ProductsManagement = () => {
             formDataPayload.append("attributes", formData.attributes);
             formDataPayload.append("variations", formData.variations);
             formDataPayload.append("grouped_products", formData.grouped_products);
+            formDataPayload.append("shipping_description", formData.shipping_description);
+            formDataPayload.append("shipping_weight_kg", formData.shipping_weight_kg);
+            formDataPayload.append("shipping_length_cm", formData.shipping_length_cm);
+            formDataPayload.append("shipping_width_cm", formData.shipping_width_cm);
+            formDataPayload.append("shipping_height_cm", formData.shipping_height_cm);
 
             imageFiles.forEach(file => {
                 formDataPayload.append("image_files", file);
@@ -731,6 +775,80 @@ export const ProductsManagement = () => {
                                             value={formData.button_text}
                                             onChange={(e) => setFormData({ ...formData, button_text: e.target.value })}
                                         />
+                                    </div>
+                                </>
+                            )}
+
+                            {formData.product_type !== 'external' && (
+                                <>
+                                    <div className="col-span-2 mt-2 rounded-3xl border border-slate-200 bg-slate-50/70 p-5 space-y-5">
+                                        <div className="space-y-1">
+                                            <h4 className="text-[11px] font-black text-[#5e35b1] uppercase tracking-[0.18em]">Courier Packaging</h4>
+                                            <p className="text-sm text-slate-500 font-medium">
+                                                Used for Courier Guy quotes. Leave blank to fall back to the global shipping defaults.
+                                            </p>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Parcel Description</label>
+                                            <Input
+                                                placeholder="e.g. Folded apparel parcel"
+                                                className="font-medium"
+                                                value={formData.shipping_description}
+                                                onChange={(e) => setFormData({ ...formData, shipping_description: e.target.value })}
+                                            />
+                                        </div>
+
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Weight (kg)</label>
+                                                <Input
+                                                    type="number"
+                                                    min="0"
+                                                    step="0.01"
+                                                    placeholder="1.25"
+                                                    className="font-medium"
+                                                    value={formData.shipping_weight_kg}
+                                                    onChange={(e) => setFormData({ ...formData, shipping_weight_kg: e.target.value })}
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Length (cm)</label>
+                                                <Input
+                                                    type="number"
+                                                    min="0"
+                                                    step="0.01"
+                                                    placeholder="32"
+                                                    className="font-medium"
+                                                    value={formData.shipping_length_cm}
+                                                    onChange={(e) => setFormData({ ...formData, shipping_length_cm: e.target.value })}
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Width (cm)</label>
+                                                <Input
+                                                    type="number"
+                                                    min="0"
+                                                    step="0.01"
+                                                    placeholder="24"
+                                                    className="font-medium"
+                                                    value={formData.shipping_width_cm}
+                                                    onChange={(e) => setFormData({ ...formData, shipping_width_cm: e.target.value })}
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Height (cm)</label>
+                                                <Input
+                                                    type="number"
+                                                    min="0"
+                                                    step="0.01"
+                                                    placeholder="18"
+                                                    className="font-medium"
+                                                    value={formData.shipping_height_cm}
+                                                    onChange={(e) => setFormData({ ...formData, shipping_height_cm: e.target.value })}
+                                                />
+                                            </div>
+                                        </div>
                                     </div>
                                 </>
                             )}

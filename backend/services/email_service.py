@@ -316,6 +316,56 @@ billing@mzansiserve.co.za"""
         )
         EmailService.send_email(email_id=email.id)
         return email
+
+    @staticmethod
+    def send_registration_payment_reminder(user):
+        """Send reminder to complete the registration fee before admin approval can continue."""
+        from backend.services.profile_service import REGISTRATION_FEE_AMOUNT
+
+        first_name = _first_name(user)
+        frontend_url = get_public_frontend_base_url()
+        login_url = f"{frontend_url}/login"
+        account_type = (user.role or 'member').replace('-', ' ').title()
+        payment_amount = float(REGISTRATION_FEE_AMOUNT) / 100.0
+        reference = getattr(user, 'tracking_number', None) or 'Registration'
+
+        subject = "Complete Your Registration Payment to Activate MzansiServe"
+        body = f"""Hi {first_name},
+
+Your MzansiServe {account_type} account is almost ready, but your registration fee is still outstanding.
+
+Registration Fee Due: R{payment_amount:.2f}
+Reference: {reference}
+
+Please log in to your account and complete the registration payment so our admin team can continue with your approval and activate your access to the system.
+
+Login here: {login_url}
+
+Once payment is received, your account can move forward for approval.
+
+Warm regards,
+MzansiServe Billing Team
+billing@mzansiserve.co.za"""
+        body_html = f"""<html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; text-align: left;">
+<p>Hi {first_name},</p>
+<p>Your MzansiServe <strong>{account_type}</strong> account is almost ready, but your registration fee is still outstanding.</p>
+<p><strong>Registration Fee Due:</strong> R{payment_amount:.2f}<br>
+<strong>Reference:</strong> {reference}</p>
+<p>Please log in to your account and complete the registration payment so our admin team can continue with your approval and activate your access to the system.</p>
+<p><a href="{login_url}" style="display:inline-block;background:#2563eb;color:#fff;padding:10px 20px;text-decoration:none;border-radius:6px;">Login to Complete Payment</a></p>
+<p>Once payment is received, your account can move forward for approval.</p>
+<p>Warm regards,<br>MzansiServe Billing Team<br><a href="mailto:billing@mzansiserve.co.za">billing@mzansiserve.co.za</a></p>
+</body></html>"""
+
+        email = EmailService.queue_email(
+            recipient=user.email,
+            subject=subject,
+            body=body,
+            body_html=body_html,
+            metadata={'type': 'registration_payment_reminder', 'user_id': str(user.id)}
+        )
+        EmailService.send_email(email_id=email.id)
+        return email
     
     @staticmethod
     def send_shop_purchase_confirmation(user, order):
@@ -404,6 +454,64 @@ MzansiServe Support Team"""
             body=body,
             body_html=body_html,
             metadata={'type': 'callout_payment', 'user_id': str(user.id), 'request_id': service_request.id}
+        )
+        EmailService.send_email(email_id=email.id)
+        return email
+
+    @staticmethod
+    def send_request_accepted_email(user, service_request):
+        """Notify the requester that their service request has been accepted."""
+        if not user or not service_request:
+            return None
+
+        first_name = _first_name(user)
+        provider = getattr(service_request, 'provider', None)
+        provider_name = 'Service Provider'
+        if provider:
+            provider_name = (
+                (provider.data or {}).get('full_name')
+                or getattr(provider, 'name', None)
+                or getattr(provider, 'email', None)
+                or provider_name
+            )
+
+        service_name = (service_request.request_type or 'service').replace('_', ' ').title()
+        booking_date = service_request.scheduled_date or ''
+        if service_request.scheduled_time:
+            booking_date = f"{booking_date} {service_request.scheduled_time}".strip()
+        booking_date = booking_date or 'To be confirmed'
+
+        subject = "Your Booking Has Been Accepted - MzansiServe"
+        body = f"""Hi {first_name},
+
+Good news. Your booking has been accepted.
+
+Service: {service_name}
+Accepted By: {provider_name}
+Scheduled For: {booking_date}
+Request Reference: {service_request.id}
+
+You can log in to MzansiServe to view the booking details and next steps.
+
+Regards,
+MzansiServe Support Team"""
+        body_html = f"""<html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; text-align: left;">
+<p>Hi {first_name},</p>
+<p>Good news. Your booking has been accepted.</p>
+<p><strong>Service:</strong> {service_name}<br>
+<strong>Accepted By:</strong> {provider_name}<br>
+<strong>Scheduled For:</strong> {booking_date}<br>
+<strong>Request Reference:</strong> {service_request.id}</p>
+<p>You can log in to MzansiServe to view the booking details and next steps.</p>
+<p>Regards,<br>MzansiServe Support Team</p>
+</body></html>"""
+
+        email = EmailService.queue_email(
+            recipient=user.email,
+            subject=subject,
+            body=body,
+            body_html=body_html,
+            metadata={'type': 'request_accepted', 'user_id': str(user.id), 'request_id': service_request.id}
         )
         EmailService.send_email(email_id=email.id)
         return email
