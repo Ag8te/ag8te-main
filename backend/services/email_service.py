@@ -553,3 +553,63 @@ MzansiServe Compliance Team"""
         )
         EmailService.send_email(email_id=email.id)
         return email
+    
+    @staticmethod
+    def send_booking_notification(provider_user, service_request, requester_user=None):
+        """Notify provider of a new service request"""
+
+        first_name = _first_name(provider_user)
+        requester_name = "Client"
+        if requester_user and requester_user.data:
+            requester_name = (
+                requester_user.data.get("full_name")
+                or requester_user.email
+                or requester_name
+           )
+
+        frontend_url = get_public_frontend_base_url()
+        dashboard_url = f"{frontend_url}/dashboard/requests/{service_request.id}"
+
+        booking_date = service_request.scheduled_date or "N/A"
+        if service_request.scheduled_time:
+            booking_date = f"{booking_date} {service_request.scheduled_time}"
+
+        subject = f"New {service_request.request_type.title()} booking - action required"
+        body = f"""Hi {first_name},
+
+    You have a new booking on MzansiServe.
+
+    Client: {requester_name}
+    Service: {service_request.request_type.title()}
+    Booking Date: {booking_date}
+    Request ID: {service_request.id}
+
+    Please log in and accept or reject this booking:
+    {dashboard_url}
+
+    Regards,
+    MzansiServe Team"""
+        body_html = f"""<html><body>
+        <p>Hi {first_name},</p>
+        <p>You have a new booking on MzansiServe.</p>
+        <p><strong>Client:</strong> {requester_name}<br>
+        <strong>Service:</strong> {service_request.request_type.title()}<br>
+        <strong>Booking Date:</strong> {booking_date}<br>
+        <strong>Request ID:</strong> {service_request.id}</p>
+        <p>Please log in and <strong>accept or reject</strong> this booking.</p>
+        <p><a href="{dashboard_url}">Open booking</a></p>
+        </body></html>"""
+
+        email = EmailService.queue_email(
+            recipient=provider_user.email,
+           subject=subject,
+            body=body,
+            body_html=body_html,
+            metadata={
+                "type": "booking_notification",
+                "request_id": service_request.id,
+                 "provider_id": str(provider_user.id),
+            },
+        )
+        EmailService.send_email(email_id=email.id)
+        return email

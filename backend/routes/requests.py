@@ -10,6 +10,7 @@ from flask_jwt_extended import get_jwt_identity
 from marshmallow import Schema, ValidationError, fields, validate
 from sqlalchemy import and_, or_, func
 
+from backend.services.email_service import EmailService
 from backend.extensions import db
 from backend.models import AppSetting, Payment, ServiceRequest, User, Wallet, DriverRating, ClientRating, ProfessionalRating, ProviderRating, Order
 from backend.services.wallet_service import WalletService
@@ -128,8 +129,21 @@ def create_request():
         user_id = get_jwt_identity()
 
         service_request, error = RequestService.create_request(data, user_id)
+        
+        provider = None
+        if service_request.request_type in ("professional", "provider") and service_request.provider_id:
+            provider = User.query.get(service_request.provider_id)
+            requester = User.query.get(service_request.requester_id)
+            if provider and provider.email:
+                try:
+                    EmailService.send_booking_notification(provider, service_request, requester)
+                except Exception as e:
+                    current_app.logger.error(f"Error sending booking notification: {str(e)}")
+
         if error:
             return error_response(error, 'Failed to create request', None, 400)
+        
+        db.session.commit()
 
         wallet = Wallet.query.filter_by(user_id=user_id).first()
         return success_response({
@@ -495,6 +509,8 @@ def get_busy_slots(provider_id):
     slots = [r.scheduled_time for r in busy_requests]
     return success_response({'busy_slots': slots})
 
+from backend.services.email_service import EmailService
+
 @bp.route('/<request_id>/accept', methods=['POST'])
 @require_auth
 def accept_request(request_id):
@@ -526,6 +542,11 @@ def accept_request(request_id):
             service_request.details = details
         
         service_request.provider_id = user_id
+        provider = User.query.get(user_id)
+        
+        if provider and provider.email:
+            EmailService.send_request_accepted_email(provider.email, service_request)
+        
         service_request.status = 'accepted'
         db.session.commit()
         
@@ -1392,7 +1413,7 @@ def reject_request(request_id):
             # Check if user is the assigned provider or candidate
             if service_request.provider_id and str(service_request.provider_id) != user_id:
                 return error_response('FORBIDDEN', 'You are not assigned to this request', None, 403)
-            service_request.status = 'pending'
+            service_request.status = 'cancelled'
             service_request.provider_id = None
         db.session.commit()
         
