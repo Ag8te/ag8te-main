@@ -82,12 +82,15 @@ const DriverDashboard = () => {
     }, [fetchData]);
 
     useEffect(() => {
+        if (activeTab === "vehicles") {
+            return;
+        }
         const intervalId = window.setInterval(() => {
             fetchData(false, false);
         }, 10000);
 
         return () => window.clearInterval(intervalId);
-    }, [fetchData]);
+    }, [fetchData, activeTab]);
 
     useEffect(() => {
         if (authUser?.role !== "driver" || !navigator.geolocation) {
@@ -103,7 +106,7 @@ const DriverDashboard = () => {
                 async (position) => {
                     if (cancelled) return;
                     try {
-                        await apiFetch('/api/location/current', {
+                        const response = await apiFetch('/api/location/current', {
                             method: 'POST',
                             data: {
                                 lat: position.coords.latitude,
@@ -112,6 +115,9 @@ const DriverDashboard = () => {
                         });
                         setLocationStatus("online");
                         setLastLocationSyncAt(new Date());
+                        if ((response.data?.redispatched_request_ids || []).length > 0) {
+                            fetchData(false, false);
+                        }
                     } catch (err) {
                         console.error("Failed to sync driver location:", err);
                         setLocationStatus("error");
@@ -130,7 +136,7 @@ const DriverDashboard = () => {
         };
 
         syncLocation();
-        const intervalId = window.setInterval(syncLocation, 60000);
+        const intervalId = window.setInterval(syncLocation, 15000);
 
         return () => {
             cancelled = true;
@@ -172,6 +178,7 @@ const DriverDashboard = () => {
 
     const renderContent = () => {
         const user = data?.current_user;
+        const cabEligibility = data?.cab_eligibility;
         const onboardingBanner = user && (!user.is_approved || !user.is_paid) ? (
             <Paper
                 sx={{
@@ -204,6 +211,58 @@ const DriverDashboard = () => {
                         </Stack>
                     </Box>
                 </Box>
+            </Paper>
+        ) : null;
+
+        const rideReadinessBanner = cabEligibility ? (
+            <Paper
+                sx={{
+                    mb: 4,
+                    p: 3,
+                    borderRadius: 4,
+                    bgcolor: alpha(
+                        cabEligibility.eligible ? theme.palette.success.main : theme.palette.warning.main,
+                        0.05
+                    ),
+                    border: '1px solid',
+                    borderColor: alpha(
+                        cabEligibility.eligible ? theme.palette.success.main : theme.palette.warning.main,
+                        0.2
+                    )
+                }}
+            >
+                <Stack spacing={2}>
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+                        {cabEligibility.eligible ? (
+                            <CheckCircleIcon sx={{ color: 'success.main', mt: 0.25 }} />
+                        ) : (
+                            <WarningIcon sx={{ color: 'warning.main', mt: 0.25 }} />
+                        )}
+                        <Box sx={{ flex: 1 }}>
+                            <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
+                                {cabEligibility.eligible ? 'You are ride-ready for cab dispatch' : 'You are not ride-ready yet'}
+                            </Typography>
+                            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                                {cabEligibility.eligible
+                                    ? 'Nearby cab requests can be offered to you while your location stays fresh.'
+                                    : 'You will not receive local cab offers until the items below are completed.'}
+                            </Typography>
+                        </Box>
+                        <Chip
+                            label={cabEligibility.eligible ? 'Ride-ready' : 'Action needed'}
+                            color={cabEligibility.eligible ? 'success' : 'warning'}
+                            variant={cabEligibility.eligible ? 'filled' : 'outlined'}
+                            sx={{ fontWeight: 700 }}
+                        />
+                    </Box>
+                    {!cabEligibility.eligible && cabEligibility.missing_labels?.length ? (
+                        <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                            {cabEligibility.missing_labels.map((label: string) => (
+                                <Chip key={label} label={label} color="warning" variant="outlined" />
+                            ))}
+                        </Stack>
+                    ) : null}
+                </Stack>
             </Paper>
         ) : null;
 
@@ -272,6 +331,7 @@ const DriverDashboard = () => {
                 return (
                     <Box sx={{ animation: 'fadeIn 0.5s' }}>
                         {onboardingBanner}
+                        {rideReadinessBanner}
                         {locationBanner}
                         <Grid container spacing={3} sx={{ mb: 4 }}>
                             <Grid size={{ xs: 12, sm: 6, md: 3 }}>
@@ -373,7 +433,12 @@ const DriverDashboard = () => {
             case "active":
                 return <ActiveJobs jobs={data?.active_rides || []} role="driver" onStatusUpdate={fetchData} />;
             case "rides":
-                return <JobInbox jobs={data?.available_cab_requests || []} role="driver" onJobAccepted={fetchData} />;
+                return (
+                    <Box sx={{ animation: 'fadeIn 0.5s' }}>
+                        {rideReadinessBanner}
+                        <JobInbox jobs={data?.available_cab_requests || []} role="driver" onJobAccepted={fetchData} />
+                    </Box>
+                );
             case "reviews":
                 return (
                     <Paper variant="outlined" sx={{ borderRadius: 4, overflow: 'hidden' }}>
@@ -409,7 +474,23 @@ const DriverDashboard = () => {
                     </Paper>
                 );
             case "vehicles":
-                return <VehicleManagement initialVehicles={data?.driver_services || []} />;
+                {
+                    const approvedVehicles =
+                        data?.driver_services?.length
+                            ? data.driver_services
+                            : data?.current_user?.data?.driver_services?.length
+                                ? data.current_user.data.driver_services
+                                : data?.current_user?.data?.car_details
+                                    ? [data.current_user.data.car_details]
+                                    : [];
+                return (
+                    <VehicleManagement
+                        initialVehicles={approvedVehicles}
+                        pendingVehicles={data?.pending_driver_services || []}
+                        hasPendingVehicleUpdate={Boolean(data?.vehicle_update_pending)}
+                    />
+                );
+                }
             case "messages":
                 return (
                     <Box sx={{ animation: 'fadeIn 0.5s' }}>

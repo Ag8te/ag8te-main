@@ -5,12 +5,13 @@ import os
 import uuid
 import json
 import logging
+from urllib.parse import quote
 from flask import current_app
 from backend.extensions import db
 from backend.models import User, PendingProfileUpdate, Payment
 from backend.services.payment_service import PaymentService
 from backend.services.agent_service import AgentService
-from backend.utils.url import get_public_backend_base_url, get_request_frontend_base_url
+from backend.utils.url import get_public_backend_base_url, get_request_frontend_base_url, get_request_frontend_return_path
 
 logger = logging.getLogger(__name__)
 
@@ -32,14 +33,10 @@ class ProfileService:
     @staticmethod
     def get_profile_info(user_id):
         """Fetch comprehensive profile information for a user WITH pending diff preview"""
-
         user = User.query.get(user_id)
         if not user:
             return None, "USER_NOT_FOUND"
 
-    # -------------------------
-    # Existing logic (UNCHANGED)
-    # -------------------------
         id_document_url = None
         if user.file_urls and isinstance(user.file_urls, list) and len(user.file_urls) > 0:
             id_document_url = user.file_urls[0]
@@ -50,38 +47,15 @@ class ProfileService:
             user_id=user.id, status='pending'
         ).order_by(PendingProfileUpdate.created_at.desc()).first()
 
-    # -------------------------
-    # NEW: Build pending preview (DIFF)
-    # -------------------------
         pending_data = None
-
         if pending:
-            current_data = user.data or {}
             payload = pending.payload or {}
-
             diff = ProfileService.build_profile_diff(user, payload)
-            
-        if key == "next_of_kin":
-            current_nok = current_data.get("next_of_kin", {})
-
-            diff["next_of_kin"] = {
-            "old": current_nok,
-            "new": new_value
+            pending_data = {
+                **pending.to_dict(),
+                "diff": diff,
             }
-        else:
-                diff[key] = {
-                "old": current_data.get(key),
-                "new": new_value
-        }
 
-        pending_data = {
-        **pending.to_dict(),
-        "diff": diff
-            }
- 
-    # -------------------------
-    # Final response (UNCHANGED STRUCTURE)
-    # -------------------------
         return {
             'user': user.to_dict(),
             'profile_data': user.data or {},
@@ -153,11 +127,12 @@ class ProfileService:
         external_id = f"reg_fee_{user_id_hex}_{uuid.uuid4().hex[:8]}"
         backend_url = get_public_backend_base_url()
         frontend_url = get_request_frontend_base_url()
+        return_path = quote(get_request_frontend_return_path('/profile'), safe='')
         
         urls = {
-            'success_url': f"{backend_url}/api/profile/payment-callback?callback_status=success&external_id={external_id}&provider={provider}&frontend_url={frontend_url}",
-            'cancel_url': f"{backend_url}/api/profile/payment-callback?callback_status=cancel&external_id={external_id}&provider={provider}&frontend_url={frontend_url}",
-            'failure_url': f"{backend_url}/api/profile/payment-callback?callback_status=failure&external_id={external_id}&provider={provider}&frontend_url={frontend_url}"
+            'success_url': f"{backend_url}/api/profile/payment-callback?callback_status=success&external_id={external_id}&provider={provider}&frontend_url={frontend_url}&return_path={return_path}",
+            'cancel_url': f"{backend_url}/api/profile/payment-callback?callback_status=cancel&external_id={external_id}&provider={provider}&frontend_url={frontend_url}&return_path={return_path}",
+            'failure_url': f"{backend_url}/api/profile/payment-callback?callback_status=failure&external_id={external_id}&provider={provider}&frontend_url={frontend_url}&return_path={return_path}"
         }
         
         checkout = PaymentService.create_checkout(
@@ -261,9 +236,20 @@ class ProfileService:
           availability = data['availability']
 
           if isinstance(availability, dict):
-              payload['availability'] = {
-                  'is_online': bool(availability.get('is_online', False))
-              }
+              cleaned = {}
+              if 'is_online' in availability:
+                # Keep is_online for drivers
+                cleaned['is_online'] = bool(availability.get('is_online', False))
+              if 'regular_hours' in availability:
+                #keep working hours for professionals and service providers
+                cleaned['regular_hours'] = availability['regular_hours']
+              if 'blocked_dates' in availability:
+                #keep blocked dates for professionals and service providers
+                cleaned['blocked_dates'] = availability['blocked_dates']
+              if 'schedule' in availability:
+                #keep lagacy schedule shape from Profile.tsx just in case
+                cleaned['schedule'] = availability['schedule']
+              payload['availability'] = cleaned
 
       # =========================
       # FILE HANDLING

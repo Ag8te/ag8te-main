@@ -5,12 +5,14 @@ import math
 import secrets
 import uuid
 from datetime import datetime, timedelta
+from urllib.parse import quote
 from flask import current_app
+from sqlalchemy import func
 from backend.extensions import db
 from backend.models import ServiceRequest, User, AppSetting, Payment, Wallet, ClientRating, DriverRating, ProfessionalRating, ProviderRating
 from backend.services.wallet_service import WalletService
 from backend.services.payment_service import PaymentService
-from backend.utils.url import get_request_frontend_base_url
+from backend.utils.url import get_request_frontend_base_url, get_request_frontend_return_path
 
 CAR_TYPE_BASE_RATE_PER_KM = {
     'small_hatchback': 8.12,
@@ -24,8 +26,10 @@ CAR_TYPE_BASE_RATE_PER_KM = {
 
 class RequestService:
     CAB_DRIVER_SEARCH_RADIUS_KM = 12
-    CAB_DRIVER_OFFER_LIMIT = 5
+    CAB_DRIVER_OFFER_LIMIT = 1
     CAB_DRIVER_OFFER_WINDOW_SECONDS = 30
+    CAB_DRIVER_REOFFER_COOLDOWN_SECONDS = 30
+    CAB_DRIVER_LOCATION_MAX_AGE_MINUTES = 15
 
     @staticmethod
     def calculate_quote(pickup, dropoff, preferences=None):
@@ -187,11 +191,12 @@ class RequestService:
                 service_request.details['is_rfq'] = True
             else:
                 pid = service_request.details.get('professional_id') or service_request.details.get('provider_id')
-                if pid:
-                    service_request.provider_id = uuid.UUID(pid)
-                    # Availability check
-                    available, error = RequestService.check_provider_availability(service_request.provider_id, data['date'], data['time'])
-                    if not available:
+                if not pid:
+                    return None, "PROVIDER_ID_REQUIRED"
+                service_request.provider_id = uuid.UUID(pid)
+                # Availability check
+                available, error = RequestService.check_provider_availability(service_request.provider_id, data['date'], data['time'])
+                if not available:
                         return None, error
 
         if data.get('notes'):
@@ -209,10 +214,11 @@ class RequestService:
         external_id = f"request_{request_id}_{secrets.token_hex(6)}"
         base_url = host_url.rstrip('/')
         frontend_url = get_request_frontend_base_url()
+        return_path = quote(get_request_frontend_return_path('/my-bookings?tab=rides'), safe='')
         
-        success_url = f"{base_url}/api/payments/request-callback?callback_status=success&external_id={external_id}&request_id={request_id}&frontend_url={frontend_url}"
-        cancel_url = f"{base_url}/api/payments/request-callback?callback_status=cancel&external_id={external_id}&request_id={request_id}&frontend_url={frontend_url}"
-        failure_url = f"{base_url}/api/payments/request-callback?callback_status=failure&external_id={external_id}&request_id={request_id}&frontend_url={frontend_url}"
+        success_url = f"{base_url}/api/payments/request-callback?callback_status=success&external_id={external_id}&request_id={request_id}&frontend_url={frontend_url}&return_path={return_path}"
+        cancel_url = f"{base_url}/api/payments/request-callback?callback_status=cancel&external_id={external_id}&request_id={request_id}&frontend_url={frontend_url}&return_path={return_path}"
+        failure_url = f"{base_url}/api/payments/request-callback?callback_status=failure&external_id={external_id}&request_id={request_id}&frontend_url={frontend_url}&return_path={return_path}"
         
         checkout = PaymentService.create_checkout(
             amount=amount_cents,
@@ -250,29 +256,22 @@ class RequestService:
         preferred_driver_id = details.get('preferred_driver_id')
         pickup = (service_request.location_data or {}).get('pickup') or {}
         car_type = details.get('car_type')
-        targeted_ids = []
-
-        if preferred_driver_id:
-            preferred_driver, error = RequestService._validate_selected_driver(
-                preferred_driver_id,
-                car_type,
-                pickup,
-            )
-            if not error and preferred_driver:
-                targeted_ids.append(str(preferred_driver.id))
-
-        remaining_candidates = RequestService.find_nearest_matching_drivers(
-            pickup,
+        targeted_ids = RequestService._select_next_cab_offer_ids(
+            pickup=pickup,
             car_type=car_type,
-            limit=RequestService.CAB_DRIVER_OFFER_LIMIT + len(targeted_ids),
-            exclude_driver_ids=set(targeted_ids) | set(details.get('declined_driver_ids') or []),
+            declined_driver_ids=details.get('declined_driver_ids') or [],
+            preferred_driver_id=preferred_driver_id,
         )
-        targeted_ids.extend([str(driver.id) for driver in remaining_candidates])
-        targeted_ids = targeted_ids[:RequestService.CAB_DRIVER_OFFER_LIMIT]
 
+        now_iso = datetime.utcnow().isoformat()
         details['targeted_driver_ids'] = targeted_ids
         details['dispatch_state'] = 'searching' if targeted_ids else 'no_drivers_available'
-        details['dispatch_updated_at'] = datetime.utcnow().isoformat()
+        details['dispatch_updated_at'] = now_iso
+        details['dispatch_expires_at'] = (
+            (datetime.utcnow() + timedelta(seconds=RequestService.CAB_DRIVER_OFFER_WINDOW_SECONDS)).isoformat()
+            if targeted_ids else None
+        )
+        details.pop('assigned_driver', None)
         service_request.details = details
 
     @staticmethod
@@ -289,17 +288,41 @@ class RequestService:
         pickup = (service_request.location_data or {}).get('pickup') or {}
         car_type = details.get('car_type')
 
-        next_candidates = RequestService.find_nearest_matching_drivers(
-            pickup,
+        next_candidates = RequestService._select_next_cab_offer_ids(
+            pickup=pickup,
             car_type=car_type,
-            limit=RequestService.CAB_DRIVER_OFFER_LIMIT,
-            exclude_driver_ids=set(declined_ids),
+            declined_driver_ids=declined_ids,
+            preferred_driver_id=details.get('preferred_driver_id'),
         )
 
+        dispatch_updated_at = RequestService._parse_date_value(details.get('dispatch_updated_at'))
+        exhausted_all_candidates = not next_candidates and bool(declined_ids)
+        can_retry_declined_drivers = (
+            exhausted_all_candidates and (
+                dispatch_updated_at is None or
+                (datetime.utcnow() - dispatch_updated_at).total_seconds() >= RequestService.CAB_DRIVER_REOFFER_COOLDOWN_SECONDS
+            )
+        )
+        if can_retry_declined_drivers:
+            retry_candidates = RequestService._select_next_cab_offer_ids(
+                pickup=pickup,
+                car_type=car_type,
+                declined_driver_ids=[],
+                preferred_driver_id=details.get('preferred_driver_id'),
+            )
+            if retry_candidates:
+                next_candidates = retry_candidates
+                declined_ids = []
+
         details['declined_driver_ids'] = declined_ids
-        details['targeted_driver_ids'] = [str(driver.id) for driver in next_candidates]
+        details['targeted_driver_ids'] = next_candidates
         details['dispatch_state'] = 'searching' if next_candidates else 'no_drivers_available'
         details['dispatch_updated_at'] = datetime.utcnow().isoformat()
+        details['dispatch_expires_at'] = (
+            (datetime.utcnow() + timedelta(seconds=RequestService.CAB_DRIVER_OFFER_WINDOW_SECONDS)).isoformat()
+            if next_candidates else None
+        )
+        details.pop('assigned_driver', None)
         service_request.details = details
 
     @staticmethod
@@ -313,19 +336,19 @@ class RequestService:
         details = dict(service_request.details or {})
         targeted_ids = list(details.get('targeted_driver_ids') or [])
         dispatch_state = details.get('dispatch_state')
-        updated_at = details.get('dispatch_updated_at')
-        if not targeted_ids or dispatch_state != 'searching' or not updated_at:
+        expires_at = details.get('dispatch_expires_at')
+        if not targeted_ids or dispatch_state != 'searching':
             return False
 
         try:
-            last_dispatch_at = datetime.fromisoformat(updated_at.replace('Z', '+00:00'))
+            dispatch_expiry = datetime.fromisoformat((expires_at or '').replace('Z', '+00:00'))
         except Exception:
-            last_dispatch_at = None
+            dispatch_expiry = None
 
-        if not last_dispatch_at:
+        if not dispatch_expiry:
             return False
 
-        if (datetime.utcnow() - last_dispatch_at.replace(tzinfo=None)).total_seconds() < RequestService.CAB_DRIVER_OFFER_WINDOW_SECONDS:
+        if datetime.utcnow() < dispatch_expiry.replace(tzinfo=None):
             return False
 
         details['declined_driver_ids'] = list(dict.fromkeys((details.get('declined_driver_ids') or []) + targeted_ids))
@@ -334,11 +357,63 @@ class RequestService:
         return True
 
     @staticmethod
+    def refresh_pending_cab_dispatch_if_needed(service_request, retry_after_seconds=None):
+        """Advance a pending cab request toward the next available nearby driver."""
+        if not service_request or service_request.request_type != 'cab':
+            return False
+        if service_request.status != 'pending' or service_request.provider_id is not None:
+            return False
+
+        if RequestService.refresh_expired_cab_dispatch_if_needed(service_request):
+            return True
+
+        details_before = dict(service_request.details or {})
+        if not RequestService.should_retry_unassigned_cab_dispatch(
+            service_request,
+            retry_after_seconds=retry_after_seconds,
+        ):
+            return False
+
+        RequestService.refresh_cab_dispatch(service_request)
+        details_after = dict(service_request.details or {})
+        return details_after != details_before
+
+    @staticmethod
+    def should_retry_unassigned_cab_dispatch(service_request, retry_after_seconds=None):
+        """Return True when an unassigned cab request should be re-evaluated for new drivers."""
+        if not service_request or service_request.request_type != 'cab':
+            return False
+        if service_request.status != 'pending' or service_request.provider_id is not None:
+            return False
+
+        details = service_request.details or {}
+        targeted_ids = details.get('targeted_driver_ids') or []
+        if targeted_ids:
+            return False
+
+        dispatch_state = details.get('dispatch_state')
+        if dispatch_state not in (None, 'no_drivers_available'):
+            return False
+
+        retry_after_seconds = (
+            RequestService.CAB_DRIVER_OFFER_WINDOW_SECONDS
+            if retry_after_seconds is None
+            else max(0, int(retry_after_seconds))
+        )
+        dispatch_updated_at = RequestService._parse_date_value(details.get('dispatch_updated_at'))
+        if dispatch_updated_at is None:
+            return True
+
+        return (datetime.utcnow() - dispatch_updated_at).total_seconds() >= retry_after_seconds
+
+    @staticmethod
     def can_driver_view_cab_offer(service_request, driver):
         """Return True when a pending cab request is currently offered to this driver."""
         if not service_request or service_request.request_type != 'cab' or not driver:
             return False
         if service_request.status != 'pending' or service_request.provider_id is not None:
+            return False
+        if not RequestService.get_driver_cab_eligibility(driver, require_fresh_location=True).get('eligible'):
             return False
 
         details = service_request.details or {}
@@ -351,6 +426,206 @@ class RequestService:
         if targeted_driver_ids:
             return driver_id in targeted_driver_ids
         return False
+
+    @staticmethod
+    def get_driver_cab_eligibility(
+        driver,
+        require_fresh_location=False,
+        require_approval=True,
+        require_payment=True,
+        require_active=True,
+    ):
+        """Return whether a driver is ride-ready for cab dispatch and discovery."""
+        reasons = []
+        current_location = None
+
+        if not driver or getattr(driver, 'role', None) != 'driver':
+            reasons.append('not_driver')
+            return {
+                'eligible': False,
+                'missing_fields': reasons,
+                'current_location': None,
+                'vehicle': {},
+            }
+
+        if require_active and not driver.is_active:
+            reasons.append('inactive_driver')
+        if require_approval and not driver.is_approved:
+            reasons.append('driver_not_approved')
+        if require_payment and not driver.is_paid:
+            reasons.append('registration_payment_pending')
+
+        driver_data = driver.data or {}
+        vehicle = RequestService._extract_primary_driver_vehicle(driver_data)
+
+        required_driver_fields = {
+            'driver_license_number': driver_data.get('driver_license_number'),
+            'driver_license_code': driver_data.get('driver_license_code'),
+            'prdp_number': driver_data.get('prdp_number'),
+            'proof_of_residence_url': driver_data.get('proof_of_residence_url'),
+            'driver_license_url': driver_data.get('driver_license_url'),
+            'prdp_document_url': driver_data.get('prdp_document_url'),
+        }
+        for field_name, field_value in required_driver_fields.items():
+            if not RequestService._has_value(field_value):
+                reasons.append(f'missing_{field_name}')
+
+        if not RequestService._date_is_today_or_future(driver_data.get('driver_license_expiry')):
+            reasons.append('invalid_driver_license_expiry')
+        if not RequestService._date_is_today_or_future(driver_data.get('prdp_expiry')):
+            reasons.append('invalid_prdp_expiry')
+
+        required_vehicle_fields = {
+            'vehicle_make': vehicle.get('make'),
+            'vehicle_model': vehicle.get('model'),
+            'vehicle_year': vehicle.get('year'),
+            'vehicle_registration': vehicle.get('license_plate'),
+            'vehicle_color': vehicle.get('color'),
+            'vehicle_type': vehicle.get('car_type'),
+            'vehicle_seats': vehicle.get('seats'),
+        }
+        for field_name, field_value in required_vehicle_fields.items():
+            if not RequestService._has_value(field_value):
+                reasons.append(f'missing_{field_name}')
+
+        vehicle_images = vehicle.get('images') or []
+        if len(vehicle_images) < 3:
+            reasons.append('missing_vehicle_images')
+
+        if not RequestService._has_value(vehicle.get('disk_document') or driver_data.get('vehicle_disk_document_url')):
+            reasons.append('missing_vehicle_disk_document')
+        if not RequestService._date_is_today_or_future(
+            driver_data.get('vehicle_disk_expiry') or vehicle.get('disk_expiry')
+        ):
+            reasons.append('invalid_vehicle_disk_expiry')
+
+        if require_fresh_location:
+            current_location = RequestService._get_fresh_driver_location(driver_data)
+            if not current_location:
+                reasons.append('driver_offline')
+
+        return {
+            'eligible': len(reasons) == 0,
+            'missing_fields': reasons,
+            'current_location': current_location,
+            'vehicle': vehicle,
+        }
+
+    @staticmethod
+    def humanize_driver_missing_fields(missing_fields):
+        labels = {
+            'inactive_driver': 'Account inactive',
+            'driver_not_approved': 'Admin approval pending',
+            'registration_payment_pending': 'Registration payment pending',
+            'missing_driver_license_number': 'Driver license number',
+            'missing_driver_license_code': 'Driver license code',
+            'missing_prdp_number': 'PrDP number',
+            'missing_proof_of_residence_url': 'Proof of residence',
+            'missing_driver_license_url': "Driver's license document",
+            'missing_prdp_document_url': 'PrDP document',
+            'invalid_driver_license_expiry': 'Valid driver license expiry',
+            'invalid_prdp_expiry': 'Valid PrDP expiry',
+            'missing_vehicle_make': 'Vehicle make',
+            'missing_vehicle_model': 'Vehicle model',
+            'missing_vehicle_year': 'Vehicle year',
+            'missing_vehicle_registration': 'Vehicle registration number',
+            'missing_vehicle_color': 'Vehicle color',
+            'missing_vehicle_type': 'Vehicle type',
+            'missing_vehicle_seats': 'Vehicle seats',
+            'missing_vehicle_images': 'At least 3 vehicle images',
+            'missing_vehicle_disk_document': 'Vehicle disk document',
+            'invalid_vehicle_disk_expiry': 'Valid vehicle disk expiry',
+            'driver_offline': 'Fresh driver location',
+            'not_driver': 'Driver account',
+        }
+        return [labels.get(field, field.replace('_', ' ').title()) for field in (missing_fields or [])]
+
+    @staticmethod
+    def _select_next_cab_offer_ids(pickup, car_type=None, declined_driver_ids=None, preferred_driver_id=None):
+        """Return the next driver ids who should see the active offer, nearest-first."""
+        declined_driver_ids = {str(driver_id) for driver_id in (declined_driver_ids or [])}
+        targeted_ids = []
+
+        if preferred_driver_id and str(preferred_driver_id) not in declined_driver_ids:
+            preferred_driver, error = RequestService._validate_selected_driver(
+                preferred_driver_id,
+                car_type,
+                pickup,
+            )
+            if not error and preferred_driver:
+                targeted_ids.append(str(preferred_driver.id))
+
+        if len(targeted_ids) >= RequestService.CAB_DRIVER_OFFER_LIMIT:
+            return targeted_ids[:RequestService.CAB_DRIVER_OFFER_LIMIT]
+
+        remaining_candidates = RequestService.find_nearest_matching_drivers(
+            pickup,
+            car_type=car_type,
+            limit=RequestService.CAB_DRIVER_OFFER_LIMIT,
+            exclude_driver_ids=declined_driver_ids | set(targeted_ids),
+        )
+        targeted_ids.extend(str(driver.id) for driver in remaining_candidates)
+        return targeted_ids[:RequestService.CAB_DRIVER_OFFER_LIMIT]
+
+    @staticmethod
+    def get_cab_ride_stage(service_request):
+        """Return a single rider/driver-friendly stage for a cab request."""
+        if not service_request or service_request.request_type != 'cab':
+            return None
+
+        details = service_request.details or {}
+        if service_request.status == 'cancelled':
+            return 'cancelled'
+        if service_request.status == 'completed' or details.get('cab_arrived_at_location'):
+            return 'completed'
+        if details.get('cab_trip_started'):
+            return 'on_trip'
+        if details.get('cab_driver_arrived'):
+            return 'driver_arrived'
+        if service_request.status == 'accepted' or service_request.provider_id:
+            return 'driver_assigned'
+        if details.get('dispatch_state') == 'no_drivers_available':
+            return 'no_drivers_available'
+        if service_request.payment_status == 'paid' and service_request.status == 'pending':
+            return 'searching'
+        if service_request.status == 'unpaid':
+            return 'awaiting_payment'
+        return service_request.status
+
+    @staticmethod
+    def serialize_request(service_request):
+        """Serialize a request with rider/driver-facing cab metadata."""
+        data = service_request.to_dict()
+        details = dict(data.get('details') or {})
+        data['details'] = details
+
+        if service_request.request_type != 'cab':
+            return data
+
+        details['ride_stage'] = RequestService.get_cab_ride_stage(service_request)
+        data['ride_stage'] = details['ride_stage']
+        data['dispatch_state'] = details.get('dispatch_state')
+
+        assigned_snapshot = None
+        if service_request.provider_id and service_request.provider:
+            assigned_snapshot = RequestService._build_driver_snapshot(service_request.provider)
+            details['assigned_driver'] = assigned_snapshot
+        else:
+            assigned_snapshot = details.get('assigned_driver') or details.get('selected_driver')
+
+        if assigned_snapshot:
+            data['driver_id'] = assigned_snapshot.get('id')
+            data['driver_name'] = assigned_snapshot.get('name')
+            data['driver_first_name'] = assigned_snapshot.get('first_name')
+            data['driver_phone'] = assigned_snapshot.get('phone')
+            data['driver_profile_image_url'] = assigned_snapshot.get('profile_image_url')
+            data['driver_current_location'] = assigned_snapshot.get('current_location')
+            data['driver_average_rating'] = assigned_snapshot.get('average_rating')
+            data['driver_reviews_count'] = assigned_snapshot.get('reviews_count')
+            data['driver_is_verified'] = assigned_snapshot.get('is_verified')
+            data['driver_vehicle'] = assigned_snapshot.get('vehicle')
+
+        return data
 
     @staticmethod
     def find_nearest_matching_drivers(pickup, car_type=None, limit=5, exclude_driver_ids=None):
@@ -374,22 +649,16 @@ class RequestService:
             if str(driver.id) in exclude_driver_ids:
                 continue
 
-            driver_data = driver.data or {}
-            current_location = driver_data.get('current_location') or {}
+            eligibility = RequestService.get_driver_cab_eligibility(
+                driver,
+                require_fresh_location=True,
+            )
+            if not eligibility.get('eligible'):
+                continue
+
+            current_location = eligibility.get('current_location') or {}
             lat = current_location.get('lat')
             lng = current_location.get('lng')
-            updated_at = current_location.get('updated_at')
-            if lat is None or lng is None or not updated_at:
-                continue
-
-            try:
-                last_seen = datetime.fromisoformat(updated_at.replace('Z', '+00:00'))
-            except Exception:
-                continue
-
-            if (datetime.utcnow() - last_seen.replace(tzinfo=None)) > timedelta(minutes=15):
-                continue
-
             driver_types = RequestService._extract_driver_car_types(driver)
             if requested_types and driver_types.isdisjoint(requested_types):
                 continue
@@ -416,6 +685,9 @@ class RequestService:
                 car_type = service.get('car_type')
                 if car_type:
                     car_types.update(RequestService._expand_requested_car_types(car_type))
+        fallback_car_type = ((driver_data.get('car_details') or {}).get('car_type') or '').strip().lower()
+        if fallback_car_type:
+            car_types.update(RequestService._expand_requested_car_types(fallback_car_type))
         return car_types
 
     @staticmethod
@@ -447,32 +719,31 @@ class RequestService:
         if not driver:
             return None, "DRIVER_NOT_AVAILABLE"
 
-        driver_data = driver.data or {}
-        current_location = driver_data.get('current_location') or {}
-        updated_at = current_location.get('updated_at')
-        if not updated_at:
-            return None, "DRIVER_OFFLINE"
+        eligibility = RequestService.get_driver_cab_eligibility(
+            driver,
+            require_fresh_location=True,
+        )
+        if not eligibility.get('eligible'):
+            if 'driver_offline' in (eligibility.get('missing_fields') or []):
+                return None, "DRIVER_OFFLINE"
+            return None, "DRIVER_NOT_ELIGIBLE"
 
-        try:
-            last_seen = datetime.fromisoformat(updated_at.replace('Z', '+00:00'))
-        except Exception:
-            return None, "DRIVER_OFFLINE"
-
-        if (datetime.utcnow() - last_seen.replace(tzinfo=None)) > timedelta(minutes=15):
+        current_location = eligibility.get('current_location') or {}
+        if not current_location:
             return None, "DRIVER_OFFLINE"
 
         driver_car_types = set()
-        for service in driver_data.get('driver_services', []) or []:
+        for service in (driver.data or {}).get('driver_services', []) or []:
             car_type = (service or {}).get('car_type')
             if car_type:
-                driver_car_types.add(str(car_type).strip().lower())
+                driver_car_types.update(RequestService._expand_requested_car_types(car_type))
 
-        fallback_car_type = ((driver_data.get('car_details') or {}).get('car_type') or '').strip().lower()
+        fallback_car_type = (((driver.data or {}).get('car_details') or {}).get('car_type') or '').strip().lower()
         if fallback_car_type:
-            driver_car_types.add(fallback_car_type)
+            driver_car_types.update(RequestService._expand_requested_car_types(fallback_car_type))
 
-        normalized_requested_car_type = (requested_car_type or '').strip().lower()
-        if normalized_requested_car_type and normalized_requested_car_type not in driver_car_types:
+        normalized_requested_car_type = RequestService._expand_requested_car_types(requested_car_type)
+        if normalized_requested_car_type and driver_car_types.isdisjoint(normalized_requested_car_type):
             return None, "DRIVER_RIDE_TYPE_MISMATCH"
 
         try:
@@ -496,20 +767,151 @@ class RequestService:
     def _build_driver_snapshot(driver):
         """Capture the assigned driver and vehicle details for rider-facing flows."""
         driver_data = driver.data or {}
-        car_details = driver_data.get('car_details') or {}
+        name = RequestService._get_user_display_name(driver)
+        vehicle = RequestService._extract_primary_driver_vehicle(driver_data)
+        rating_summary = RequestService._get_driver_rating_summary(driver.id)
         return {
             'id': str(driver.id),
-            'name': driver.full_name or driver.email,
+            'name': name or driver.email,
+            'first_name': RequestService._get_user_first_name(driver),
             'phone': driver_data.get('phone'),
-            'vehicle': {
-                'make': car_details.get('make'),
-                'model': car_details.get('model'),
-                'license_plate': car_details.get('plate'),
-                'color': car_details.get('color'),
-                'year': car_details.get('year'),
-                'car_type': car_details.get('car_type'),
-            }
+            'profile_image_url': driver.profile_image_url,
+            'current_location': driver_data.get('current_location'),
+            'average_rating': rating_summary['average_rating'],
+            'reviews_count': rating_summary['reviews_count'],
+            'is_verified': bool(driver.is_approved and driver.is_paid and driver.is_active),
+            'vehicle': vehicle,
         }
+
+    @staticmethod
+    def _get_user_display_name(user):
+        user_data = user.data or {}
+        first = (user_data.get('full_name') or user_data.get('first_name') or '').strip()
+        last = (user_data.get('surname') or user_data.get('last_name') or '').strip()
+        return f"{first} {last}".strip()
+
+    @staticmethod
+    def _get_user_first_name(user):
+        user_data = user.data or {}
+        first = (user_data.get('full_name') or user_data.get('first_name') or '').strip()
+        if first:
+            return first.split()[0]
+        return (user.email or 'Driver').split('@')[0]
+
+    @staticmethod
+    def _get_driver_rating_summary(driver_id):
+        agg = db.session.query(
+            func.coalesce(func.avg(DriverRating.rating), 0),
+            func.count(DriverRating.id)
+        ).filter(DriverRating.driver_id == driver_id).first()
+        average_rating = round(float(agg[0]), 1) if agg and agg[0] is not None else 0.0
+        reviews_count = int(agg[1]) if agg and agg[1] is not None else 0
+        return {
+            'average_rating': average_rating,
+            'reviews_count': reviews_count,
+        }
+
+    @staticmethod
+    def _get_vehicle_category_label(car_type):
+        labels = {
+            'small_hatchback': 'Small Hatchback',
+            'hatchback': 'Small Hatchback',
+            'sedan': 'Sedan',
+            'standard': 'Sedan',
+            'suv': 'SUV',
+            'luxury': 'Luxury',
+            'premium': 'Luxury',
+        }
+        normalized = str(car_type or '').strip().lower()
+        return labels.get(normalized, normalized.replace('_', ' ').title() if normalized else None)
+
+    @staticmethod
+    def _extract_primary_driver_vehicle(driver_data):
+        car_details = driver_data.get('car_details') or {}
+        driver_services = driver_data.get('driver_services') or []
+        primary_vehicle = next(
+            (service for service in driver_services if isinstance(service, dict)),
+            {},
+        )
+
+        return {
+            'make': primary_vehicle.get('car_make') or car_details.get('make'),
+            'model': primary_vehicle.get('car_model') or car_details.get('model'),
+            'license_plate': primary_vehicle.get('registration_number') or primary_vehicle.get('registration') or car_details.get('plate'),
+            'color': primary_vehicle.get('color') or car_details.get('color'),
+            'year': primary_vehicle.get('car_year') or car_details.get('year'),
+            'car_type': primary_vehicle.get('car_type') or car_details.get('car_type'),
+            'category_label': RequestService._get_vehicle_category_label(primary_vehicle.get('car_type') or car_details.get('car_type')),
+            'seats': primary_vehicle.get('seats') or car_details.get('seats'),
+            'images': primary_vehicle.get('images') or [],
+            'disk_document': primary_vehicle.get('disk_document') or driver_data.get('vehicle_disk_document_url'),
+            'disk_expiry': primary_vehicle.get('disk_expiry') or car_details.get('disk_expiry') or driver_data.get('vehicle_disk_expiry'),
+        }
+
+    @staticmethod
+    def _get_fresh_driver_location(driver_data):
+        current_location = (driver_data or {}).get('current_location')
+        if not isinstance(current_location, dict):
+            return None
+
+        lat = current_location.get('lat')
+        lng = current_location.get('lng')
+        updated_at = current_location.get('updated_at')
+        if lat is None or lng is None or not updated_at:
+            return None
+
+        try:
+            last_seen = datetime.fromisoformat(str(updated_at).replace('Z', '+00:00'))
+        except Exception:
+            return None
+
+        if (datetime.utcnow() - last_seen.replace(tzinfo=None)) > timedelta(
+            minutes=RequestService.CAB_DRIVER_LOCATION_MAX_AGE_MINUTES
+        ):
+            return None
+
+        return current_location
+
+    @staticmethod
+    def _date_is_today_or_future(value):
+        parsed = RequestService._parse_date_value(value)
+        if parsed is None:
+            return False
+        return parsed.date() >= datetime.utcnow().date()
+
+    @staticmethod
+    def _parse_date_value(value):
+        if not value:
+            return None
+        if isinstance(value, datetime):
+            return value
+
+        normalized = str(value).strip()
+        if not normalized:
+            return None
+
+        for parser in (
+            lambda v: datetime.fromisoformat(v.replace('Z', '+00:00')),
+            lambda v: datetime.strptime(v[:10], '%Y-%m-%d'),
+        ):
+            try:
+                parsed = parser(normalized)
+                if parsed.tzinfo is not None:
+                    parsed = parsed.replace(tzinfo=None)
+                return parsed
+            except Exception:
+                continue
+        return None
+
+    @staticmethod
+    def _has_value(value):
+        if value is None:
+            return False
+        if isinstance(value, str):
+            return bool(value.strip())
+        if isinstance(value, (list, dict, tuple, set)):
+            return len(value) > 0
+        return True
 
     @staticmethod
     def check_provider_availability(provider_id, date_str, time_str):
@@ -536,8 +938,8 @@ class RequestService:
             end = day_config.get('end', '17:00')
             if not (start <= time_str < end):
                 return False, "PROV_OUT_OF_HOURS"
-        except Exception:
-            pass
+        except ValueError:
+            return False, "INVALID_DATETIME_FORMAT"
             
         # Busy slots
         busy = ServiceRequest.query.filter(

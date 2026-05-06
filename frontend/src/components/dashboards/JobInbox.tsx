@@ -141,10 +141,10 @@ export const JobInbox = ({ jobs, role, onJobAccepted }: JobInboxProps) => {
     };
 
     const getOfferSecondsRemaining = (job: Job) => {
-        const updatedAt = job.details?.dispatch_updated_at;
-        if (!updatedAt) return null;
+        const expiresAtValue = job.details?.dispatch_expires_at;
+        if (!expiresAtValue) return null;
 
-        const expiresAt = new Date(updatedAt).getTime() + 30000;
+        const expiresAt = new Date(expiresAtValue).getTime();
         const secondsRemaining = Math.max(0, Math.ceil((expiresAt - now) / 1000));
         return Number.isFinite(secondsRemaining) ? secondsRemaining : null;
     };

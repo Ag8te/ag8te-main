@@ -14,6 +14,7 @@ import {
     UserCircle,
     CheckCircle2,
     XCircle,
+    AlertCircle,
     Info,
     Mail,
     Plus,
@@ -76,17 +77,33 @@ interface User {
     id_document_url?: string | null;
     proof_of_residence_url?: string | null;
     driver_license_url?: string | null;
+    prdp_document_url?: string | null;
+    vehicle_disk_document_url?: string | null;
     cv_resume_url?: string | null;
     qualification_urls?: string[];
     professional_services?: string[];
     provider_services?: string[];
     driver_services?: Array<string | Record<string, any>>;
+    driver_license_number?: string | null;
+    driver_license_code?: string | null;
+    driver_license_expiry?: string | null;
+    prdp_number?: string | null;
+    prdp_expiry?: string | null;
+    vehicle_disk_expiry?: string | null;
+    operating_areas?: string[];
+    driver_compliance?: {
+        ready_for_approval: boolean;
+        missing_fields: string[];
+        missing_field_labels: string[];
+    };
     profile_data?: Record<string, any> | null;
     registration_documents?: {
         profile_image_url?: string | null;
         id_document_url?: string | null;
         proof_of_residence_url?: string | null;
         driver_license_url?: string | null;
+        prdp_document_url?: string | null;
+        vehicle_disk_document_url?: string | null;
         cv_resume_url?: string | null;
         qualification_urls?: string[];
     };
@@ -123,7 +140,7 @@ export const UsersManagement = () => {
         first_name: "",
         last_name: "",
         username: "",
-        role: "user",
+        role: "client",
         email: "",
         password: "",
         phone: "",
@@ -133,6 +150,13 @@ export const UsersManagement = () => {
         next_of_kin_name: "",
         next_of_kin_phone: "",
         next_of_kin_email: "",
+        driver_license_number: "",
+        driver_license_code: "",
+        driver_license_expiry: "",
+        prdp_number: "",
+        prdp_expiry: "",
+        vehicle_disk_expiry: "",
+        operating_areas: "",
         highest_qualification: "",
         professional_body: "",
         is_paid: false,
@@ -143,8 +167,6 @@ export const UsersManagement = () => {
 
     const [professionalServices, setProfessionalServices] = useState<string[]>([]);
     const [providerServices, setProviderServices] = useState<string[]>([]);
-    const [driverVehicles, setDriverVehicles] = useState<string[]>([]);
-
     const buildDocumentEntries = (user: User | null) => {
         if (!user) return [];
 
@@ -155,6 +177,8 @@ export const UsersManagement = () => {
             { label: "ID Document", url: docs.id_document_url || user.id_document_url || "" },
             { label: "Proof of Residence", url: docs.proof_of_residence_url || user.proof_of_residence_url || "" },
             { label: "Driver's License", url: docs.driver_license_url || user.driver_license_url || "" },
+            { label: "PrDP Document", url: docs.prdp_document_url || user.prdp_document_url || "" },
+            { label: "Vehicle Disk Document", url: docs.vehicle_disk_document_url || user.vehicle_disk_document_url || "" },
             { label: "CV / Resume", url: docs.cv_resume_url || user.cv_resume_url || "" },
         ].filter((doc) => Boolean(doc.url));
 
@@ -166,17 +190,6 @@ export const UsersManagement = () => {
         });
 
         return entries;
-    };
-
-    const mapDriverVehicles = (driverServices?: Array<string | Record<string, any>>) => {
-        if (!Array.isArray(driverServices)) return [];
-        return driverServices.map((item) => {
-            if (typeof item === "string") return item;
-            const carMake = item?.car_make || item?.make || "";
-            const carModel = item?.car_model || item?.model || "";
-            const plate = item?.registration || item?.license_plate || item?.plate || "";
-            return [carMake, carModel, plate].filter(Boolean).join(" ").trim() || "Registered vehicle";
-        });
     };
 
     const normalizeUserDetail = (user: any): User => {
@@ -196,17 +209,110 @@ export const UsersManagement = () => {
             professional_services: user?.professional_services ?? profile?.professional_services ?? [],
             provider_services: user?.provider_services ?? profile?.provider_services ?? [],
             driver_services: user?.driver_services ?? profile?.driver_services ?? [],
+            driver_license_number: user?.driver_license_number ?? profile?.driver_license_number ?? "",
+            driver_license_code: user?.driver_license_code ?? profile?.driver_license_code ?? "",
+            driver_license_expiry: user?.driver_license_expiry ?? profile?.driver_license_expiry ?? "",
+            prdp_number: user?.prdp_number ?? profile?.prdp_number ?? "",
+            prdp_expiry: user?.prdp_expiry ?? profile?.prdp_expiry ?? "",
+            vehicle_disk_expiry: user?.vehicle_disk_expiry ?? profile?.vehicle_disk_expiry ?? "",
+            operating_areas: user?.operating_areas ?? profile?.operating_areas ?? [],
             qualification_urls: user?.qualification_urls ?? profile?.qualification_urls ?? [],
+            driver_compliance: user?.driver_compliance,
             registration_documents: user?.registration_documents ?? {
                 profile_image_url: user?.profile_image_url ?? null,
                 id_document_url: user?.id_document_url ?? null,
                 proof_of_residence_url: user?.proof_of_residence_url ?? null,
                 driver_license_url: user?.driver_license_url ?? null,
+                prdp_document_url: user?.prdp_document_url ?? null,
+                vehicle_disk_document_url: user?.vehicle_disk_document_url ?? null,
                 cv_resume_url: user?.cv_resume_url ?? null,
                 qualification_urls: user?.qualification_urls ?? profile?.qualification_urls ?? [],
             },
         };
     };
+
+    const getVerificationDisplay = (user: User | null) => {
+        if (!user) {
+            return {
+                label: "Pending",
+                badgeClassName: "text-orange-600 bg-orange-50",
+                textClassName: "text-orange-600",
+            };
+        }
+
+        if (user.is_approved) {
+            return {
+                label: "Approved",
+                badgeClassName: "text-green-600 bg-green-50",
+                textClassName: "text-green-600",
+            };
+        }
+
+        if (user.id_verification_status === "verified") {
+            return {
+                label: "Verified",
+                badgeClassName: "text-green-600 bg-green-50",
+                textClassName: "text-green-600",
+            };
+        }
+
+        if (user.id_verification_status === "rejected") {
+            return {
+                label: "Rejected",
+                badgeClassName: "text-red-600 bg-red-50",
+                textClassName: "text-red-600",
+            };
+        }
+
+        if (user.id_verification_status) {
+            return {
+                label: user.id_verification_status.replace(/_/g, " "),
+                badgeClassName: "text-orange-600 bg-orange-50",
+                textClassName: "text-orange-600",
+            };
+        }
+
+        return {
+            label: "Not Uploaded",
+            badgeClassName: "text-gray-400 bg-gray-50",
+            textClassName: "text-gray-400",
+        };
+    };
+
+    const getPaymentDisplay = (user: User | null) => {
+        if (!user) {
+            return {
+                label: "Unknown",
+                badgeClassName: "text-gray-500 bg-gray-50",
+                icon: Info,
+            };
+        }
+
+        if (user.role === "client") {
+            return {
+                label: "Not required",
+                badgeClassName: "text-slate-600 bg-slate-100",
+                icon: Info,
+            };
+        }
+
+        if (user.is_paid) {
+            return {
+                label: "Paid",
+                badgeClassName: "text-green-600 bg-green-50",
+                icon: CheckCircle2,
+            };
+        }
+
+        return {
+            label: "Payment due",
+            badgeClassName: "text-amber-700 bg-amber-50",
+            icon: AlertCircle,
+        };
+    };
+
+    const requiresRegistrationPaymentBeforeApproval = (role: string, isPaid: boolean) =>
+        role !== "client" && role !== "admin" && !isPaid;
 
     const fetchUsers = useCallback(async () => {
         setLoading(true);
@@ -238,15 +344,22 @@ export const UsersManagement = () => {
         fetchUsers();
     }, [fetchUsers]);
 
-    const handleApprove = async (userId: string) => {
+    const handleApprove = async (user: User) => {
         try {
             const adminHeaders = { Authorization: `Bearer ${localStorage.getItem("adminToken")}` };
-            const res = await apiFetch(`/api/admin/users/${userId}/approve`, {
+            const res = await apiFetch(`/api/admin/users/${user.id}/approve`, {
                 method: "PATCH",
                 headers: adminHeaders
             });
             if (res?.success) {
-                toast({ title: "Success", description: "User approved successfully." });
+                if (res.data?.action === "payment_reminder_sent") {
+                    toast({
+                        title: "Reminder sent",
+                        description: "Registration payment is still pending, so the user was not approved. A reminder email was sent instead."
+                    });
+                } else {
+                    toast({ title: "Success", description: "User approved successfully." });
+                }
                 fetchUsers(); // Refresh list
             }
         } catch (error: any) {
@@ -411,6 +524,13 @@ export const UsersManagement = () => {
                 next_of_kin_name: detailedUser.next_of_kin_name || "",
                 next_of_kin_phone: detailedUser.next_of_kin_phone || "",
                 next_of_kin_email: detailedUser.next_of_kin_email || "",
+                driver_license_number: detailedUser.driver_license_number || "",
+                driver_license_code: detailedUser.driver_license_code || "",
+                driver_license_expiry: detailedUser.driver_license_expiry || "",
+                prdp_number: detailedUser.prdp_number || "",
+                prdp_expiry: detailedUser.prdp_expiry || "",
+                vehicle_disk_expiry: detailedUser.vehicle_disk_expiry || "",
+                operating_areas: Array.isArray(detailedUser.operating_areas) ? detailedUser.operating_areas.join(", ") : "",
                 highest_qualification: detailedUser.highest_qualification || "",
                 professional_body: detailedUser.professional_body || "",
                 is_paid: detailedUser.is_paid || false,
@@ -425,8 +545,6 @@ export const UsersManagement = () => {
             setProviderServices(
                 Array.isArray(detailedUser.provider_services) ? detailedUser.provider_services : []
             );
-            setDriverVehicles(mapDriverVehicles(detailedUser.driver_services));
-
             setIsEditModalOpen(true);
         } catch (error: any) {
             toast({
@@ -445,7 +563,7 @@ export const UsersManagement = () => {
             first_name: "",
             last_name: "",
             username: "",
-            role: "user",
+            role: "client",
             email: "",
             password: "",
             phone: "",
@@ -455,6 +573,13 @@ export const UsersManagement = () => {
             next_of_kin_name: "",
             next_of_kin_phone: "",
             next_of_kin_email: "",
+            driver_license_number: "",
+            driver_license_code: "",
+            driver_license_expiry: "",
+            prdp_number: "",
+            prdp_expiry: "",
+            vehicle_disk_expiry: "",
+            operating_areas: "",
             highest_qualification: "",
             professional_body: "",
             is_paid: false,
@@ -464,7 +589,6 @@ export const UsersManagement = () => {
         });
         setProfessionalServices([]);
         setProviderServices([]);
-        setDriverVehicles([]);
         setIsEditModalOpen(true); // Reusing the same modal for simplicity
     };
 
@@ -484,13 +608,64 @@ export const UsersManagement = () => {
     };
     const removeProviderService = (index: number) => setProviderServices(providerServices.filter((_, i) => i !== index));
 
-    const addDriverVehicle = () => setDriverVehicles([...driverVehicles, ""]);
-    const updateDriverVehicle = (index: number, val: string) => {
-        const updated = [...driverVehicles];
-        updated[index] = val;
-        setDriverVehicles(updated);
+    const buildUserPayload = () => {
+        const professionalServicePayload = professionalServices
+            .map((service) => service.trim())
+            .filter(Boolean)
+            .map((name) => ({ name }));
+        const providerServicePayload = providerServices
+            .map((service) => service.trim())
+            .filter(Boolean)
+            .map((name) => ({ name }));
+        const operatingAreasPayload = editFormData.operating_areas
+            .split(",")
+            .map((area) => area.trim())
+            .filter(Boolean);
+
+        const payload: Record<string, any> = {
+            first_name: editFormData.first_name.trim(),
+            last_name: editFormData.last_name.trim(),
+            email: editFormData.email.trim(),
+            username: editFormData.username.trim(),
+            role: editFormData.role,
+            phone: editFormData.phone.trim(),
+            gender: editFormData.gender || null,
+            sa_citizen: editFormData.is_sa_citizen,
+            sa_id: editFormData.sa_id_number.trim(),
+            next_of_kin: {
+                full_name: editFormData.next_of_kin_name.trim(),
+                contact_number: editFormData.next_of_kin_phone.trim(),
+                contact_email: editFormData.next_of_kin_email.trim(),
+            },
+            driver_license_number: editFormData.driver_license_number.trim(),
+            driver_license_code: editFormData.driver_license_code.trim(),
+            driver_license_expiry: editFormData.driver_license_expiry || null,
+            prdp_number: editFormData.prdp_number.trim(),
+            prdp_expiry: editFormData.prdp_expiry || null,
+            vehicle_disk_expiry: editFormData.vehicle_disk_expiry || null,
+            operating_areas: operatingAreasPayload,
+            highest_qualification: editFormData.highest_qualification.trim(),
+            professional_body: editFormData.professional_body.trim(),
+            is_paid: editFormData.is_paid,
+            is_approved: editFormData.is_approved,
+            is_active: editFormData.is_active,
+            email_verified: editFormData.email_verified,
+        };
+
+        if (editFormData.password.trim()) {
+            payload.password = editFormData.password.trim();
+        }
+
+        if (editFormData.role === "professional") {
+            payload.professional_services = professionalServicePayload;
+        }
+
+        if (editFormData.role === "service-provider") {
+            payload.provider_services = providerServicePayload;
+        }
+
+        return payload;
     };
-    const removeDriverVehicle = (index: number) => setDriverVehicles(driverVehicles.filter((_, i) => i !== index));
 
     const handleSubmitEdit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -504,17 +679,7 @@ export const UsersManagement = () => {
         setIsSubmitting(true);
         try {
             const adminHeaders = { Authorization: `Bearer ${localStorage.getItem("adminToken")}` };
-            const payload: any = {
-                ...editFormData,
-                professional_services: professionalServices.filter(s => s.trim() !== ""),
-                provider_services: providerServices.filter(s => s.trim() !== ""),
-                driver_vehicles: driverVehicles.filter(s => s.trim() !== "")
-            };
-
-            // Do not send blank password if editing
-            if (selectedUser && !payload.password) {
-                delete payload.password;
-            }
+            const payload = buildUserPayload();
 
             const url = selectedUser ? `/api/admin/users/${selectedUser.id}` : `/api/admin/users`;
             const method = selectedUser ? "PUT" : "POST";
@@ -525,7 +690,14 @@ export const UsersManagement = () => {
                 body: JSON.stringify(payload)
             });
             if (res?.success) {
-                toast({ title: "Success", description: `User ${selectedUser ? 'updated' : 'created'} successfully.` });
+                if (res.data?.action === "payment_reminder_sent") {
+                    toast({
+                        title: "Reminder sent",
+                        description: "Update saved, but the user was not approved because the registration fee is still pending. A reminder email was sent."
+                    });
+                } else {
+                    toast({ title: "Success", description: `User ${selectedUser ? 'updated' : 'created'} successfully.` });
+                }
                 setIsEditModalOpen(false);
                 setSelectedUser(null);
                 fetchUsers();
@@ -542,6 +714,7 @@ export const UsersManagement = () => {
     };
 
     const totalPages = Math.ceil(totalUsers / limit);
+    const approvalBlockedByPayment = requiresRegistrationPaymentBeforeApproval(editFormData.role, editFormData.is_paid);
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
@@ -653,17 +826,16 @@ export const UsersManagement = () => {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            {user.is_paid ? (
-                                                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-green-600 bg-green-50 px-2.5 py-1">
-                                                    <CheckCircle2 className="h-3.5 w-3.5" />
-                                                    Paid
-                                                </span>
-                                            ) : (
-                                                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-red-600 bg-red-50 px-2.5 py-1">
-                                                    <XCircle className="h-3.5 w-3.5" />
-                                                    Not paid
-                                                </span>
-                                            )}
+                                            {(() => {
+                                                const paymentDisplay = getPaymentDisplay(user);
+                                                const PaymentIcon = paymentDisplay.icon;
+                                                return (
+                                                    <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 capitalize ${paymentDisplay.badgeClassName}`}>
+                                                        <PaymentIcon className="h-3.5 w-3.5" />
+                                                        {paymentDisplay.label}
+                                                    </span>
+                                                );
+                                            })()}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             {user.is_active ? (
@@ -677,29 +849,33 @@ export const UsersManagement = () => {
                                             )}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-[#697586]">
-                                            {user.id_verification_status ? (
-                                                <span className={`text-xs font-bold px-2 py-1  ${user.id_verification_status === 'verified'
-                                                    ? 'text-green-600 bg-green-50'
-                                                    : user.id_verification_status === 'rejected'
-                                                        ? 'text-red-600 bg-red-50'
-                                                        : 'text-orange-600 bg-orange-50'
-                                                    }`}>
-                                                    {user.id_verification_status.toUpperCase()}
-                                                </span>
-                                            ) : (
-                                                <span className="text-xs text-gray-400">Not Uploaded</span>
-                                            )}
+                                            {(() => {
+                                                const verificationDisplay = getVerificationDisplay(user);
+                                                return (
+                                                    <span className={`text-xs font-bold px-2 py-1 capitalize ${verificationDisplay.badgeClassName}`}>
+                                                        {verificationDisplay.label}
+                                                    </span>
+                                                );
+                                            })()}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                             <div className="flex items-center justify-end gap-2">
                                                 {!user.is_approved && (
-                                                    <button
-                                                        onClick={() => handleApprove(user.id)}
-                                                        className="text-green-600 hover:text-green-900 bg-green-50 hover:bg-green-100 p-1.5  transition-colors"
-                                                        title="Approve User"
-                                                    >
-                                                        <ShieldCheck className="h-4 w-4" />
-                                                    </button>
+                                                    (() => {
+                                                        const needsPaymentReminder = requiresRegistrationPaymentBeforeApproval(user.role, !!user.is_paid);
+                                                        return (
+                                                            <button
+                                                                onClick={() => handleApprove(user)}
+                                                                className={`${needsPaymentReminder
+                                                                    ? "text-amber-600 hover:text-amber-900 bg-amber-50 hover:bg-amber-100"
+                                                                    : "text-green-600 hover:text-green-900 bg-green-50 hover:bg-green-100"
+                                                                    } p-1.5 transition-colors`}
+                                                                title={needsPaymentReminder ? "Send registration payment reminder" : "Approve User"}
+                                                            >
+                                                                {needsPaymentReminder ? <Mail className="h-4 w-4" /> : <ShieldCheck className="h-4 w-4" />}
+                                                            </button>
+                                                        );
+                                                    })()
                                                 )}
                                                 <button
                                                     onClick={() => handleImpersonate(user.id)}
@@ -869,7 +1045,7 @@ export const UsersManagement = () => {
                                             onChange={(e) => setEditFormData({ ...editFormData, role: e.target.value })}
                                             className="flex h-11 w-full  border border-slate-200 bg-white px-3 py-2 text-sm focus:border-[#5e35b1] focus:ring-[#5e35b1]/10 shadow-sm outline-none"
                                         >
-                                            <option value="user">Standard User</option>
+                                            <option value="client">Client</option>
                                             <option value="professional">Professional</option>
                                             <option value="service-provider">Service Provider</option>
                                             <option value="driver">Driver</option>
@@ -930,7 +1106,14 @@ export const UsersManagement = () => {
                                     <div className="flex items-center gap-3 text-slate-500">
                                         <ShieldCheck className="w-5 h-5 text-emerald-500" />
                                         <p className="text-xs font-medium">
-                                            Verification status: <span className="text-emerald-600 font-bold uppercase">{selectedUser?.id_verification_status || 'Pending'}</span>
+                                            {(() => {
+                                                const verificationDisplay = getVerificationDisplay(selectedUser);
+                                                return (
+                                                    <>
+                                                        Verification status: <span className={`font-bold capitalize ${verificationDisplay.textClassName}`}>{verificationDisplay.label}</span>
+                                                    </>
+                                                );
+                                            })()}
                                         </p>
                                     </div>
                                 </div>
@@ -1144,43 +1327,169 @@ export const UsersManagement = () => {
                                 {editFormData.role === 'driver' && (
                                     <section className="space-y-4 animate-in slide-in-from-top-2 duration-300">
                                         <div className="flex items-center gap-2 px-1">
-                                            <h4 className="text-[11px] font-extrabold text-[#5e35b1] uppercase tracking-wider">Fleet Details</h4>
+                                            <h4 className="text-[11px] font-extrabold text-[#5e35b1] uppercase tracking-wider">Driver Compliance</h4>
                                             <div className="h-px flex-1 bg-slate-100" />
                                         </div>
                                         <div className="space-y-6 bg-white p-6  border border-slate-200 shadow-sm">
-                                            <div className="flex justify-between items-center px-1">
-                                                <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Vehicles</Label>
-                                                <Button
-                                                    type="button"
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={addDriverVehicle}
-                                                    className="h-8 text-[#5e35b1] hover:text-[#4527a0] hover:bg-purple-50 font-bold  text-xs"
-                                                >
-                                                    <Plus className="w-3.5 h-3.5 mr-1" />
-                                                    Register
-                                                </Button>
-                                            </div>
-                                            <div className="grid grid-cols-1 gap-2">
-                                                {driverVehicles.map((s, i) => (
-                                                    <div key={i} className="flex gap-2">
-                                                        <Input
-                                                            value={s}
-                                                            onChange={(e) => updateDriverVehicle(i, e.target.value)}
-                                                            placeholder="Registration Number"
-                                                            className="font-bold flex-1"
-                                                        />
-                                                        <Button
-                                                            type="button"
-                                                            variant="outline"
-                                                            size="icon"
-                                                            onClick={() => removeDriverVehicle(i)}
-                                                            className="h-11 w-11  border-slate-200 text-slate-400 hover:text-red-600 hover:border-red-100 hover:bg-red-50"
-                                                        >
-                                                            <CloseIcon className="w-4 h-4" />
-                                                        </Button>
+                                            {selectedUser?.driver_compliance && (
+                                                <div className={`border px-4 py-3 ${selectedUser.driver_compliance.ready_for_approval ? "border-emerald-200 bg-emerald-50" : "border-amber-200 bg-amber-50"}`}>
+                                                    <div className="flex items-center justify-between gap-3">
+                                                        <div>
+                                                            <p className="text-xs font-black uppercase tracking-widest text-slate-500">Approval Readiness</p>
+                                                            <p className={`mt-1 text-sm font-bold ${selectedUser.driver_compliance.ready_for_approval ? "text-emerald-700" : "text-amber-700"}`}>
+                                                                {selectedUser.driver_compliance.ready_for_approval ? "Driver compliance pack is complete." : "Driver compliance pack is incomplete."}
+                                                            </p>
+                                                        </div>
+                                                        <Badge className={selectedUser.driver_compliance.ready_for_approval ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-amber-100 text-amber-700 border-amber-200"}>
+                                                            {selectedUser.driver_compliance.ready_for_approval ? "Ready" : "Action Needed"}
+                                                        </Badge>
                                                     </div>
-                                                ))}
+                                                    {!selectedUser.driver_compliance.ready_for_approval && (
+                                                        <div className="mt-3 flex flex-wrap gap-2">
+                                                            {selectedUser.driver_compliance.missing_field_labels.map((label) => (
+                                                                <span key={label} className="inline-flex items-center px-2.5 py-1 text-[11px] font-bold bg-white text-amber-700 border border-amber-200">
+                                                                    {label}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="driver_license_number" className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">Driver License Number</Label>
+                                                    <Input
+                                                        id="driver_license_number"
+                                                        value={editFormData.driver_license_number}
+                                                        onChange={(e) => setEditFormData({ ...editFormData, driver_license_number: e.target.value })}
+                                                        className="font-bold"
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="driver_license_code" className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">Driver License Code</Label>
+                                                    <Input
+                                                        id="driver_license_code"
+                                                        value={editFormData.driver_license_code}
+                                                        onChange={(e) => setEditFormData({ ...editFormData, driver_license_code: e.target.value.toUpperCase() })}
+                                                        className="font-bold"
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="driver_license_expiry" className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">Driver License Expiry</Label>
+                                                    <Input
+                                                        id="driver_license_expiry"
+                                                        type="date"
+                                                        value={editFormData.driver_license_expiry}
+                                                        onChange={(e) => setEditFormData({ ...editFormData, driver_license_expiry: e.target.value })}
+                                                        className="font-bold"
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="prdp_number" className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">PrDP Number</Label>
+                                                    <Input
+                                                        id="prdp_number"
+                                                        value={editFormData.prdp_number}
+                                                        onChange={(e) => setEditFormData({ ...editFormData, prdp_number: e.target.value })}
+                                                        className="font-bold"
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="prdp_expiry" className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">PrDP Expiry</Label>
+                                                    <Input
+                                                        id="prdp_expiry"
+                                                        type="date"
+                                                        value={editFormData.prdp_expiry}
+                                                        onChange={(e) => setEditFormData({ ...editFormData, prdp_expiry: e.target.value })}
+                                                        className="font-bold"
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="vehicle_disk_expiry" className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">Vehicle Disk Expiry</Label>
+                                                    <Input
+                                                        id="vehicle_disk_expiry"
+                                                        type="date"
+                                                        value={editFormData.vehicle_disk_expiry}
+                                                        onChange={(e) => setEditFormData({ ...editFormData, vehicle_disk_expiry: e.target.value })}
+                                                        className="font-bold"
+                                                    />
+                                                </div>
+                                                <div className="space-y-2 md:col-span-2">
+                                                    <Label htmlFor="operating_areas" className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">Operating Areas</Label>
+                                                    <Input
+                                                        id="operating_areas"
+                                                        value={editFormData.operating_areas}
+                                                        onChange={(e) => setEditFormData({ ...editFormData, operating_areas: e.target.value })}
+                                                        placeholder="e.g. Sandton, Midrand, Pretoria"
+                                                        className="font-bold"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-3">
+                                                <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Registered Vehicles</Label>
+                                                {Array.isArray(selectedUser?.driver_services) && selectedUser?.driver_services.length > 0 ? (
+                                                    <div className="grid grid-cols-1 gap-4">
+                                                        {selectedUser.driver_services.map((vehicle: any, index: number) => {
+                                                            const images = Array.isArray(vehicle?.images) ? vehicle.images.filter(Boolean) : [];
+                                                            return (
+                                                                <div key={`${vehicle?.registration_number || vehicle?.plate || index}`} className="border border-slate-200 bg-slate-50 p-4 space-y-3">
+                                                                    <div className="flex items-start justify-between gap-3">
+                                                                        <div>
+                                                                            <p className="text-sm font-bold text-slate-900">
+                                                                                {[vehicle?.car_make || vehicle?.make, vehicle?.car_model || vehicle?.model].filter(Boolean).join(" ") || "Registered vehicle"}
+                                                                            </p>
+                                                                            <p className="text-xs text-slate-500 mt-1">
+                                                                                Plate: {vehicle?.registration_number || vehicle?.license_plate || vehicle?.plate || "—"}
+                                                                            </p>
+                                                                        </div>
+                                                                        <Badge className="bg-slate-100 text-slate-700 border-slate-200">
+                                                                            {(vehicle?.car_type || "vehicle").toString().replace(/_/g, " ")}
+                                                                        </Badge>
+                                                                    </div>
+                                                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                                                                        <div>
+                                                                            <p className="text-slate-400 font-bold uppercase tracking-widest">Year</p>
+                                                                            <p className="mt-1 font-semibold text-slate-700">{vehicle?.car_year || vehicle?.year || "—"}</p>
+                                                                        </div>
+                                                                        <div>
+                                                                            <p className="text-slate-400 font-bold uppercase tracking-widest">Color</p>
+                                                                            <p className="mt-1 font-semibold text-slate-700">{vehicle?.color || "—"}</p>
+                                                                        </div>
+                                                                        <div>
+                                                                            <p className="text-slate-400 font-bold uppercase tracking-widest">Seats</p>
+                                                                            <p className="mt-1 font-semibold text-slate-700">{vehicle?.seats || "—"}</p>
+                                                                        </div>
+                                                                        <div>
+                                                                            <p className="text-slate-400 font-bold uppercase tracking-widest">Disk Expiry</p>
+                                                                            <p className="mt-1 font-semibold text-slate-700">{vehicle?.disk_expiry || selectedUser?.vehicle_disk_expiry || "—"}</p>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                                                                        <span className="inline-flex items-center px-2.5 py-1 font-bold bg-white border border-slate-200 text-slate-700">
+                                                                            {images.length} image{images.length === 1 ? "" : "s"}
+                                                                        </span>
+                                                                        {vehicle?.disk_document && (
+                                                                            <a
+                                                                                href={getImageUrl(vehicle.disk_document)}
+                                                                                target="_blank"
+                                                                                rel="noreferrer"
+                                                                                className="inline-flex items-center gap-1 px-2.5 py-1 font-bold bg-white border border-slate-200 text-[#5e35b1] hover:bg-purple-50"
+                                                                            >
+                                                                                <ExternalLink className="w-3.5 h-3.5" />
+                                                                                View Disk
+                                                                            </a>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                ) : (
+                                                    <div className="border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-500">
+                                                        No structured vehicle record is attached to this driver yet.
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     </section>
@@ -1213,10 +1522,13 @@ export const UsersManagement = () => {
                                                 className="w-5 h-5 border-slate-300 data-[state=checked]:bg-[#5e35b1] data-[state=checked]:border-[#5e35b1]"
                                                 checked={editFormData.is_approved}
                                                 onCheckedChange={(checked) => setEditFormData({ ...editFormData, is_approved: !!checked })}
+                                                disabled={approvalBlockedByPayment}
                                             />
                                             <div className="space-y-0.5">
                                                 <Label htmlFor="is_approved_status" className="text-xs font-bold text-slate-700 cursor-pointer">Account Approved</Label>
-                                                <p className="text-[9px] text-slate-500 font-medium">Administrative approval</p>
+                                                <p className="text-[9px] text-slate-500 font-medium">
+                                                    {approvalBlockedByPayment ? "Registration fee must be paid before approval." : "Administrative approval"}
+                                                </p>
                                             </div>
                                         </div>
                                         <div className="flex items-center space-x-3 p-3 bg-white  border border-slate-100 shadow-sm">

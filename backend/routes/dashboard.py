@@ -3,18 +3,19 @@ Dashboard Routes
 """
 import uuid
 from datetime import datetime, timezone
+from urllib.parse import quote
 from flask import Blueprint, request, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from marshmallow import Schema, fields, ValidationError
 from sqlalchemy import or_, and_, func
-from backend.models import User, Wallet, WalletTransaction, Order, ServiceRequest, Payment, AppSetting, WithdrawalRequest
+from backend.models import User, Wallet, WalletTransaction, Order, ServiceRequest, Payment, AppSetting, WithdrawalRequest, PendingProfileUpdate
 from backend.services.payment_service import PaymentService
 from backend.services.wallet_service import WalletService
 from backend.services.agent_service import AgentService
 from backend.services.recon_service import run_recon_for_user
 from backend.utils.response import success_response, error_response
 from backend.utils.decorators import require_auth
-from backend.utils.url import get_public_backend_base_url, get_request_frontend_base_url
+from backend.utils.url import get_public_backend_base_url, get_request_frontend_base_url, get_request_frontend_return_path
 from backend.extensions import db
 from backend.services.request_service import RequestService
 
@@ -48,6 +49,7 @@ def get_dashboard():
         available_ride_requests = []
         available_ride_requests_payload = []
         driver_earnings = None
+        driver_cab_eligibility = None
         professional_earnings = None
         service_provider_earnings = None
         available_professional_requests = []
@@ -56,7 +58,7 @@ def get_dashboard():
         recent_service_provider_jobs = []
 
         def _ride_request_with_client(r):
-            d = r.to_dict()
+            d = RequestService.serialize_request(r)
             if r.requester_id and r.requester:
                 requester = r.requester
                 pdata = requester.data or {}
@@ -68,6 +70,10 @@ def get_dashboard():
             return d
         
         if user.role == 'driver':
+            driver_cab_eligibility = RequestService.get_driver_cab_eligibility(
+                user,
+                require_fresh_location=True,
+            )
             # Get recent service rides requests (3 most recent) - rides driver has accepted
             request_type = 'cab'
             provider_id = user.id
@@ -103,11 +109,16 @@ def get_dashboard():
             
             # Get available ride requests (pending cab requests that match driver's car type)
             user_data = user.data or {}
-            driver_services = user_data.get('driver_services', [])
+            driver_services = user_data.get('driver_services') or []
+            legacy_car_details = user_data.get('car_details') or {}
+            if not driver_services and isinstance(legacy_car_details, dict) and legacy_car_details:
+                driver_services = [legacy_car_details]
             
             # Get driver's car types
             driver_car_types = set()
             for service in driver_services:
+                if not isinstance(service, dict):
+                    continue
                 car_type = service.get('car_type')
                 if car_type:
                     driver_car_types.add(car_type.lower())
@@ -127,7 +138,7 @@ def get_dashboard():
             for req in pending_cab_requests:
                 if not driver_car_types:
                     continue
-                if RequestService.refresh_expired_cab_dispatch_if_needed(req):
+                if driver_cab_eligibility.get('eligible') and RequestService.refresh_pending_cab_dispatch_if_needed(req):
                     dispatch_changed = True
                 if RequestService.can_driver_view_cab_offer(req, user):
                     available_ride_requests.append(req)
@@ -138,7 +149,18 @@ def get_dashboard():
 
             available_ride_requests_payload = [_ride_request_with_client(r) for r in available_ride_requests]
             
-            driver_services = (user.data or {}).get('driver_services', [])
+            driver_services = (user.data or {}).get('driver_services') or []
+            if not driver_services and isinstance((user.data or {}).get('car_details'), dict):
+                fallback_vehicle = (user.data or {}).get('car_details') or {}
+                if fallback_vehicle:
+                    driver_services = [fallback_vehicle]
+            pending_vehicle_update = PendingProfileUpdate.query.filter_by(
+                user_id=user.id,
+                status='pending'
+            ).order_by(PendingProfileUpdate.created_at.desc()).first()
+            pending_driver_services = []
+            if pending_vehicle_update and isinstance(pending_vehicle_update.payload, dict):
+                pending_driver_services = pending_vehicle_update.payload.get('driver_services') or []
         
         elif user.role == 'professional':
             # Get recent professional jobs (3 most recent) - jobs professional has accepted
@@ -183,12 +205,20 @@ def get_dashboard():
                 and_(
                     ServiceRequest.request_type == 'professional',
                     ServiceRequest.status == 'pending',
-                    ServiceRequest.provider_id.is_(None)
+                or_(
+                    ServiceRequest.provider_id.is_(None),
+                    ServiceRequest.provider_id == user.id
+                    #directly booked for this specific professional
                 )
+              ) 
             ).order_by(ServiceRequest.created_at.desc()).limit(10).all()
             
             # Filter by gender matching
             for req in pending_professional_requests:
+                if req.provider_id and str(req.provider_id) == str(user.id):
+                    available_professional_requests.append(req)
+                    continue
+
                 request_details = req.details or {}
                 request_gender_pref = request_details.get('gender')
                 
@@ -243,12 +273,20 @@ def get_dashboard():
                 and_(
                     ServiceRequest.request_type == 'provider',
                     ServiceRequest.status == 'pending',
-                    ServiceRequest.provider_id.is_(None)
+                    or_(
+                        ServiceRequest.provider_id.is_(None),
+                        ServiceRequest.provider_id == user.id
+                    )
+                    
                 )
             ).order_by(ServiceRequest.created_at.desc()).limit(10).all()
             
             # Filter by gender matching
             for req in pending_provider_requests:
+                if req.provider_id and str(req.provider_id) == str(user.id):
+                    available_service_provider_requests.append(req)
+                    continue
+                    
                 request_details = req.details or {}
                 request_gender_pref = request_details.get('gender')
                 
@@ -279,9 +317,23 @@ def get_dashboard():
             'active_professional_jobs': [_ride_request_with_client(r) for r in active_professional_jobs] if user.role == 'professional' else [],
             'active_service_provider_jobs': [_ride_request_with_client(r) for r in active_service_provider_jobs] if user.role == 'service-provider' else []
         }
+        if user.role == 'driver':
+            # Keep the legacy cab-specific key for the current dashboard UI.
+            payload['available_cab_requests'] = payload['available_ride_requests']
         if driver_earnings is not None:
             payload['driver_earnings'] = driver_earnings
             payload['driver_services'] = driver_services
+            payload['pending_driver_services'] = pending_driver_services
+            payload['vehicle_update_pending'] = bool(pending_driver_services)
+            payload['cab_eligibility'] = {
+                'eligible': bool(driver_cab_eligibility and driver_cab_eligibility.get('eligible')),
+                'missing_fields': (driver_cab_eligibility or {}).get('missing_fields', []),
+                'missing_labels': RequestService.humanize_driver_missing_fields(
+                    (driver_cab_eligibility or {}).get('missing_fields', [])
+                ),
+                'current_location': (driver_cab_eligibility or {}).get('current_location'),
+                'vehicle': (driver_cab_eligibility or {}).get('vehicle'),
+            }
         if professional_earnings is not None:
             payload['professional_earnings'] = professional_earnings
             payload['professional_services'] = professional_services
@@ -427,13 +479,14 @@ def wallet_top_up():
         # Create checkout session
         backend_url = get_public_backend_base_url()
         frontend_url = get_request_frontend_base_url()
+        return_path = quote(get_request_frontend_return_path('/wallet'), safe='')
         checkout_result = PaymentService.create_checkout(
             amount=amount_cents,
             currency=currency,
             external_id=external_id,
-            success_url=f"{backend_url}/api/payments/wallet-topup-callback?callback_status=success&external_id={external_id}&frontend_url={frontend_url}",
-            cancel_url=f"{backend_url}/api/payments/wallet-topup-callback?callback_status=cancel&external_id={external_id}&frontend_url={frontend_url}",
-            failure_url=f"{backend_url}/api/payments/wallet-topup-callback?callback_status=failure&external_id={external_id}&frontend_url={frontend_url}"
+            success_url=f"{backend_url}/api/payments/wallet-topup-callback?callback_status=success&external_id={external_id}&frontend_url={frontend_url}&return_path={return_path}",
+            cancel_url=f"{backend_url}/api/payments/wallet-topup-callback?callback_status=cancel&external_id={external_id}&frontend_url={frontend_url}&return_path={return_path}",
+            failure_url=f"{backend_url}/api/payments/wallet-topup-callback?callback_status=failure&external_id={external_id}&frontend_url={frontend_url}&return_path={return_path}"
         )
         
         # Update payment metadata with wallet info

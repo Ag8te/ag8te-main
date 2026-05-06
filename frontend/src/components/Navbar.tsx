@@ -87,16 +87,16 @@ const Navbar = () => {
           : "bg-slate-900/40 backdrop-blur-md py-4 border-b border-white/10"
       )}
     >
-      <nav className="container mx-auto flex items-center justify-between px-6">
+      <nav className="container mx-auto flex items-center justify-between gap-4 px-6 lg:grid lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:items-center">
 
         {/* ── Logo ─────────────────────────────────────────────────────────── */}
         <button
           onClick={() => navigate("/")}
-          className="flex items-center gap-2.5 group"
+          className="flex items-center gap-3 group shrink-0"
         >
           <div className={cn(
-            "h-8 w-auto flex items-center justify-center overflow-hidden rounded-lg transition-all",
-            isTransparent ? "" : "bg-primary/10 px-1.5"
+            "h-10 w-auto flex items-center justify-center overflow-hidden rounded-xl transition-all lg:h-11",
+            isTransparent ? "drop-shadow-sm" : "bg-primary/10 px-2"
           )}>
             <img
               src={logo}
@@ -108,7 +108,7 @@ const Navbar = () => {
             />
           </div>
           <span className={cn(
-            "text-[17px] font-semibold tracking-tight transition-colors",
+            "text-[16px] font-semibold tracking-tight transition-colors lg:text-[17px]",
             isTransparent ? "text-white" : "text-[#222222]"
           )}>
             MzansiServe
@@ -116,14 +116,14 @@ const Navbar = () => {
         </button>
 
         {/* ── Desktop nav links (centred) ──────────────────────────────────── */}
-        <ul className="hidden items-center gap-1 lg:flex absolute left-1/2 -translate-x-1/2">
+        <ul className="hidden min-w-0 items-center justify-center gap-0.5 lg:flex">
           {dynamicLinks.map(link => (
             <li key={link.label}>
               <Link
                 to={link.to}
                 onClick={(e) => handleNavLinkClick(e, link)}
                 className={cn(
-                  "px-4 py-2 text-[13px] font-medium transition-all rounded-full",
+                  "rounded-full px-2.5 py-2 text-[12px] font-medium transition-all xl:px-4 xl:text-[13px]",
                   location.pathname === link.to
                     ? isTransparent
                       ? "text-white bg-white/20"
@@ -140,7 +140,7 @@ const Navbar = () => {
         </ul>
 
         {/* ── Desktop right: cart + auth ───────────────────────────────────── */}
-        <div className="hidden items-center gap-3 lg:flex">
+        <div className="hidden items-center justify-end gap-2 lg:flex">
           {/* Cart */}
           <CartDrawer>
             <div className="relative cursor-pointer">
@@ -173,7 +173,7 @@ const Navbar = () => {
               <Link
                 to="/profile"
                 className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all cursor-pointer hover:shadow-md",
+                  "flex items-center gap-2 rounded-full border px-2.5 py-1.5 transition-all cursor-pointer hover:shadow-md xl:px-3",
                   isTransparent
                     ? "bg-white/10 border-white/20 text-white"
                     : "bg-white border-slate-200 text-[#222222]"
@@ -188,7 +188,7 @@ const Navbar = () => {
                 ) : (
                   <User className="h-4 w-4" />
                 )}
-                <span className="text-[13px] font-medium">{user?.name?.split(" ")[0]}</span>
+                <span className="hidden text-[13px] font-medium xl:inline">{user?.name?.split(" ")[0]}</span>
               </Link>
               <Button
                 variant="ghost"
@@ -213,7 +213,7 @@ const Navbar = () => {
               <Link
                 to="/login"
                 className={cn(
-                  "px-4 py-2 text-[13px] font-medium transition-colors rounded-full",
+                  "rounded-full px-3 py-2 text-[12px] font-medium transition-colors xl:px-4 xl:text-[13px]",
                   isTransparent ? "hover:bg-white/10" : "hover:bg-slate-50"
                 )}
               >
@@ -223,7 +223,7 @@ const Navbar = () => {
               <Link
                 to="/register"
                 className={cn(
-                  "px-4 py-2 text-[13px] font-medium transition-colors rounded-full",
+                  "rounded-full px-3 py-2 text-[12px] font-medium transition-colors xl:px-4 xl:text-[13px]",
                   isTransparent ? "hover:bg-white/10" : "hover:bg-slate-50"
                 )}
               >
