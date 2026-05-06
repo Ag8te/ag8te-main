@@ -457,6 +457,64 @@ MzansiServe Support Team"""
         )
         EmailService.send_email(email_id=email.id)
         return email
+
+    @staticmethod
+    def send_request_accepted_email(user, service_request):
+        """Notify the requester that their service request has been accepted."""
+        if not user or not service_request:
+            return None
+
+        first_name = _first_name(user)
+        provider = getattr(service_request, 'provider', None)
+        provider_name = 'Service Provider'
+        if provider:
+            provider_name = (
+                (provider.data or {}).get('full_name')
+                or getattr(provider, 'name', None)
+                or getattr(provider, 'email', None)
+                or provider_name
+            )
+
+        service_name = (service_request.request_type or 'service').replace('_', ' ').title()
+        booking_date = service_request.scheduled_date or ''
+        if service_request.scheduled_time:
+            booking_date = f"{booking_date} {service_request.scheduled_time}".strip()
+        booking_date = booking_date or 'To be confirmed'
+
+        subject = "Your Booking Has Been Accepted - MzansiServe"
+        body = f"""Hi {first_name},
+
+Good news. Your booking has been accepted.
+
+Service: {service_name}
+Accepted By: {provider_name}
+Scheduled For: {booking_date}
+Request Reference: {service_request.id}
+
+You can log in to MzansiServe to view the booking details and next steps.
+
+Regards,
+MzansiServe Support Team"""
+        body_html = f"""<html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; text-align: left;">
+<p>Hi {first_name},</p>
+<p>Good news. Your booking has been accepted.</p>
+<p><strong>Service:</strong> {service_name}<br>
+<strong>Accepted By:</strong> {provider_name}<br>
+<strong>Scheduled For:</strong> {booking_date}<br>
+<strong>Request Reference:</strong> {service_request.id}</p>
+<p>You can log in to MzansiServe to view the booking details and next steps.</p>
+<p>Regards,<br>MzansiServe Support Team</p>
+</body></html>"""
+
+        email = EmailService.queue_email(
+            recipient=user.email,
+            subject=subject,
+            body=body,
+            body_html=body_html,
+            metadata={'type': 'request_accepted', 'user_id': str(user.id), 'request_id': service_request.id}
+        )
+        EmailService.send_email(email_id=email.id)
+        return email
     
     @staticmethod
     def send_id_verification_notification(user, status, reason=None):
@@ -600,66 +658,6 @@ MzansiServe Compliance Team"""
             body=body,
             body_html=body_html,
             metadata={'type': 'user_suspension', 'user_id': str(user.id)}
-        )
-        EmailService.send_email(email_id=email.id)
-        return email
-    
-    @staticmethod
-    def send_booking_notification(provider_user, service_request, requester_user=None):
-        """Notify provider of a new service request"""
-
-        first_name = _first_name(provider_user)
-        requester_name = "Client"
-        if requester_user and requester_user.data:
-            requester_name = (
-                requester_user.data.get("full_name")
-                or requester_user.email
-                or requester_name
-           )
-
-        frontend_url = get_public_frontend_base_url()
-        dashboard_url = f"{frontend_url}/dashboard/requests/{service_request.id}"
-
-        booking_date = service_request.scheduled_date or "N/A"
-        if service_request.scheduled_time:
-            booking_date = f"{booking_date} {service_request.scheduled_time}"
-
-        subject = f"New {service_request.request_type.title()} booking - action required"
-        body = f"""Hi {first_name},
-
-    You have a new booking on MzansiServe.
-
-    Client: {requester_name}
-    Service: {service_request.request_type.title()}
-    Booking Date: {booking_date}
-    Request ID: {service_request.id}
-
-    Please log in and accept or reject this booking:
-    {dashboard_url}
-
-    Regards,
-    MzansiServe Team"""
-        body_html = f"""<html><body>
-        <p>Hi {first_name},</p>
-        <p>You have a new booking on MzansiServe.</p>
-        <p><strong>Client:</strong> {requester_name}<br>
-        <strong>Service:</strong> {service_request.request_type.title()}<br>
-        <strong>Booking Date:</strong> {booking_date}<br>
-        <strong>Request ID:</strong> {service_request.id}</p>
-        <p>Please log in and <strong>accept or reject</strong> this booking.</p>
-        <p><a href="{dashboard_url}">Open booking</a></p>
-        </body></html>"""
-
-        email = EmailService.queue_email(
-            recipient=provider_user.email,
-           subject=subject,
-            body=body,
-            body_html=body_html,
-            metadata={
-                "type": "booking_notification",
-                "request_id": service_request.id,
-                 "provider_id": str(provider_user.id),
-            },
         )
         EmailService.send_email(email_id=email.id)
         return email
