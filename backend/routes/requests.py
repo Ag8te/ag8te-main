@@ -132,7 +132,7 @@ def create_request():
         service_request, error = RequestService.create_request(data, user_id)
         
         provider = None
-        if service_request.request_type in ("professional", "provider") and service_request.provider_id:
+        if service_request and service_request.request_type in ("professional", "provider") and service_request.provider_id:
             provider = User.query.get(service_request.provider_id)
             requester = User.query.get(service_request.requester_id)
             if provider and provider.email:
@@ -503,8 +503,6 @@ def get_busy_slots(provider_id):
     slots = [r.scheduled_time for r in busy_requests]
     return success_response({'busy_slots': slots})
 
-from backend.services.email_service import EmailService
-
 @bp.route('/<request_id>/accept', methods=['POST'])
 @require_auth
 def accept_request(request_id):
@@ -540,7 +538,10 @@ def accept_request(request_id):
         provider = User.query.get(user_id)
         
         if provider and provider.email:
-            EmailService.send_request_accepted_email(provider.email, service_request)
+            try:
+                EmailService.send_request_accepted_email(provider, service_request)
+            except Exception as e:
+                current_app.logger.error(f"Error sending request accepted email: {str(e)}")
         
         service_request.status = 'accepted'
         db.session.commit()
@@ -1416,7 +1417,7 @@ def reject_request(request_id):
             # Check if user is the assigned provider or candidate
             if service_request.provider_id and str(service_request.provider_id) != user_id:
                 return error_response('FORBIDDEN', 'You are not assigned to this request', None, 403)
-            service_request.status = 'cancelled'
+            service_request.status = 'pending'
             service_request.provider_id = None
         db.session.commit()
         
