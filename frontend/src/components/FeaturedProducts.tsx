@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from "react";
 import { motion, useInView } from "framer-motion";
-import { ShoppingBag, ArrowRight } from "lucide-react";
+import { ShoppingBag, ArrowRight, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { apiFetch, API_BASE_URL, getImageUrl } from "@/lib/api";
@@ -13,6 +13,7 @@ interface Product {
     image_url: string | null;
     category?: { title: string } | null;
     in_stock: boolean;
+    seller_name?: string;
 }
 
 const FeaturedProducts = () => {
@@ -91,6 +92,10 @@ const FeaturedProducts = () => {
                                                 Sold Out
                                             </span>
                                         )}
+                                        <div className="absolute right-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-emerald-500/95 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-white shadow-xl">
+                                            <ShieldCheck className="h-3.5 w-3.5" />
+                                            Verified
+                                        </div>
                                     </div>
                                     <div className="p-6">
                                         <div className="flex justify-between items-start mb-2">
@@ -103,6 +108,19 @@ const FeaturedProducts = () => {
                                         <h3 className="font-bold text-base text-[#222222] leading-tight line-clamp-1 mb-2">
                                             {product.name}
                                         </h3>
+                                        <div className="mb-3 flex items-start gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/80 px-3 py-2.5">
+                                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl bg-white text-emerald-600 shadow-sm">
+                                                <ShieldCheck className="h-4 w-4" />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700">
+                                                    Verified seller
+                                                </p>
+                                                <p className="truncate text-sm font-bold text-emerald-950">
+                                                    {product.seller_name || "MzansiServe"}
+                                                </p>
+                                            </div>
+                                        </div>
                                         <p className="font-bold text-lg text-primary">
                                             R{!isNaN(price) ? price.toLocaleString() : "—"}
                                         </p>

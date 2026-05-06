@@ -9,6 +9,7 @@ from backend.extensions import db
 from backend.utils.response import success_response, error_response
 from backend.utils.decorators import require_auth
 from backend.services.payment_service import PaymentService
+from backend.services.shipping_service import ShiplogicService
 from datetime import datetime
 import secrets
 import uuid
@@ -141,6 +142,53 @@ def list_subcategories():
     except Exception as e:
         current_app.logger.error(f"List subcategories error: {str(e)}")
         return error_response('INTERNAL_ERROR', 'Failed to list subcategories', None, 500)
+
+
+@bp.route('/shipping/rates', methods=['POST'])
+@require_auth
+def get_shipping_rates():
+    """Quote Courier Guy / Shiplogic shipping rates for the current cart."""
+    try:
+        data = request.get_json(silent=True) or {}
+        items = data.get('items') or []
+        shipping = data.get('shipping') or {}
+        recipient = data.get('recipient') or {}
+
+        if not items:
+            return error_response('INVALID_REQUEST', 'Cart items are required to calculate shipping.', None, 400)
+
+        required_shipping = ['street_address', 'suburb', 'city', 'province', 'postal_code']
+        missing_shipping = [field for field in required_shipping if not shipping.get(field)]
+        if missing_shipping:
+            return error_response(
+                'VALIDATION_ERROR',
+                'Shipping address is incomplete.',
+                {'missing_fields': missing_shipping},
+                400
+            )
+
+        required_recipient = ['first_name', 'last_name', 'email', 'phone']
+        missing_recipient = [field for field in required_recipient if not recipient.get(field)]
+        if missing_recipient:
+            return error_response(
+                'VALIDATION_ERROR',
+                'Recipient information is incomplete.',
+                {'missing_fields': missing_recipient},
+                400
+            )
+
+        rates = ShiplogicService.get_rates_for_order(items, shipping, recipient)
+        readiness = ShiplogicService.get_readiness()
+        return success_response({
+            'shipping_ready': readiness.get('ready'),
+            'courier': 'The Courier Guy',
+            'rates': rates,
+        })
+    except ValueError as e:
+        return error_response('INVALID_REQUEST', str(e), None, 400)
+    except Exception as e:
+        current_app.logger.error(f"Get shipping rates error: {str(e)}")
+        return error_response('INTERNAL_ERROR', 'Failed to get shipping rates', None, 500)
 
 @bp.route('/orders', methods=['POST'])
 @require_auth

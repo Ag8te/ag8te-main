@@ -1,6 +1,11 @@
 import { Suspense, lazy, useState, useEffect, useCallback, type ComponentType } from "react";
 import { useNavigate } from "react-router-dom";
 import {
+    Box,
+    CircularProgress,
+    Typography,
+} from "@mui/material";
+import {
     Dashboard as LayoutTemplate,
     People as Users,
     Assignment as ClipboardList,

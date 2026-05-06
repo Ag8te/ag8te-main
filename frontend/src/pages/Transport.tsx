@@ -15,14 +15,10 @@ import { apiFetch } from "@/lib/api";
 import { useJsApiLoader, Autocomplete, GoogleMap, Marker } from "@react-google-maps/api";
 import { formatUTCtoSAST, getMinBookableTimeSAST } from "@/lib/dateUtils";
 import { getCurrentLocationAddress } from "@/lib/locationUtils";
+import { GOOGLE_MAPS_API_KEY, GOOGLE_MAPS_PLACE_LIBRARIES } from "@/lib/googleMaps";
 import { useSearchParams } from "react-router-dom";
 
 type Step = 1 | 2 | 3;
-
-const LIBRARIES: ("places")[] = ["places"];
-
-// Using the key found in .env as a stable default to avoid 404 fetch issues during dev
-const GOOGLE_MAPS_API_KEY = "AIzaSyBtXh26PcILBqis4Ad66wPetvU_wUKMNRs";
 
 const VEHICLE_TYPES = [
   { id: "hatchback", name: "Small Hatchback", desc: "Affordable compact rides", icon: Car, capacity: 3, multiplier: 1, details: "Perfect for zip city travel" },
@@ -172,7 +168,7 @@ const Transport = () => {
   const { isLoaded, loadError } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: GOOGLE_MAPS_API_KEY,
-    libraries: LIBRARIES,
+    libraries: GOOGLE_MAPS_PLACE_LIBRARIES,
   });
 
   const [step, setStep] = useState<Step>(1);

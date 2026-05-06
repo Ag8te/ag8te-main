@@ -10,10 +10,16 @@ from backend.extensions import db
 from backend.models import User, ServiceRequest, ServiceType, UserSelectedService, Payment, PendingProfileUpdate, AppSetting, Agent
 from backend.services.email_service import EmailService
 from backend.services.request_service import RequestService
+from backend.services.shipping_service import ShiplogicService
 
 logger = logging.getLogger(__name__)
 
 class AdminService:
+    @staticmethod
+    def requires_registration_payment_before_approval(user):
+        """True when a user must pay the registration fee before approval can proceed."""
+        return bool(user and user.role not in ('client', 'admin') and not user.is_paid)
+
     @staticmethod
     def _countable_user_query():
         """Users visible in admin growth/base metrics.
@@ -113,6 +119,16 @@ class AdminService:
         if not user:
             return None, "NOT_FOUND"
 
+        if AdminService.requires_registration_payment_before_approval(user):
+            try:
+                EmailService.send_registration_payment_reminder(user)
+            except Exception as e:
+                logger.error(f"Registration payment reminder email failed: {e}")
+            return {
+                'user': user.to_dict(),
+                'action': 'payment_reminder_sent'
+            }, None
+
         if user.role == 'driver':
             compliance = RequestService.get_driver_cab_eligibility(
                 user,
@@ -144,7 +160,10 @@ class AdminService:
         except Exception as e:
             logger.error(f"Approval email failed: {e}")
             
-        return user.to_dict(), None
+        return {
+            'user': user.to_dict(),
+            'action': 'approved'
+        }, None
 
     @staticmethod
     def verify_id(user_id, status, reason=None):
@@ -282,15 +301,27 @@ class AdminService:
         from sqlalchemy import func
         from datetime import timedelta
         
-        shop_revenue = db.session.query(func.sum(Order.total)).filter(Order.status == 'paid').scalar() or 0
+        shop_revenue = db.session.query(func.sum(Order.total)).filter(
+            Order.status.in_(['paid', 'shipped', 'delivered'])
+        ).scalar() or 0
+        ride_revenue = db.session.query(func.sum(ServiceRequest.payment_amount)).filter(
+            ServiceRequest.request_type == 'cab',
+            ServiceRequest.payment_status == 'paid'
+        ).scalar() or 0
         service_revenue = db.session.query(func.sum(ServiceRequest.payment_amount)).filter(
+            ServiceRequest.request_type.in_(['professional', 'provider']),
             ServiceRequest.payment_status == 'paid'
         ).scalar() or 0
         registration_revenue = db.session.query(func.sum(Payment.amount)).filter(
             Payment.status == 'completed',
             Payment.external_id.like('reg_fee_%')
         ).scalar() or 0
-        total_revenue = float(shop_revenue) + float(service_revenue) + float(registration_revenue)
+        total_revenue = (
+            float(shop_revenue)
+            + float(ride_revenue)
+            + float(service_revenue)
+            + float(registration_revenue)
+        )
         
         seven_days_ago = datetime.utcnow() - timedelta(days=7)
         today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
@@ -308,18 +339,20 @@ class AdminService:
         cab_requests_query = ServiceRequest.query.filter(ServiceRequest.request_type == 'cab')
         cab_requests = cab_requests_query.all()
 
-        ride_searching = 0
+        ride_matching = 0
         ride_assigned = 0
         ride_on_trip = 0
+        ride_cancelled = 0
         for ride in cab_requests:
-            details = ride.details or {}
-            dispatch_state = details.get('dispatch_state')
-            if ride.status == 'pending' and dispatch_state == 'searching':
-                ride_searching += 1
-            elif ride.status == 'accepted' and not details.get('cab_trip_started'):
+            ride_stage = RequestService.get_cab_ride_stage(ride)
+            if ride_stage in ('searching', 'no_drivers_available'):
+                ride_matching += 1
+            elif ride_stage == 'driver_assigned':
                 ride_assigned += 1
-            elif details.get('cab_trip_started') and ride.status != 'completed':
+            elif ride_stage == 'on_trip':
                 ride_on_trip += 1
+            elif ride_stage == 'cancelled' or ride.status == 'cancelled':
+                ride_cancelled += 1
 
         return {
             'users': {
@@ -336,9 +369,12 @@ class AdminService:
                 'completed': ServiceRequest.query.filter_by(status='completed').count(),
                 'rides': {
                     'total': cab_requests_query.count(),
-                    'searching': ride_searching,
+                    'matching': ride_matching,
+                    'searching': ride_matching,
+                    'en_route': ride_assigned,
                     'assigned': ride_assigned,
                     'on_trip': ride_on_trip,
+                    'cancelled': ride_cancelled,
                     'completed_today': cab_requests_query.filter(
                         ServiceRequest.status == 'completed',
                         ServiceRequest.updated_at >= today_start
@@ -352,6 +388,7 @@ class AdminService:
             'revenue': {
                 'total': total_revenue,
                 'shop': float(shop_revenue),
+                'ride': float(ride_revenue),
                 'service': float(service_revenue),
                 'registration': float(registration_revenue)
             },
@@ -370,7 +407,12 @@ class AdminService:
         """Get all payment gateway settings"""
         paypal = AppSetting.query.get('payment_paypal')
         yoco = AppSetting.query.get('payment_yoco')
+        shiplogic = AppSetting.query.get(ShiplogicService.SETTING_KEY)
         
+        shiplogic_settings = ShiplogicService.get_settings()
+        if shiplogic and isinstance(shiplogic.value, dict):
+            shiplogic_settings.update(shiplogic.value)
+
         return {
             'paypal': paypal.value if paypal else {
                 'enabled': False,
@@ -382,15 +424,16 @@ class AdminService:
                 'enabled': False,
                 'secret_key': '',
                 'api_url': current_app.config.get('YOCO_API_URL', 'https://payments.yoco.com')
-            }
+            },
+            'shiplogic': shiplogic_settings
         }, None
 
     @staticmethod
     def update_payment_settings(data):
-        """Update payment gateway settings"""
-        for key in ['paypal', 'yoco']:
+        """Update payment and shipping gateway settings"""
+        for key in ['paypal', 'yoco', 'shiplogic']:
             if key in data:
-                gateway_key = f'payment_{key}'
+                gateway_key = ShiplogicService.SETTING_KEY if key == 'shiplogic' else f'payment_{key}'
                 setting = AppSetting.query.get(gateway_key)
                 if not setting:
                     setting = AppSetting(key=gateway_key)

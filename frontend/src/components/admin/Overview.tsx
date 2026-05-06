@@ -182,7 +182,7 @@ const Overview: React.FC<OverviewProps> = ({
           <MetricCard
             label="Total Platform Revenue"
             value={`R${(stats?.revenue?.total || 0).toLocaleString()}`}
-            caption="Shop, services, and registration fees"
+            caption="Shop, rides, services, and registration fees"
             icon={RevenueIcon}
             color="primary"
             trend="+12.4%"
@@ -219,25 +219,34 @@ const Overview: React.FC<OverviewProps> = ({
       </Grid>
 
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid size={{ xs: 12, md: 4 }}>
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <MetricCard
             label="Shop Revenue"
             value={`R${(stats?.revenue?.shop || 0).toLocaleString()}`}
-            caption="Completed paid shop orders"
+            caption="Paid, shipped, and delivered shop orders"
             icon={OrderIcon}
             color="warning"
           />
         </Grid>
-        <Grid size={{ xs: 12, md: 4 }}>
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+          <MetricCard
+            label="Ride Revenue"
+            value={`R${(stats?.revenue?.ride || 0).toLocaleString()}`}
+            caption="Paid cab ride transactions"
+            icon={RideIcon}
+            color="info"
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <MetricCard
             label="Service Revenue"
             value={`R${(stats?.revenue?.service || 0).toLocaleString()}`}
-            caption="Paid service and call-out requests"
+            caption="Paid professional and provider requests"
             icon={SuccessIcon}
             color="success"
           />
         </Grid>
-        <Grid size={{ xs: 12, md: 4 }}>
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <MetricCard
             label="Registration Fees"
             value={`R${(stats?.revenue?.registration || 0).toLocaleString()}`}
@@ -252,7 +261,7 @@ const Overview: React.FC<OverviewProps> = ({
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <MetricCard
             label="Ride Matching"
-            value={stats?.requests?.rides?.searching?.toLocaleString() || 0}
+            value={(stats?.requests?.rides?.matching ?? stats?.requests?.rides?.searching ?? 0).toLocaleString()}
             caption="Cab rides currently searching for a driver"
             icon={RideIcon}
             color="info"
@@ -261,7 +270,7 @@ const Overview: React.FC<OverviewProps> = ({
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <MetricCard
             label="Drivers En Route"
-            value={stats?.requests?.rides?.assigned?.toLocaleString() || 0}
+            value={(stats?.requests?.rides?.en_route ?? stats?.requests?.rides?.assigned ?? 0).toLocaleString()}
             caption="Accepted rides awaiting pickup"
             icon={RideIcon}
             color="warning"
@@ -278,9 +287,9 @@ const Overview: React.FC<OverviewProps> = ({
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <MetricCard
-            label="Cancelled Today"
-            value={stats?.requests?.rides?.cancelled_today?.toLocaleString() || 0}
-            caption="Cab rides cancelled since midnight"
+            label="Cancelled Rides"
+            value={(stats?.requests?.rides?.cancelled ?? stats?.requests?.rides?.cancelled_today ?? 0).toLocaleString()}
+            caption="Cab rides cancelled across the platform"
             icon={ReportIcon}
             color="error"
           />

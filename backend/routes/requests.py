@@ -348,6 +348,8 @@ def list_requests():
         for req in all_requests:
             # Clients always see their own requests
             if user.role == 'client':
+                if req.request_type == 'cab' and RequestService.refresh_pending_cab_dispatch_if_needed(req):
+                    dispatch_changed = True
                 if req.requester_id and str(req.requester_id) == str(user.id):
                     filtered_requests.append(req)
                 continue
@@ -361,7 +363,7 @@ def list_requests():
             # For pending requests not yet accepted, apply matching logic
             if req.status == 'pending' and (req.provider_id is None or str(req.provider_id) != str(user.id)):
                 request_details = req.details or {}
-                if req.request_type == 'cab' and RequestService.refresh_expired_cab_dispatch_if_needed(req):
+                if req.request_type == 'cab' and RequestService.refresh_pending_cab_dispatch_if_needed(req):
                     dispatch_changed = True
                 
                 if user.role == 'driver':
@@ -460,6 +462,9 @@ def get_request(request_id):
         
         if not service_request:
             return error_response('NOT_FOUND', 'Service request not found', None, 404)
+
+        if RequestService.refresh_pending_cab_dispatch_if_needed(service_request):
+            db.session.commit()
         
         return success_response(RequestService.serialize_request(service_request))
         

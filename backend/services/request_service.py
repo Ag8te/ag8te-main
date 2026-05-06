@@ -28,6 +28,7 @@ class RequestService:
     CAB_DRIVER_SEARCH_RADIUS_KM = 12
     CAB_DRIVER_OFFER_LIMIT = 1
     CAB_DRIVER_OFFER_WINDOW_SECONDS = 30
+    CAB_DRIVER_REOFFER_COOLDOWN_SECONDS = 30
     CAB_DRIVER_LOCATION_MAX_AGE_MINUTES = 15
 
     @staticmethod
@@ -294,6 +295,25 @@ class RequestService:
             preferred_driver_id=details.get('preferred_driver_id'),
         )
 
+        dispatch_updated_at = RequestService._parse_date_value(details.get('dispatch_updated_at'))
+        exhausted_all_candidates = not next_candidates and bool(declined_ids)
+        can_retry_declined_drivers = (
+            exhausted_all_candidates and (
+                dispatch_updated_at is None or
+                (datetime.utcnow() - dispatch_updated_at).total_seconds() >= RequestService.CAB_DRIVER_REOFFER_COOLDOWN_SECONDS
+            )
+        )
+        if can_retry_declined_drivers:
+            retry_candidates = RequestService._select_next_cab_offer_ids(
+                pickup=pickup,
+                car_type=car_type,
+                declined_driver_ids=[],
+                preferred_driver_id=details.get('preferred_driver_id'),
+            )
+            if retry_candidates:
+                next_candidates = retry_candidates
+                declined_ids = []
+
         details['declined_driver_ids'] = declined_ids
         details['targeted_driver_ids'] = next_candidates
         details['dispatch_state'] = 'searching' if next_candidates else 'no_drivers_available'
@@ -335,6 +355,56 @@ class RequestService:
         service_request.details = details
         RequestService.refresh_cab_dispatch(service_request)
         return True
+
+    @staticmethod
+    def refresh_pending_cab_dispatch_if_needed(service_request, retry_after_seconds=None):
+        """Advance a pending cab request toward the next available nearby driver."""
+        if not service_request or service_request.request_type != 'cab':
+            return False
+        if service_request.status != 'pending' or service_request.provider_id is not None:
+            return False
+
+        if RequestService.refresh_expired_cab_dispatch_if_needed(service_request):
+            return True
+
+        details_before = dict(service_request.details or {})
+        if not RequestService.should_retry_unassigned_cab_dispatch(
+            service_request,
+            retry_after_seconds=retry_after_seconds,
+        ):
+            return False
+
+        RequestService.refresh_cab_dispatch(service_request)
+        details_after = dict(service_request.details or {})
+        return details_after != details_before
+
+    @staticmethod
+    def should_retry_unassigned_cab_dispatch(service_request, retry_after_seconds=None):
+        """Return True when an unassigned cab request should be re-evaluated for new drivers."""
+        if not service_request or service_request.request_type != 'cab':
+            return False
+        if service_request.status != 'pending' or service_request.provider_id is not None:
+            return False
+
+        details = service_request.details or {}
+        targeted_ids = details.get('targeted_driver_ids') or []
+        if targeted_ids:
+            return False
+
+        dispatch_state = details.get('dispatch_state')
+        if dispatch_state not in (None, 'no_drivers_available'):
+            return False
+
+        retry_after_seconds = (
+            RequestService.CAB_DRIVER_OFFER_WINDOW_SECONDS
+            if retry_after_seconds is None
+            else max(0, int(retry_after_seconds))
+        )
+        dispatch_updated_at = RequestService._parse_date_value(details.get('dispatch_updated_at'))
+        if dispatch_updated_at is None:
+            return True
+
+        return (datetime.utcnow() - dispatch_updated_at).total_seconds() >= retry_after_seconds
 
     @staticmethod
     def can_driver_view_cab_offer(service_request, driver):

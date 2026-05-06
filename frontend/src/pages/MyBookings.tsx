@@ -18,6 +18,7 @@ import { ChatOverlay } from "@/components/ChatOverlay";
 import { RatingModal } from "@/components/dashboards/RatingModal";
 import { ProviderReviewModal } from "@/components/dashboards/ProviderReviewModal";
 import { BookingDetailsModal } from "@/components/dashboards/BookingDetailsModal";
+import { TripLiveMap } from "@/components/trips/TripLiveMap";
 import { cn } from "@/lib/utils";
 import { formatUTCtoSAST } from "@/lib/dateUtils";
 
@@ -509,6 +510,16 @@ const MyBookings = () => {
                           ))}
                         </div>
                       </div>
+                    )}
+
+                    {req.ride_stage === 'on_trip' && (
+                      <TripLiveMap
+                        className="mt-6"
+                        currentLocation={req.driver_current_location}
+                        destination={req.location_data?.dropoff}
+                        currentLabel="Driver live location"
+                        destinationLabel="Trip destination"
+                      />
                     )}
 
                     <div className="mt-6 flex items-center gap-4 text-slate-400 text-sm">

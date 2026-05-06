@@ -311,6 +311,9 @@ export const UsersManagement = () => {
         };
     };
 
+    const requiresRegistrationPaymentBeforeApproval = (role: string, isPaid: boolean) =>
+        role !== "client" && role !== "admin" && !isPaid;
+
     const fetchUsers = useCallback(async () => {
         setLoading(true);
         try {
@@ -341,15 +344,22 @@ export const UsersManagement = () => {
         fetchUsers();
     }, [fetchUsers]);
 
-    const handleApprove = async (userId: string) => {
+    const handleApprove = async (user: User) => {
         try {
             const adminHeaders = { Authorization: `Bearer ${localStorage.getItem("adminToken")}` };
-            const res = await apiFetch(`/api/admin/users/${userId}/approve`, {
+            const res = await apiFetch(`/api/admin/users/${user.id}/approve`, {
                 method: "PATCH",
                 headers: adminHeaders
             });
             if (res?.success) {
-                toast({ title: "Success", description: "User approved successfully." });
+                if (res.data?.action === "payment_reminder_sent") {
+                    toast({
+                        title: "Reminder sent",
+                        description: "Registration payment is still pending, so the user was not approved. A reminder email was sent instead."
+                    });
+                } else {
+                    toast({ title: "Success", description: "User approved successfully." });
+                }
                 fetchUsers(); // Refresh list
             }
         } catch (error: any) {
@@ -680,7 +690,14 @@ export const UsersManagement = () => {
                 body: JSON.stringify(payload)
             });
             if (res?.success) {
-                toast({ title: "Success", description: `User ${selectedUser ? 'updated' : 'created'} successfully.` });
+                if (res.data?.action === "payment_reminder_sent") {
+                    toast({
+                        title: "Reminder sent",
+                        description: "Update saved, but the user was not approved because the registration fee is still pending. A reminder email was sent."
+                    });
+                } else {
+                    toast({ title: "Success", description: `User ${selectedUser ? 'updated' : 'created'} successfully.` });
+                }
                 setIsEditModalOpen(false);
                 setSelectedUser(null);
                 fetchUsers();
@@ -697,6 +714,7 @@ export const UsersManagement = () => {
     };
 
     const totalPages = Math.ceil(totalUsers / limit);
+    const approvalBlockedByPayment = requiresRegistrationPaymentBeforeApproval(editFormData.role, editFormData.is_paid);
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
@@ -843,13 +861,21 @@ export const UsersManagement = () => {
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                             <div className="flex items-center justify-end gap-2">
                                                 {!user.is_approved && (
-                                                    <button
-                                                        onClick={() => handleApprove(user.id)}
-                                                        className="text-green-600 hover:text-green-900 bg-green-50 hover:bg-green-100 p-1.5  transition-colors"
-                                                        title="Approve User"
-                                                    >
-                                                        <ShieldCheck className="h-4 w-4" />
-                                                    </button>
+                                                    (() => {
+                                                        const needsPaymentReminder = requiresRegistrationPaymentBeforeApproval(user.role, !!user.is_paid);
+                                                        return (
+                                                            <button
+                                                                onClick={() => handleApprove(user)}
+                                                                className={`${needsPaymentReminder
+                                                                    ? "text-amber-600 hover:text-amber-900 bg-amber-50 hover:bg-amber-100"
+                                                                    : "text-green-600 hover:text-green-900 bg-green-50 hover:bg-green-100"
+                                                                    } p-1.5 transition-colors`}
+                                                                title={needsPaymentReminder ? "Send registration payment reminder" : "Approve User"}
+                                                            >
+                                                                {needsPaymentReminder ? <Mail className="h-4 w-4" /> : <ShieldCheck className="h-4 w-4" />}
+                                                            </button>
+                                                        );
+                                                    })()
                                                 )}
                                                 <button
                                                     onClick={() => handleImpersonate(user.id)}
@@ -1496,10 +1522,13 @@ export const UsersManagement = () => {
                                                 className="w-5 h-5 border-slate-300 data-[state=checked]:bg-[#5e35b1] data-[state=checked]:border-[#5e35b1]"
                                                 checked={editFormData.is_approved}
                                                 onCheckedChange={(checked) => setEditFormData({ ...editFormData, is_approved: !!checked })}
+                                                disabled={approvalBlockedByPayment}
                                             />
                                             <div className="space-y-0.5">
                                                 <Label htmlFor="is_approved_status" className="text-xs font-bold text-slate-700 cursor-pointer">Account Approved</Label>
-                                                <p className="text-[9px] text-slate-500 font-medium">Administrative approval</p>
+                                                <p className="text-[9px] text-slate-500 font-medium">
+                                                    {approvalBlockedByPayment ? "Registration fee must be paid before approval." : "Administrative approval"}
+                                                </p>
                                             </div>
                                         </div>
                                         <div className="flex items-center space-x-3 p-3 bg-white  border border-slate-100 shadow-sm">

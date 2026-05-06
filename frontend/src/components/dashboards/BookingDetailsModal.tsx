@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { API_BASE_URL, getImageUrl } from "@/lib/api";
+import { TripLiveMap } from "@/components/trips/TripLiveMap";
 
 interface BookingDetailsModalProps {
     isOpen: boolean;
@@ -277,6 +278,18 @@ export const BookingDetailsModal = ({ isOpen, onClose, data, type }: BookingDeta
                                     )}
                                 </div>
                             </div>
+
+                            {type === 'ride' && data.ride_stage === 'on_trip' && (
+                                <div className="space-y-4">
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Live Trip Map</p>
+                                    <TripLiveMap
+                                        currentLocation={data.driver_current_location}
+                                        destination={data.location_data?.dropoff}
+                                        currentLabel="Driver live location"
+                                        destinationLabel="Trip destination"
+                                    />
+                                </div>
+                            )}
 
                             {/* Items Section (Orders only) */}
                             {type === 'order' && data.items && data.items.length > 0 && (

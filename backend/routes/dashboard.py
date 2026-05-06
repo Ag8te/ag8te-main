@@ -49,6 +49,7 @@ def get_dashboard():
         available_ride_requests = []
         available_ride_requests_payload = []
         driver_earnings = None
+        driver_cab_eligibility = None
         professional_earnings = None
         service_provider_earnings = None
         available_professional_requests = []
@@ -69,6 +70,10 @@ def get_dashboard():
             return d
         
         if user.role == 'driver':
+            driver_cab_eligibility = RequestService.get_driver_cab_eligibility(
+                user,
+                require_fresh_location=True,
+            )
             # Get recent service rides requests (3 most recent) - rides driver has accepted
             request_type = 'cab'
             provider_id = user.id
@@ -133,7 +138,7 @@ def get_dashboard():
             for req in pending_cab_requests:
                 if not driver_car_types:
                     continue
-                if RequestService.refresh_expired_cab_dispatch_if_needed(req):
+                if driver_cab_eligibility.get('eligible') and RequestService.refresh_pending_cab_dispatch_if_needed(req):
                     dispatch_changed = True
                 if RequestService.can_driver_view_cab_offer(req, user):
                     available_ride_requests.append(req)
@@ -320,6 +325,15 @@ def get_dashboard():
             payload['driver_services'] = driver_services
             payload['pending_driver_services'] = pending_driver_services
             payload['vehicle_update_pending'] = bool(pending_driver_services)
+            payload['cab_eligibility'] = {
+                'eligible': bool(driver_cab_eligibility and driver_cab_eligibility.get('eligible')),
+                'missing_fields': (driver_cab_eligibility or {}).get('missing_fields', []),
+                'missing_labels': RequestService.humanize_driver_missing_fields(
+                    (driver_cab_eligibility or {}).get('missing_fields', [])
+                ),
+                'current_location': (driver_cab_eligibility or {}).get('current_location'),
+                'vehicle': (driver_cab_eligibility or {}).get('vehicle'),
+            }
         if professional_earnings is not None:
             payload['professional_earnings'] = professional_earnings
             payload['professional_services'] = professional_services

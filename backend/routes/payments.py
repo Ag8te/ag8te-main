@@ -8,6 +8,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from marshmallow import Schema, fields, ValidationError
 from backend.models import Payment, ServiceRequest, User, Wallet
 from backend.services.payment_service import PaymentService
+from backend.services.shipping_service import ShiplogicService
 from backend.services.wallet_service import WalletService
 from backend.utils.response import success_response, error_response
 from backend.utils.decorators import require_auth
@@ -32,9 +33,80 @@ def _redirect_html(target_url: str, status_code: int = 302):
 
 class CreateOrderSchema(Schema):
     items = fields.List(fields.Dict(), required=True)
-    shipping_address = fields.Str(required=True)
-    total = fields.Float(required=True)
-    provider = fields.Str(load_default='paypal')
+    shipping_address = fields.Str(load_default='')
+    shipping = fields.Dict(load_default=dict)
+    recipient = fields.Dict(load_default=dict)
+    shipping_quote = fields.Dict(allow_none=True, load_default=None)
+    total = fields.Float(load_default=None)
+    provider = fields.Str(load_default='yoco')
+
+
+def _calculate_items_subtotal(items):
+    subtotal = 0.0
+    for item in items:
+        price = float(item.get('price') or 0.0)
+        quantity = int(item.get('quantity') or 0)
+        subtotal += price * max(quantity, 0)
+    return round(subtotal, 2)
+
+
+def _format_delivery_address(shipping):
+    parts = [
+        shipping.get('unit_number'),
+        shipping.get('building_name'),
+        shipping.get('street_address'),
+        shipping.get('suburb'),
+        shipping.get('city'),
+        shipping.get('province'),
+        shipping.get('postal_code'),
+    ]
+    return ", ".join([part for part in parts if part])
+
+
+def _resolve_shipping_quote(data):
+    shipping = data.get('shipping') or {}
+    recipient = data.get('recipient') or {}
+    selected_quote = data.get('shipping_quote') or None
+
+    if ShiplogicService.is_enabled():
+        rates = ShiplogicService.get_rates_for_order(
+            data.get('items') or [],
+            shipping,
+            recipient,
+        )
+        matched = ShiplogicService.resolve_selected_rate(selected_quote, rates)
+        if not matched:
+            raise ValueError('Selected Courier Guy delivery option is no longer available. Please refresh rates and try again.')
+        return matched
+
+    if selected_quote:
+        return {
+            'quote_id': selected_quote.get('quote_id') or 'manual-shipping',
+            'carrier': selected_quote.get('carrier') or 'Courier delivery',
+            'service_level_code': selected_quote.get('service_level_code'),
+            'service_name': selected_quote.get('service_name') or 'Delivery',
+            'amount': round(float(selected_quote.get('amount') or 0.0), 2),
+            'base_amount': round(float(selected_quote.get('base_amount') or selected_quote.get('amount') or 0.0), 2),
+            'markup_amount': round(float(selected_quote.get('markup_amount') or 0.0), 2),
+            'currency': selected_quote.get('currency') or 'ZAR',
+            'estimated_days': selected_quote.get('estimated_days'),
+            'estimated_delivery_date': selected_quote.get('estimated_delivery_date'),
+            'raw': selected_quote.get('raw') if isinstance(selected_quote.get('raw'), dict) else {},
+        }
+
+    return {
+        'quote_id': 'no-shipping',
+        'carrier': 'No courier configured',
+        'service_level_code': None,
+        'service_name': 'No shipping',
+        'amount': 0.0,
+        'base_amount': 0.0,
+        'markup_amount': 0.0,
+        'currency': 'ZAR',
+        'estimated_days': None,
+        'estimated_delivery_date': None,
+        'raw': {},
+    }
 
 @bp.route('/create-order', methods=['POST'])
 @require_auth
@@ -51,21 +123,47 @@ def create_order():
         if not user:
             return error_response('USER_NOT_FOUND', 'User not found', None, 404)
 
+        provider = (data.get('provider') or 'yoco').strip().lower()
+        if provider != 'yoco':
+            return error_response('INVALID_PROVIDER', 'Shop checkout currently uses Yoco only.', None, 400)
+
+        shipping = data.get('shipping') or {}
+        recipient = data.get('recipient') or {}
+        if data.get('shipping_address') and not shipping:
+            shipping = {
+                'street_address': data['shipping_address'],
+                'suburb': '',
+                'city': '',
+                'province': '',
+                'postal_code': '',
+                'country': 'ZA',
+            }
+
+        items_subtotal = _calculate_items_subtotal(data['items'])
+        resolved_shipping_quote = _resolve_shipping_quote({
+            'items': data['items'],
+            'shipping': shipping,
+            'recipient': recipient,
+            'shipping_quote': data.get('shipping_quote'),
+        })
+        shipping_amount = round(float(resolved_shipping_quote.get('amount') or 0.0), 2)
+        authoritative_total = round(items_subtotal + shipping_amount, 2)
+
         # 1. Create the Order in the database first
         order_id = f"ORD-{uuid.uuid4().hex[:8].upper()}"
         
         # Calculate amount in cents
-        amount_in_cents = int(data['total'] * 100)
+        amount_in_cents = int(authoritative_total * 100)
         
         # 2. Initialize payment checkout
         backend_url = get_public_backend_base_url()
         frontend_url = get_request_frontend_base_url()
         return_path = quote(get_request_frontend_return_path('/shopping-history'), safe='')
-        success_url = f"{backend_url}/api/payments/order-callback?callback_status=success&external_id={order_id}&order_id={order_id}&provider={data['provider']}&frontend_url={frontend_url}&return_path={return_path}"
-        cancel_url = f"{backend_url}/api/payments/order-callback?callback_status=cancel&external_id={order_id}&order_id={order_id}&provider={data['provider']}&frontend_url={frontend_url}&return_path={return_path}"
-        failure_url = f"{backend_url}/api/payments/order-callback?callback_status=failure&external_id={order_id}&order_id={order_id}&provider={data['provider']}&frontend_url={frontend_url}&return_path={return_path}"
+        success_url = f"{backend_url}/api/payments/order-callback?callback_status=success&external_id={order_id}&order_id={order_id}&provider={provider}&frontend_url={frontend_url}&return_path={return_path}"
+        cancel_url = f"{backend_url}/api/payments/order-callback?callback_status=cancel&external_id={order_id}&order_id={order_id}&provider={provider}&frontend_url={frontend_url}&return_path={return_path}"
+        failure_url = f"{backend_url}/api/payments/order-callback?callback_status=failure&external_id={order_id}&order_id={order_id}&provider={provider}&frontend_url={frontend_url}&return_path={return_path}"
         
-        current_app.logger.info(f"Creating checkout for order {order_id} via {data['provider']} (amount: {amount_in_cents})")
+        current_app.logger.info(f"Creating checkout for order {order_id} via {provider} (amount: {amount_in_cents})")
         
         checkout_result = PaymentService.create_checkout(
             amount=amount_in_cents,
@@ -74,7 +172,7 @@ def create_order():
             success_url=success_url,
             cancel_url=cancel_url,
             failure_url=failure_url,
-            provider=data['provider']
+            provider=provider
         )
         
         if not checkout_result or 'payment_id' not in checkout_result:
@@ -82,14 +180,23 @@ def create_order():
             return error_response('PAYMENT_INIT_ERROR', 'Failed to initialize payment gateway', None, 500)
 
         # 3. Save Order (Pending status)
+        shipping_payload = {
+            'recipient': recipient,
+            'address': shipping,
+            'delivery_address': _format_delivery_address(shipping),
+            'quote': resolved_shipping_quote,
+            'subtotal': items_subtotal,
+            'shipping_amount': shipping_amount,
+            'shipment_status': 'awaiting_payment',
+        }
         new_order = Order(
             id=order_id,
             customer_id=user.id,
             customer_email=user.email,
             status='pending',
-            total=data['total'],
+            total=authoritative_total,
             items=data['items'],
-            shipping={"address": data['shipping_address']},
+            shipping=shipping_payload,
             payment_id=checkout_result['payment_id']
         )
         db.session.add(new_order)
@@ -98,11 +205,16 @@ def create_order():
         return success_response({
             'order_id': order_id,
             'checkout_id': checkout_result['checkout_id'],
-            'redirect_url': checkout_result['redirect_url']
+            'redirect_url': checkout_result['redirect_url'],
+            'subtotal': items_subtotal,
+            'shipping_amount': shipping_amount,
+            'total': authoritative_total,
         })
         
     except ValidationError as e:
         return error_response('VALIDATION_ERROR', 'Invalid input data', e.messages, 400)
+    except ValueError as e:
+        return error_response('INVALID_REQUEST', str(e), None, 400)
     except Exception as e:
         current_app.logger.error(f"Create order error: {str(e)}", exc_info=True)
         db.session.rollback()

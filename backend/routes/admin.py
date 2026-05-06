@@ -27,6 +27,7 @@ from backend.models import (
 )
 from backend.models.shop import Inventory, ShopCategory, ShopSubcategory, ShopProduct
 from backend.services.admin_service import AdminService
+from backend.services.email_service import EmailService
 from backend.services.payment_service import PaymentService
 from backend.services.agent_service import AgentService
 from backend.services.request_service import RequestService
@@ -112,7 +113,7 @@ def create_user():
 @require_admin
 def approve_user(user_id):
     try:
-        user_dict, error = AdminService.approve_user(user_id)
+        payload, error = AdminService.approve_user(user_id)
         if error:
             if isinstance(error, dict):
                 error_code = error.get("code", "INTERNAL_ERROR")
@@ -138,7 +139,14 @@ def approve_user(user_id):
                 404 if error == "NOT_FOUND" else 500,
             )
 
-        return success_response(user_dict, "User approved successfully")
+        action = (payload or {}).get("action")
+        if action == "payment_reminder_sent":
+            return success_response(
+                payload,
+                "Registration payment is still pending. Reminder email sent instead of approving the user."
+            )
+
+        return success_response(payload, "User approved successfully")
 
     except Exception as e:
         current_app.logger.error(f"Approve user error: {str(e)}")
@@ -536,7 +544,30 @@ def update_user(user_id):
         user.data = updated_data
 
         final_is_approved = bool(user.is_approved)
+        final_is_paid = bool(user.is_paid)
         approval_transition_requested = user.role == "driver" and not was_approved and final_is_approved
+        payment_approval_blocked = (
+            not was_approved and
+            final_is_approved and
+            not final_is_paid and
+            AdminService.requires_registration_payment_before_approval(user)
+        )
+
+        if payment_approval_blocked:
+            user.is_approved = False
+            db.session.commit()
+            try:
+                EmailService.send_registration_payment_reminder(user)
+            except Exception as e:
+                current_app.logger.error(f"Registration payment reminder email failed: {e}")
+            return success_response(
+                {
+                    "user": user.to_dict(),
+                    "action": "payment_reminder_sent",
+                },
+                "Registration payment is still pending. Update saved, but the user was not approved. Reminder email sent.",
+            )
+
         if approval_transition_requested:
             compliance = RequestService.get_driver_cab_eligibility(
                 user,
@@ -565,7 +596,7 @@ def update_user(user_id):
 
         db.session.commit()
 
-        return success_response(user.to_dict(), "User updated successfully")
+        return success_response({"user": user.to_dict(), "action": "updated"}, "User updated successfully")
 
     except ValidationError as e:
         current_app.logger.error(f"Validation error: {e.messages}")
