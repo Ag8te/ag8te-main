@@ -6,7 +6,7 @@ import {
   ChevronRight, Loader2, Package,
   History, ShieldAlert, X, CreditCard,
   Car, ShoppingBag, Wrench, CheckCircle2,
-  XCircle, Clock, ArrowRight
+  XCircle, Clock, ArrowRight, Truck
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -582,13 +582,43 @@ const MyBookings = () => {
                           </p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total</p>
-                        <p className="text-3xl font-black text-primary">R{(order.total || 0).toFixed(2)}</p>
+                    <div className="text-right">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total</p>
+                      <p className="text-3xl font-black text-primary">R{(order.total || 0).toFixed(2)}</p>
+                    </div>
+                  </div>
+
+                  {(order.shipping?.quote || order.shipping?.shipment_status || order.shipping?.tracking_reference) && (
+                    <div className="mb-6 rounded-[2rem] border border-emerald-100 bg-emerald-50/70 px-5 py-4">
+                      <div className="flex items-start gap-4">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white text-emerald-600 shadow-sm">
+                          <Truck className="h-5 w-5" />
+                        </div>
+                        <div className="grid flex-1 gap-4 sm:grid-cols-3">
+                          <div>
+                            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700">Delivery Service</p>
+                            <p className="mt-1 text-sm font-bold text-emerald-950">
+                              {order.shipping?.quote?.service_name || "Courier Guy"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700">Shipment Status</p>
+                            <p className="mt-1 text-sm font-bold capitalize text-emerald-950">
+                              {(order.shipping?.shipment_status || "awaiting shipment").replace(/_/g, " ")}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700">Tracking Reference</p>
+                            <p className="mt-1 text-sm font-bold text-emerald-950">
+                              {order.shipping?.tracking_reference || order.shipping?.shipment?.tracking_reference || "Pending"}
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     </div>
+                  )}
 
-                    {/* Order items */}
+                  {/* Order items */}
                     {order.items && order.items.length > 0 && (
                       <div className="py-6 border-y border-slate-50 space-y-3">
                         {order.items.map((item: any, idx: number) => (

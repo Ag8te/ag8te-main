@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
-import { Package, ArrowLeft, CheckCircle2, Clock, XCircle, ChevronRight, ShoppingBag, Receipt } from "lucide-react";
+import { Package, ArrowLeft, CheckCircle2, Clock, XCircle, ChevronRight, ShoppingBag, Receipt, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -23,6 +23,7 @@ type Order = {
     total: number;
     items: OrderItem[];
     placed_at: string;
+    shipping?: any;
 };
 
 const ShoppingHistory = () => {
@@ -203,6 +204,30 @@ const ShoppingHistory = () => {
                                         </div>
 
                                         <div className="space-y-6">
+                                            {(order.shipping?.quote || order.shipping?.shipment_status || order.shipping?.tracking_reference) && (
+                                                <div className="rounded-[2rem] border border-emerald-100 bg-emerald-50/70 p-5">
+                                                    <div className="flex items-start gap-4">
+                                                        <div className="h-11 w-11 rounded-2xl bg-white text-emerald-600 flex items-center justify-center shadow-sm shrink-0">
+                                                            <Truck className="h-5 w-5" />
+                                                        </div>
+                                                        <div className="grid flex-1 gap-4 sm:grid-cols-3">
+                                                            <div>
+                                                                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700">Delivery Service</p>
+                                                                <p className="mt-1 text-sm font-bold text-emerald-950">{order.shipping?.quote?.service_name || "Courier Guy"}</p>
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700">Shipment Status</p>
+                                                                <p className="mt-1 text-sm font-bold capitalize text-emerald-950">{(order.shipping?.shipment_status || "awaiting shipment").replace(/_/g, " ")}</p>
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700">Tracking Reference</p>
+                                                                <p className="mt-1 text-sm font-bold text-emerald-950">{order.shipping?.tracking_reference || order.shipping?.shipment?.tracking_reference || "Pending"}</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+
                                             <div className="flex items-center gap-3">
                                                 <div className="h-8 w-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400">
                                                     <Receipt className="h-4 w-4" />

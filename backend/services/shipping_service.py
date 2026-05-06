@@ -4,7 +4,6 @@ Shipping service integration for Shiplogic / The Courier Guy.
 from __future__ import annotations
 
 import logging
-import math
 from io import BytesIO
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -13,7 +12,7 @@ from flask import current_app
 
 from backend.extensions import db
 from backend.models import AppSetting
-from backend.models.shop import Order
+from backend.models.shop import Order, ShopProduct
 from backend.utils.logging import log_external_api
 
 logger = logging.getLogger(__name__)
@@ -200,36 +199,121 @@ class ShiplogicService:
         }
 
     @staticmethod
+    def _positive_float(value: Any, fallback: float) -> float:
+        try:
+            number = float(value)
+        except (TypeError, ValueError):
+            return fallback
+        return number if number > 0 else fallback
+
+    @staticmethod
+    def _load_products_for_items(items: List[Dict[str, Any]]) -> Dict[str, ShopProduct]:
+        product_ids = []
+        for item in items:
+            product_id = item.get("product_id") or item.get("id")
+            if product_id:
+                product_ids.append(str(product_id))
+
+        unique_ids = list(dict.fromkeys(product_ids))
+        if not unique_ids:
+            return {}
+
+        products = ShopProduct.query.filter(ShopProduct.id.in_(unique_ids)).all()
+        return {str(product.id): product for product in products}
+
+    @staticmethod
+    def _resolve_item_shipping_profile(
+        item: Dict[str, Any],
+        product: Optional[ShopProduct],
+        settings: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        default_profile = {
+            "description": settings.get("default_parcel_description") or "General goods",
+            "weight_kg": float(settings.get("default_weight_kg") or 1.0),
+            "length_cm": float(settings.get("default_length_cm") or 30.0),
+            "width_cm": float(settings.get("default_width_cm") or 25.0),
+            "height_cm": float(settings.get("default_height_cm") or 20.0),
+        }
+
+        item_profile = ShopProduct.normalize_shipping_profile(item.get("shipping_profile"))
+        product_profile = (
+            ShopProduct.extract_shipping_profile(product.attributes)
+            if product is not None
+            else None
+        )
+        source_profile = item_profile or product_profile or {}
+
+        description = (
+            source_profile.get("description")
+            or item.get("product_name")
+            or (product.name if product is not None else "")
+            or default_profile["description"]
+        )
+
+        return {
+            "description": description,
+            "weight_kg": ShiplogicService._positive_float(
+                source_profile.get("weight_kg"),
+                default_profile["weight_kg"],
+            ),
+            "length_cm": ShiplogicService._positive_float(
+                source_profile.get("length_cm"),
+                default_profile["length_cm"],
+            ),
+            "width_cm": ShiplogicService._positive_float(
+                source_profile.get("width_cm"),
+                default_profile["width_cm"],
+            ),
+            "height_cm": ShiplogicService._positive_float(
+                source_profile.get("height_cm"),
+                default_profile["height_cm"],
+            ),
+        }
+
+    @staticmethod
     def _build_parcels(items: List[Dict[str, Any]], settings: Dict[str, Any]) -> List[Dict[str, Any]]:
-        default_weight = float(settings.get("default_weight_kg") or 1.0)
-        max_weight = max(float(settings.get("max_weight_per_parcel_kg") or 25.0), 0.1)
-        total_units = sum(max(int(item.get("quantity") or 0), 0) for item in items) or 1
-        total_weight = max(default_weight * total_units, default_weight)
-        parcel_count = max(1, math.ceil(total_weight / max_weight))
-        product_names = [item.get("product_name") for item in items if item.get("product_name")]
-        description = settings.get("default_parcel_description") or "General goods"
-        if product_names:
-            description = ", ".join(product_names[:2])
-            if len(product_names) > 2:
-                description += " and more"
-
-        remaining_weight = total_weight
+        product_lookup = ShiplogicService._load_products_for_items(items)
+        default_description = settings.get("default_parcel_description") or "General goods"
         parcels: List[Dict[str, Any]] = []
-        for _ in range(parcel_count):
-            parcel_weight = round(min(remaining_weight, max_weight), 2)
-            parcels.append(
-                {
-                    "submitted_length_cm": float(settings.get("default_length_cm") or 30.0),
-                    "submitted_width_cm": float(settings.get("default_width_cm") or 25.0),
-                    "submitted_height_cm": float(settings.get("default_height_cm") or 20.0),
-                    "submitted_weight_kg": parcel_weight,
-                    "description": description,
-                    "quantity": 1,
-                }
-            )
-            remaining_weight = max(0.0, remaining_weight - parcel_weight)
 
-        return parcels
+        for item in items:
+            quantity = max(int(item.get("quantity") or 0), 0)
+            if quantity <= 0:
+                continue
+
+            product_id = str(item.get("product_id") or item.get("id") or "")
+            product = product_lookup.get(product_id)
+            shipping_profile = ShiplogicService._resolve_item_shipping_profile(
+                item,
+                product,
+                settings,
+            )
+
+            for _ in range(quantity):
+                parcels.append(
+                    {
+                        "submitted_length_cm": round(shipping_profile["length_cm"], 2),
+                        "submitted_width_cm": round(shipping_profile["width_cm"], 2),
+                        "submitted_height_cm": round(shipping_profile["height_cm"], 2),
+                        "submitted_weight_kg": round(shipping_profile["weight_kg"], 2),
+                        "description": shipping_profile["description"] or default_description,
+                        "quantity": 1,
+                    }
+                )
+
+        if parcels:
+            return parcels
+
+        return [
+            {
+                "submitted_length_cm": float(settings.get("default_length_cm") or 30.0),
+                "submitted_width_cm": float(settings.get("default_width_cm") or 25.0),
+                "submitted_height_cm": float(settings.get("default_height_cm") or 20.0),
+                "submitted_weight_kg": float(settings.get("default_weight_kg") or 1.0),
+                "description": default_description,
+                "quantity": 1,
+            }
+        ]
 
     @staticmethod
     def _build_quote_payload(
@@ -336,6 +420,8 @@ class ShiplogicService:
         recipient: Dict[str, Any],
     ) -> List[Dict[str, Any]]:
         settings = ShiplogicService.get_settings()
+        if not settings.get("enabled"):
+            raise ValueError("Courier Guy shipping is currently disabled.")
         ready, missing = ShiplogicService.validate_configuration(settings)
         if not ready:
             raise ValueError(f"Shipping service is not configured: missing {', '.join(missing)}")

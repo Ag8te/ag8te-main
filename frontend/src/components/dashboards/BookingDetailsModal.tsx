@@ -4,7 +4,7 @@ import {
     X, Calendar, MapPin, Clock, CreditCard,
     Package, ShoppingBag, Car, Wrench,
     User, CheckCircle2, ChevronRight,
-    ArrowRight, Info, ShieldCheck
+    ArrowRight, Info, ShieldCheck, Truck
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -163,6 +163,30 @@ export const BookingDetailsModal = ({ isOpen, onClose, data, type }: BookingDeta
                                         </p>
                                     </div>
                                 </div>
+
+                                {type === 'order' && (data.shipping?.quote || data.shipping?.shipment_status || data.shipping?.tracking_reference) && (
+                                    <div className="space-y-3">
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                            <Truck size={12} /> Delivery Tracking
+                                        </p>
+                                        <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
+                                            <div className="grid gap-4 sm:grid-cols-3">
+                                                <div>
+                                                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700 mb-1">Service</p>
+                                                    <p className="font-bold text-emerald-950">{data.shipping?.quote?.service_name || "Courier Guy"}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700 mb-1">Shipment Status</p>
+                                                    <p className="font-bold capitalize text-emerald-950">{String(data.shipping?.shipment_status || "awaiting shipment").replace(/_/g, " ")}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700 mb-1">Tracking Ref</p>
+                                                    <p className="font-bold text-emerald-950">{data.shipping?.tracking_reference || data.shipping?.shipment?.tracking_reference || "Pending"}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
 
                                 {type === 'ride' && (
                                     <>

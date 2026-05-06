@@ -45,6 +45,13 @@ interface ApiProduct {
   reviews_count?: number;
   product_type?: 'simple' | 'variable' | 'grouped' | 'external';
   attributes?: any;
+  shipping_profile?: {
+    description?: string | null;
+    weight_kg?: number | null;
+    length_cm?: number | null;
+    width_cm?: number | null;
+    height_cm?: number | null;
+  } | null;
   variations?: any;
   grouped_products?: any;
   external_url?: string;

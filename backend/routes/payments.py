@@ -6,7 +6,7 @@ from urllib.parse import quote
 from flask import Blueprint, request, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from marshmallow import Schema, fields, ValidationError
-from backend.models import Payment, ServiceRequest, User, Wallet
+from backend.models import Payment, ServiceRequest, ShopProduct, User, Wallet
 from backend.services.payment_service import PaymentService
 from backend.services.shipping_service import ShiplogicService
 from backend.services.wallet_service import WalletService
@@ -48,6 +48,37 @@ def _calculate_items_subtotal(items):
         quantity = int(item.get('quantity') or 0)
         subtotal += price * max(quantity, 0)
     return round(subtotal, 2)
+
+
+def _hydrate_order_items(items):
+    product_ids = []
+    for item in items:
+        product_id = item.get('product_id') or item.get('id')
+        if product_id:
+            product_ids.append(str(product_id))
+
+    product_lookup = {}
+    if product_ids:
+        products = ShopProduct.query.filter(
+            ShopProduct.id.in_(list(dict.fromkeys(product_ids)))
+        ).all()
+        product_lookup = {str(product.id): product for product in products}
+
+    hydrated_items = []
+    for item in items:
+        normalized = dict(item)
+        product_id = str(item.get('product_id') or item.get('id') or '')
+        product = product_lookup.get(product_id)
+        if product:
+            normalized['product_id'] = product_id
+            normalized['product_name'] = normalized.get('product_name') or product.name
+            if not normalized.get('image_url') and product.image_url:
+                normalized['image_url'] = product.image_url
+            if not normalized.get('shipping_profile'):
+                normalized['shipping_profile'] = ShopProduct.extract_shipping_profile(product.attributes)
+        hydrated_items.append(normalized)
+
+    return hydrated_items
 
 
 def _format_delivery_address(shipping):
@@ -139,9 +170,10 @@ def create_order():
                 'country': 'ZA',
             }
 
+        hydrated_items = _hydrate_order_items(data['items'])
         items_subtotal = _calculate_items_subtotal(data['items'])
         resolved_shipping_quote = _resolve_shipping_quote({
-            'items': data['items'],
+            'items': hydrated_items,
             'shipping': shipping,
             'recipient': recipient,
             'shipping_quote': data.get('shipping_quote'),
@@ -195,7 +227,7 @@ def create_order():
             customer_email=user.email,
             status='pending',
             total=authoritative_total,
-            items=data['items'],
+            items=hydrated_items,
             shipping=shipping_payload,
             payment_id=checkout_result['payment_id']
         )

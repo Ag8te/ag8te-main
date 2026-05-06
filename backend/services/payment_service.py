@@ -155,7 +155,8 @@ class PaymentService:
                     logger.error(f"Inventory update failed for order {order_id}: {e}")
 
                 # Create shipment automatically for paid shop orders when Courier Guy is configured.
-                if ShiplogicService.is_enabled():
+                shiplogic_settings = ShiplogicService.get_settings()
+                if ShiplogicService.is_enabled(shiplogic_settings) and shiplogic_settings.get('automatic_shipment_creation', True):
                     try:
                         shipment_success, shipment_error = ShiplogicService.create_shipment_for_order(order)
                         if not shipment_success and shipment_error:

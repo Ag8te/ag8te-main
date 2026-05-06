@@ -48,7 +48,7 @@ type DeliveryAddress = {
 };
 
 const Checkout = () => {
-  const { items, total, count, clearCart } = useCart();
+  const { items, total, count } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -220,6 +220,7 @@ const Checkout = () => {
             product_id: item.product.id,
             product_name: item.product.name,
             price: item.product.price,
+            shipping_profile: item.product.shipping_profile,
             quantity: item.quantity,
           })),
           shipping: buildShippingPayload(),
@@ -289,6 +290,7 @@ const Checkout = () => {
             product_name: item.product.name,
             price: item.product.price,
             image_url: item.product.image,
+            shipping_profile: item.product.shipping_profile,
             quantity: item.quantity,
           })),
           recipient: buildRecipientPayload(),

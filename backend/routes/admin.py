@@ -2,6 +2,7 @@
 Admin Routes
 """
 
+import json
 import os
 import uuid
 from datetime import datetime
@@ -54,6 +55,46 @@ def _allowed_image_file(filename: str) -> bool:
         return False
     ext = filename.rsplit(".", 1)[1].lower()
     return ext in ALLOWED_IMAGE_EXTENSIONS
+
+
+def _parse_json_payload(raw_value, default):
+    if raw_value in (None, ""):
+        return default
+    if isinstance(raw_value, (list, dict)):
+        return raw_value
+    try:
+        return json.loads(raw_value)
+    except Exception:
+        return default
+
+
+def _extract_product_shipping_profile(payload):
+    shipping_keys = {
+        "shipping_profile",
+        "shipping_description",
+        "shipping_weight_kg",
+        "shipping_length_cm",
+        "shipping_width_cm",
+        "shipping_height_cm",
+    }
+    provided = any(key in payload for key in shipping_keys)
+    if not provided:
+        return False, None
+
+    if "shipping_profile" in payload:
+        raw_profile = payload.get("shipping_profile")
+        if isinstance(raw_profile, str):
+            raw_profile = _parse_json_payload(raw_profile, {})
+        return True, ShopProduct.normalize_shipping_profile(raw_profile)
+
+    profile = {
+        "description": payload.get("shipping_description"),
+        "weight_kg": payload.get("shipping_weight_kg"),
+        "length_cm": payload.get("shipping_length_cm"),
+        "width_cm": payload.get("shipping_width_cm"),
+        "height_cm": payload.get("shipping_height_cm"),
+    }
+    return True, ShopProduct.normalize_shipping_profile(profile)
 
 
 @bp.route("/users", methods=["GET"])
@@ -811,24 +852,14 @@ def create_product():
                 quantity = 0
 
             product_type = form.get("product_type", "simple")
-            import json
-
-            try:
-                attributes = json.loads(form.get("attributes", "[]"))
-            except Exception:
-                attributes = []
-            try:
-                variations = json.loads(form.get("variations", "[]"))
-            except Exception:
-                variations = []
-            try:
-                grouped_products = json.loads(form.get("grouped_products", "[]"))
-            except Exception:
-                grouped_products = []
+            attributes = _parse_json_payload(form.get("attributes", "[]"), [])
+            variations = _parse_json_payload(form.get("variations", "[]"), [])
+            grouped_products = _parse_json_payload(form.get("grouped_products", "[]"), [])
             external_url = form.get("external_url", "").strip() or None
             button_text = (
                 form.get("button_text", "Buy Product").strip() or "Buy Product"
             )
+            _shipping_provided, shipping_profile = _extract_product_shipping_profile(form)
 
             image_files = request.files.getlist("image_files")
         else:
@@ -848,6 +879,7 @@ def create_product():
             button_text = (
                 data.get("button_text", "Buy Product").strip() or "Buy Product"
             )
+            _shipping_provided, shipping_profile = _extract_product_shipping_profile(data)
 
             image_files = []
 
@@ -855,6 +887,8 @@ def create_product():
             return error_response(
                 "MISSING_FIELDS", "Name and price are required", None, 400
             )
+
+        attributes = ShopProduct.with_shipping_profile(attributes, shipping_profile)
 
         # Generate product ID
         product_id = f"PROD-{uuid.uuid4().hex[:12].upper()}"
@@ -979,6 +1013,8 @@ def update_product(product_id):
         # Support both JSON and multipart/form-data (for image uploads)
         if request.content_type and "multipart/form-data" in request.content_type:
             form = request.form
+            parsed_attributes = None
+            shipping_provided, shipping_profile = _extract_product_shipping_profile(form)
             if "name" in form:
                 product.name = form.get("name") or product.name
             if "description" in form:
@@ -1000,33 +1036,39 @@ def update_product(product_id):
             if "product_type" in form:
                 product.product_type = form.get("product_type", "simple")
             if "attributes" in form:
-                import json
-
-                try:
-                    product.attributes = json.loads(form.get("attributes", "[]"))
-                except Exception:
-                    pass
+                candidate_attributes = _parse_json_payload(form.get("attributes", "[]"), None)
+                if candidate_attributes is not None:
+                    parsed_attributes = candidate_attributes
             if "variations" in form:
-                import json
-
-                try:
-                    product.variations = json.loads(form.get("variations", "[]"))
-                except Exception:
-                    pass
+                candidate_variations = _parse_json_payload(form.get("variations", "[]"), None)
+                if candidate_variations is not None:
+                    product.variations = candidate_variations
             if "grouped_products" in form:
-                import json
-
-                try:
-                    product.grouped_products = json.loads(
-                        form.get("grouped_products", "[]")
-                    )
-                except Exception:
-                    pass
+                candidate_grouped_products = _parse_json_payload(
+                    form.get("grouped_products", "[]"),
+                    None,
+                )
+                if candidate_grouped_products is not None:
+                    product.grouped_products = candidate_grouped_products
             if "external_url" in form:
                 product.external_url = form.get("external_url", "").strip() or None
             if "button_text" in form:
                 product.button_text = (
                     form.get("button_text", "Buy Product").strip() or "Buy Product"
+                )
+
+            if parsed_attributes is not None or shipping_provided:
+                base_attributes = (
+                    parsed_attributes if parsed_attributes is not None else product.attributes
+                )
+                effective_shipping_profile = (
+                    shipping_profile
+                    if shipping_provided
+                    else ShopProduct.extract_shipping_profile(product.attributes)
+                )
+                product.attributes = ShopProduct.with_shipping_profile(
+                    base_attributes,
+                    effective_shipping_profile,
                 )
 
             # Handle multiple image files
@@ -1077,8 +1119,6 @@ def update_product(product_id):
             # Handle deleted image IDs
             deleted_image_ids = form.get("deleted_image_ids", "")
             if deleted_image_ids:
-                import json
-
                 try:
                     deleted_ids = (
                         json.loads(deleted_image_ids)
@@ -1136,6 +1176,8 @@ def update_product(product_id):
                         db.session.add(inventory)
         else:
             data = request.get_json(silent=True) or {}
+            shipping_provided, shipping_profile = _extract_product_shipping_profile(data)
+            parsed_attributes = None
 
             if "name" in data:
                 product.name = data["name"]
@@ -1151,7 +1193,7 @@ def update_product(product_id):
             if "product_type" in data:
                 product.product_type = data["product_type"]
             if "attributes" in data:
-                product.attributes = data["attributes"]
+                parsed_attributes = data["attributes"]
             if "variations" in data:
                 product.variations = data["variations"]
             if "grouped_products" in data:
@@ -1161,6 +1203,20 @@ def update_product(product_id):
             if "button_text" in data:
                 product.button_text = (
                     data.get("button_text", "Buy Product").strip() or "Buy Product"
+                )
+
+            if parsed_attributes is not None or shipping_provided:
+                base_attributes = (
+                    parsed_attributes if parsed_attributes is not None else product.attributes
+                )
+                effective_shipping_profile = (
+                    shipping_profile
+                    if shipping_provided
+                    else ShopProduct.extract_shipping_profile(product.attributes)
+                )
+                product.attributes = ShopProduct.with_shipping_profile(
+                    base_attributes,
+                    effective_shipping_profile,
                 )
 
             if "quantity" in data:
