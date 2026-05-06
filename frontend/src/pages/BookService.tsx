@@ -27,7 +27,10 @@ const LIBRARIES: ("places")[] = ["places"];
 const GOOGLE_MAPS_API_KEY = "AIzaSyBtXh26PcILBqis4Ad66wPetvU_wUKMNRs";
 
 const DEFAULT_TIME_SLOTS = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00"];
-const DAYS_OF_WEEK: (keyof any)[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+const DAYS_OF_WEEK: string[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+
+interface AppSetting { id: string; value: string; }
+interface ProviderService { name: string; hourly_rate?: number; }
 
 const BookService = () => {
   const { id, category } = useParams();
@@ -121,7 +124,7 @@ const BookService = () => {
           const settingKey = category === 'professionals'
             ? 'professional_callout_fee_amount'
             : 'provider_callout_fee_amount';
-          const setting = res.data.find((s: any) => s.id === settingKey) || res.data.find((s: any) => s.id === 'callout_fee_amount');
+          const setting = res.data.find((s: AppSetting) => s.id === settingKey) || res.data.find((s: AppSetting) => s.id === 'callout_fee_amount');
           if (setting) {
             const val = parseFloat(setting.value);
             setCalloutFee(val);
@@ -169,7 +172,8 @@ const BookService = () => {
     const availability = provider?.data?.availability;
     if (!availability?.regular_hours) {
       // provider has not configured availability yet, show all default time slots
-      setAvailableTimeSlots(DEFAULT_TIME_SLOTS);
+      const currentTime = date === todayStr ? getCurrentTimeSAST() : "00:00";
+      setAvailableTimeSlots(DEFAULT_TIME_SLOTS.filter(slot => slot > currentTime));
       return;
     }
 
@@ -200,7 +204,6 @@ const BookService = () => {
             slot >= start && slot < end && !busySlots.includes(slot) && slot > currentTime);
         
           setAvailableTimeSlots(filtered);
-          if (time && !filtered.includes(time)) setTime("");
         } catch (err) {
           // Fallback to regular hours only if API fails
           const currentTime = date === todayStr ? getCurrentTimeSAST() : "00:00";
@@ -213,8 +216,14 @@ const BookService = () => {
     } else {
       setAvailableTimeSlots([]);
       toast({ title: "Provider Closed", description: `The provider does not work on ${dayName}s.`, variant: "destructive" });
+    } 
+  }, [date, provider, id, toast, todayStr]);
+
+  useEffect(() => {
+    if (time && !availableTimeSlots.includes(time)) {
+      setTime("");
     }
-  }, [date, provider]);
+  }, [time, availableTimeSlots]);
 
   const onPlaceChanged = () => {
     if (autocompleteRef.current) {
@@ -304,8 +313,10 @@ const BookService = () => {
                 variant: "destructive"
          });
       }
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Failed to process booking", variant: "destructive" });
+    } catch (err: unknown) {
+
+      const message = err instanceof Error ? err.message: "Failed to process booking";
+      toast({ title: "Error", description: message, variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }
@@ -408,7 +419,7 @@ const BookService = () => {
                               setCalloutFee(0);
                             } else {
                               setSelectedService(val);
-                              const svc = services.find((s: any) => s.name === val);
+                              const svc = services.find((s: ProviderService) => s.name === val);
                               if (svc?.hourly_rate && svc.hourly_rate > 0) {
                                 setCalloutFee(svc.hourly_rate);
                               } else {
@@ -420,7 +431,7 @@ const BookService = () => {
                               <SelectValue placeholder="Select a specific service" />
                             </SelectTrigger>
                             <SelectContent className="bg-white rounded-2xl shadow-2xl border-slate-50 z-[100]">
-                              {services.map((svc: any) => (
+                              {services.map((svc: ProviderService) => (
                                 <SelectItem key={svc.name} value={svc.name} className="py-4 focus:bg-slate-50 cursor-pointer">
                                   <div className="flex flex-col items-start text-left">
                                     <span className="font-bold text-[#222222]">{svc.name}</span>
@@ -550,13 +561,13 @@ const BookService = () => {
                   <div className="flex gap-4">
                     <Button
                       variant="ghost"
-                      className="h-16 px-8 rounded-2xl text-slate-500 font-bold hover:bg-slate-50 transition-all font-bold"
+                      className="h-16 px-8 rounded-2xl text-slate-500 font-bold hover:bg-slate-50 transition-all"
                       onClick={() => navigate(-1)}
                     >
                       Cancel
                     </Button>
                     <Button
-                      className="flex-1 h-16 rounded-2xl bg-primary text-white font-bold text-xl shadow-lg hover:shadow-primary/20 transition-all hover:-translate-y-1 font-bold"
+                      className="flex-1 h-16 rounded-2xl bg-primary text-white font-bold text-xl shadow-lg hover:shadow-primary/20 transition-all hover:-translate-y-1"
                       onClick={handleSubmit}
                     >
                       {(services.length > 0 && isCustomService) || (services.length === 0 && !selectedService) ? "Request a Quote" : "Review Now"}
@@ -708,7 +719,7 @@ const BookService = () => {
 
                     <div className="pt-6 space-y-4">
                       <Button
-                        className="w-full h-16 rounded-2xl bg-primary text-white font-bold text-xl shadow-lg hover:opacity-90 transition-all font-bold flex items-center justify-center disabled:opacity-70"
+                        className="w-full h-16 rounded-2xl bg-primary text-white font-bold text-xl shadow-lg hover:opacity-90 transition-all flex items-center justify-center disabled:opacity-70"
                         onClick={handleConfirm}
                         disabled={isSubmitting}
                       >

@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Menu, X, ShoppingCart, User, LogOut } from "lucide-react";
+import { Menu, X, ShoppingCart, User, LogOut, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
@@ -16,13 +16,26 @@ const navLinks = [
   { label: "Request Cab", to: "/transport", requiresAuth: true },
   { label: "Professionals", to: "/professionals", requiresAuth: true },
   { label: "Services", to: "/services", requiresAuth: true },
-  { label: "Adverts", to: "/ads" }
+  { label: "Adverts", to: "/ads" },
 ];
 
 const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notifications, setNotifications] = useState<
+    Array<{
+      id: string;
+      title: string;
+      body: string;
+      status: string;
+      created_at: string;
+    }>
+  >([]);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const notifRef = useRef<HTMLDivElement>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { user, isAuthenticated, logout } = useAuth();
   const { count } = useCart();
   const location = useLocation();
@@ -36,22 +49,46 @@ const Navbar = () => {
     }
 
     if (user?.role === "client") {
-      links.push({ label: "My Bookings", to: "/my-bookings", requiresAuth: true });
+      links.push({
+        label: "My Bookings",
+        to: "/my-bookings",
+        requiresAuth: true,
+      });
       return links;
     }
 
     if (["driver", "professional", "service-provider"].includes(user?.role)) {
-      links.push({ label: "My Bookings", to: "/my-bookings", requiresAuth: true });
+      links.push({
+        label: "My Bookings",
+        to: "/my-bookings",
+        requiresAuth: true,
+      });
     }
 
     if (user?.role === "driver") {
-      links.push({ label: "Account Management", to: "/dashboard/driver", requiresAuth: true });
+      links.push({
+        label: "Account Management",
+        to: "/dashboard/driver",
+        requiresAuth: true,
+      });
     } else if (user?.role === "professional") {
-      links.push({ label: "Account Management", to: "/dashboard/professional", requiresAuth: true });
+      links.push({
+        label: "Account Management",
+        to: "/dashboard/professional",
+        requiresAuth: true,
+      });
     } else if (user?.role === "service-provider") {
-      links.push({ label: "Account Management", to: "/dashboard/provider", requiresAuth: true });
+      links.push({
+        label: "Account Management",
+        to: "/dashboard/provider",
+        requiresAuth: true,
+      });
     } else if (user?.role === "agent") {
-      links.push({ label: "Dashboard", to: "/dashboard/agent", requiresAuth: true });
+      links.push({
+        label: "Dashboard",
+        to: "/dashboard/agent",
+        requiresAuth: true,
+      });
     } else if (user?.role === "admin") {
       links.push({ label: "Admin Console", to: "/admin", requiresAuth: true });
     }
@@ -66,16 +103,79 @@ const Navbar = () => {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  useEffect(() => { setMobileOpen(false); }, [location]);
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location]);
 
   const isHome = location.pathname === "/";
   const isTransparent = isHome && !scrolled;
 
-  const handleNavLinkClick = (e: React.MouseEvent, link: typeof navLinks[0]) => {
+  const handleNavLinkClick = (
+    e: React.MouseEvent,
+    link: (typeof navLinks)[0],
+  ) => {
     if (link.requiresAuth && !isAuthenticated) {
       e.preventDefault();
       setIsAuthModalOpen(true);
     }
+  };
+
+  const fetchNotifications = async () => {
+    try {
+      const res = await apiFetch("/api/notifications");
+      if (res.success) {
+        setNotifications(res.data.notifications || []);
+        setUnreadCount(res.data.unread_count || 0);
+      }
+    } catch (_err) {
+      /* fail silently */
+    }
+  };
+
+  useEffect(() => {
+    if (isAuthenticated && user?.role === "client") {
+      fetchNotifications();
+      pollRef.current = setInterval(fetchNotifications, 30000);
+    }
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, [isAuthenticated, user?.role]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setNotifOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleMarkRead = async (notifId: string) => {
+    try {
+      await apiFetch(`/api/notifications/${notifId}/read`, { method: "PATCH" });
+      fetchNotifications();
+    } catch (_err) {
+      /* fail silently */
+    }
+  };
+
+  const handleMarkAllRead = async () => {
+    try {
+      await apiFetch("/api/notifications/read-all", { method: "PATCH" });
+      fetchNotifications();
+    } catch (_err) {
+      /* fail silently */
+    }
+  };
+
+  const timeAgo = (dateStr: string) => {
+    const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
+    if (diff < 60) return "just now";
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    return `${Math.floor(diff / 86400)}d ago`;
   };
 
   return (
@@ -84,40 +184,43 @@ const Navbar = () => {
         "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
         scrolled || !isHome
           ? "bg-white border-b border-slate-100 py-3 shadow-sm"
-          : "bg-slate-900/40 backdrop-blur-md py-4 border-b border-white/10"
+          : "bg-slate-900/40 backdrop-blur-md py-4 border-b border-white/10",
       )}
     >
       <nav className="container mx-auto flex items-center justify-between px-6">
-
         {/* ── Logo ─────────────────────────────────────────────────────────── */}
         <button
           onClick={() => navigate("/")}
           className="flex items-center gap-2.5 group"
         >
-          <div className={cn(
-            "h-8 w-auto flex items-center justify-center overflow-hidden rounded-lg transition-all",
-            isTransparent ? "" : "bg-primary/10 px-1.5"
-          )}>
+          <div
+            className={cn(
+              "h-8 w-auto flex items-center justify-center overflow-hidden rounded-lg transition-all",
+              isTransparent ? "" : "bg-primary/10 px-1.5",
+            )}
+          >
             <img
               src={logo}
               alt="MzansiServe"
               className={cn(
                 "h-full w-auto object-contain",
-                isTransparent ? "brightness-0 invert" : ""
+                isTransparent ? "brightness-0 invert" : "",
               )}
             />
           </div>
-          <span className={cn(
-            "text-[17px] font-semibold tracking-tight transition-colors",
-            isTransparent ? "text-white" : "text-[#222222]"
-          )}>
+          <span
+            className={cn(
+              "text-[17px] font-semibold tracking-tight transition-colors",
+              isTransparent ? "text-white" : "text-[#222222]",
+            )}
+          >
             MzansiServe
           </span>
         </button>
 
         {/* ── Desktop nav links (centred) ──────────────────────────────────── */}
         <ul className="hidden items-center gap-1 lg:flex absolute left-1/2 -translate-x-1/2">
-          {dynamicLinks.map(link => (
+          {dynamicLinks.map((link) => (
             <li key={link.label}>
               <Link
                 to={link.to}
@@ -130,7 +233,7 @@ const Navbar = () => {
                       : "text-[#222222] bg-slate-100"
                     : isTransparent
                       ? "text-white/90 hover:text-white hover:bg-white/10"
-                      : "text-[#484848] hover:bg-slate-50 hover:text-[#222222]"
+                      : "text-[#484848] hover:bg-slate-50 hover:text-[#222222]",
                 )}
               >
                 {link.label}
@@ -151,7 +254,7 @@ const Navbar = () => {
                   "rounded-full w-10 h-10",
                   isTransparent
                     ? "text-white hover:bg-white/10"
-                    : "text-slate-600 hover:bg-slate-50"
+                    : "text-slate-600 hover:bg-slate-50",
                 )}
               >
                 <ShoppingCart className="h-[18px] w-[18px]" />
@@ -166,17 +269,107 @@ const Navbar = () => {
 
           {isAuthenticated ? (
             /* Logged-in pill */
-            <div className={cn(
-              "flex items-center gap-1 pl-3 border-l",
-              isTransparent ? "border-white/20" : "border-slate-200"
-            )}>
+            <div
+              className={cn(
+                "flex items-center gap-1 pl-3 border-l",
+                isTransparent ? "border-white/20" : "border-slate-200",
+              )}
+            >
+              {user?.role === "client" && (
+                <div ref={notifRef} className="relative">
+                  <button
+                    onClick={() => setNotifOpen(!notifOpen)}
+                    className={cn(
+                      "relative rounded-full w-9 h-9 flex items-center justify-center transition-colors",
+                      isTransparent
+                        ? "text-white hover:bg-white/10"
+                        : "text-slate-500 hover:bg-slate-50",
+                    )}
+                  >
+                    <Bell className="h-4 w-4" />
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white">
+                        {unreadCount > 9 ? "9+" : unreadCount}
+                      </span>
+                    )}
+                  </button>
+
+                  {notifOpen && (
+                    <div className="absolute right-0 top-11 w-80 bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 overflow-hidden">
+                      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+                        <span className="text-sm font-semibold text-[#222222]">
+                          Notifications
+                        </span>
+                        {unreadCount > 0 && (
+                          <button
+                            onClick={handleMarkAllRead}
+                            className="text-[11px] font-medium text-primary hover:underline"
+                          >
+                            Mark all read
+                          </button>
+                        )}
+                      </div>
+                      <div className="max-h-80 overflow-y-auto">
+                        {notifications.length === 0 ? (
+                          <div className="px-4 py-8 text-center text-sm text-slate-400">
+                            No notifications yet
+                          </div>
+                        ) : (
+                          notifications.map((n) => (
+                            <div
+                              key={n.id}
+                              onClick={() => {
+                                handleMarkRead(n.id);
+                                setNotifOpen(false);
+                              }}
+                              className={cn(
+                                "flex gap-3 px-4 py-3 cursor-pointer border-b border-slate-50 hover:bg-slate-50 transition-colors",
+                                n.status === "unread"
+                                  ? "bg-primary/5"
+                                  : "bg-white",
+                              )}
+                            >
+                              <div
+                                className={cn(
+                                  "mt-1.5 h-2 w-2 rounded-full flex-shrink-0",
+                                  n.status === "unread"
+                                    ? "bg-primary"
+                                    : "bg-transparent",
+                                )}
+                              />
+                              <div className="flex-1 min-w-0">
+                                <p
+                                  className={cn(
+                                    "text-[13px] text-[#222222]",
+                                    n.status === "unread"
+                                      ? "font-semibold"
+                                      : "font-normal",
+                                  )}
+                                >
+                                  {n.title}
+                                </p>
+                                <p className="text-[11px] text-slate-500 mt-0.5">
+                                  {n.body}
+                                </p>
+                                <p className="text-[10px] text-slate-400 mt-1">
+                                  {timeAgo(n.created_at)}
+                                </p>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
               <Link
                 to="/profile"
                 className={cn(
                   "flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all cursor-pointer hover:shadow-md",
                   isTransparent
                     ? "bg-white/10 border-white/20 text-white"
-                    : "bg-white border-slate-200 text-[#222222]"
+                    : "bg-white border-slate-200 text-[#222222]",
                 )}
               >
                 {user?.profile_image_url ? (
@@ -188,7 +381,9 @@ const Navbar = () => {
                 ) : (
                   <User className="h-4 w-4" />
                 )}
-                <span className="text-[13px] font-medium">{user?.name?.split(" ")[0]}</span>
+                <span className="text-[13px] font-medium">
+                  {user?.name?.split(" ")[0]}
+                </span>
               </Link>
               <Button
                 variant="ghost"
@@ -196,7 +391,9 @@ const Navbar = () => {
                 onClick={logout}
                 className={cn(
                   "rounded-full w-9 h-9",
-                  isTransparent ? "text-white hover:bg-white/10" : "text-slate-500 hover:bg-slate-50"
+                  isTransparent
+                    ? "text-white hover:bg-white/10"
+                    : "text-slate-500 hover:bg-slate-50",
                 )}
               >
                 <LogOut className="h-4 w-4" />
@@ -204,27 +401,34 @@ const Navbar = () => {
             </div>
           ) : (
             /* Guest auth buttons — Airbnb pill pattern */
-            <div className={cn(
-              "flex items-center gap-1 rounded-full border transition-all shadow-sm hover:shadow-md cursor-pointer select-none",
-              isTransparent
-                ? "bg-white/10 border-white/20 text-white"
-                : "bg-white border-slate-200 text-[#222222]"
-            )}>
+            <div
+              className={cn(
+                "flex items-center gap-1 rounded-full border transition-all shadow-sm hover:shadow-md cursor-pointer select-none",
+                isTransparent
+                  ? "bg-white/10 border-white/20 text-white"
+                  : "bg-white border-slate-200 text-[#222222]",
+              )}
+            >
               <Link
                 to="/login"
                 className={cn(
                   "px-4 py-2 text-[13px] font-medium transition-colors rounded-full",
-                  isTransparent ? "hover:bg-white/10" : "hover:bg-slate-50"
+                  isTransparent ? "hover:bg-white/10" : "hover:bg-slate-50",
                 )}
               >
                 Log in
               </Link>
-              <span className={cn("w-px h-4", isTransparent ? "bg-white/20" : "bg-slate-200")} />
+              <span
+                className={cn(
+                  "w-px h-4",
+                  isTransparent ? "bg-white/20" : "bg-slate-200",
+                )}
+              />
               <Link
                 to="/register"
                 className={cn(
                   "px-4 py-2 text-[13px] font-medium transition-colors rounded-full",
-                  isTransparent ? "hover:bg-white/10" : "hover:bg-slate-50"
+                  isTransparent ? "hover:bg-white/10" : "hover:bg-slate-50",
                 )}
               >
                 Register
@@ -234,25 +438,114 @@ const Navbar = () => {
         </div>
 
         {/* ── Mobile toggle ────────────────────────────────────────────────── */}
-        <button
-          onClick={() => setMobileOpen(!mobileOpen)}
-          className={cn(
-            "lg:hidden rounded-full p-2 transition-colors border",
-            isTransparent
-              ? "text-white border-white/30 hover:bg-white/10"
-              : "text-[#222222] border-slate-200 hover:bg-slate-50"
+        <div className="lg:hidden flex items-center gap-2">
+          {/* Bell — clients only, mobile */}
+          {isAuthenticated && user?.role === "client" && (
+            <div ref={notifRef} className="relative">
+              <button
+                onClick={() => setNotifOpen(!notifOpen)}
+                className={cn(
+                  "relative rounded-full w-9 h-9 flex items-center justify-center transition-colors border",
+                  isTransparent
+                    ? "text-white border-white/30 hover:bg-white/10"
+                    : "text-[#222222] border-slate-200 hover:bg-slate-50",
+                )}
+              >
+                <Bell className="h-4 w-4" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {notifOpen && (
+                <div className="absolute right-0 top-11 w-72 bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+                    <span className="text-sm font-semibold text-[#222222]">
+                      Notifications
+                    </span>
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={handleMarkAllRead}
+                        className="text-[11px] font-medium text-primary hover:underline"
+                      >
+                        Mark all read
+                      </button>
+                    )}
+                  </div>
+                  <div className="max-h-72 overflow-y-auto">
+                    {notifications.length === 0 ? (
+                      <div className="px-4 py-8 text-center text-sm text-slate-400">
+                        No notifications yet
+                      </div>
+                    ) : (
+                      notifications.map((n) => (
+                        <div
+                          key={n.id}
+                          onClick={() => {
+                            handleMarkRead(n.id);
+                            setNotifOpen(false);
+                          }}
+                          className={cn(
+                            "flex gap-3 px-4 py-3 cursor-pointer border-b border-slate-50 hover:bg-slate-50 transition-colors",
+                            n.status === "unread" ? "bg-primary/5" : "bg-white",
+                          )}
+                        >
+                          <div
+                            className={cn(
+                              "mt-1.5 h-2 w-2 rounded-full flex-shrink-0",
+                              n.status === "unread"
+                                ? "bg-primary"
+                                : "bg-transparent",
+                            )}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p
+                              className={cn(
+                                "text-[13px] text-[#222222]",
+                                n.status === "unread"
+                                  ? "font-semibold"
+                                  : "font-normal",
+                              )}
+                            >
+                              {n.title}
+                            </p>
+                            <p className="text-[11px] text-slate-500 mt-0.5">
+                              {n.body}
+                            </p>
+                            <p className="text-[10px] text-slate-400 mt-1">
+                              {timeAgo(n.created_at)}
+                            </p>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           )}
-          aria-label="Toggle menu"
-        >
-          {mobileOpen ? <X size={20} /> : <Menu size={20} />}
-        </button>
+          <button
+            onClick={() => setMobileOpen(!mobileOpen)}
+            className={cn(
+              "rounded-full p-2 transition-colors border",
+              isTransparent
+                ? "text-white border-white/30 hover:bg-white/10"
+                : "text-[#222222] border-slate-200 hover:bg-slate-50",
+            )}
+            aria-label="Toggle menu"
+          >
+            {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
+        </div>
       </nav>
 
       {/* ── Mobile menu ──────────────────────────────────────────────────── */}
       {mobileOpen && (
         <div className="bg-white lg:hidden border-t border-slate-100 animate-in slide-in-from-top duration-200">
           <div className="container mx-auto flex flex-col gap-1 px-6 py-6">
-            {dynamicLinks.map(link => (
+            {dynamicLinks.map((link) => (
               <Link
                 key={link.label}
                 to={link.to}
@@ -261,7 +554,7 @@ const Navbar = () => {
                   "rounded-xl px-4 py-3 text-[15px] font-medium transition-all",
                   location.pathname === link.to
                     ? "text-[#222222] bg-slate-100"
-                    : "text-[#484848] hover:bg-slate-50"
+                    : "text-[#484848] hover:bg-slate-50",
                 )}
               >
                 {link.label}

@@ -60,25 +60,11 @@ class ProfileService:
             payload = pending.payload or {}
 
             diff = ProfileService.build_profile_diff(user, payload)
-            
-        if key == "next_of_kin":
-            current_nok = current_data.get("next_of_kin", {})
-
-            diff["next_of_kin"] = {
-            "old": current_nok,
-            "new": new_value
+            pending_data = {
+                **pending.to_dict(),
+                "diff": diff
             }
-        else:
-                diff[key] = {
-                "old": current_data.get(key),
-                "new": new_value
-        }
-
-        pending_data = {
-        **pending.to_dict(),
-        "diff": diff
-            }
- 
+        
     # -------------------------
     # Final response (UNCHANGED STRUCTURE)
     # -------------------------

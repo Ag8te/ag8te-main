@@ -553,3 +553,133 @@ MzansiServe Compliance Team"""
         )
         EmailService.send_email(email_id=email.id)
         return email
+    
+    @staticmethod
+    def send_booking_accepted_email(client, service_request):
+        """Notify client that a provider accepted their booking"""
+        first_name = _first_name(client)
+        provider = getattr(service_request, 'provider', None)
+        provider_name = 'Your Provider'
+        if provider and provider.data:
+            provider_name = (provider.data.get('full_name') or provider_name)
+        booking_date = service_request.scheduled_date or 'N/A'
+        booking_time = service_request.scheduled_time or ''
+        subject = "Booking Accepted - MzansiServe"
+        body = f"""Hi {first_name},
+
+Great news! Your booking has been accepted.
+
+Provider: {provider_name}
+Date: {booking_date} {booking_time}
+
+The provider will be in touch shortly.
+
+Regards,
+MzansiServe Team"""
+        body_html = f"""<html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+<p>Hi {first_name},</p>
+<p><strong>Great news!</strong> Your booking has been accepted.</p>
+<p><strong>Provider:</strong> {provider_name}<br>
+<strong>Date:</strong> {booking_date} {booking_time}</p>
+<p>The provider will be in touch shortly.</p>
+<p>Regards,<br>MzansiServe Team</p>
+</body></html>"""
+        email = EmailService.queue_email(
+            recipient=client.email,
+            subject=subject,
+            body=body,
+            body_html=body_html,
+            metadata={'type': 'booking_accepted', 'user_id': str(client.id),
+                      'request_id': str(service_request.id)}
+        )
+        EmailService.send_email(email_id=email.id)
+        return email
+
+    @staticmethod
+    def send_booking_rejected_email(client, service_request):
+        """Notify client that a provider rejected their booking"""
+        first_name = _first_name(client)
+        subject = "Booking Update - MzansiServe"
+        body = f"""Hi {first_name},
+
+A provider has declined your booking request.
+Don't worry, your request is still open and another provider can accept it.
+
+Regards,
+MzansiServe Team"""
+        body_html = f"""<html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+<p>Hi {first_name},</p>
+<p>A provider has declined your booking request.</p>
+<p>Don't worry, your request is still open and another provider can accept it.</p>
+<p>Regards,<br>MzansiServe Team</p>
+</body></html>"""
+        email = EmailService.queue_email(
+            recipient=client.email,
+            subject=subject,
+            body=body,
+            body_html=body_html,
+            metadata={'type': 'booking_rejected', 'user_id': str(client.id),
+                      'request_id': str(service_request.id)}
+        )
+        EmailService.send_email(email_id=email.id)
+        return email
+
+    @staticmethod
+    def send_job_completed_email(client, service_request):
+        """Notify client that their job has been completed"""
+        first_name = _first_name(client)
+        subject = "Job Completed - Please Rate Your Experience"
+        body = f"""Hi {first_name},
+
+Your service has been marked as complete. We hope everything went well!
+
+Please take a moment to rate your provider, your feedback helps the community.
+
+Regards,
+MzansiServe Team"""
+        body_html = f"""<html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+<p>Hi {first_name},</p>
+<p>Your service has been marked as complete. We hope everything went well!</p>
+<p>Please take a moment to rate your provider, your feedback helps the community.</p>
+<p>Regards,<br>MzansiServe Team</p>
+</body></html>"""
+        email = EmailService.queue_email(
+            recipient=client.email,
+            subject=subject,
+            body=body,
+            body_html=body_html,
+            metadata={'type': 'job_completed', 'user_id': str(client.id),
+                      'request_id': str(service_request.id)}
+        )
+        EmailService.send_email(email_id=email.id)
+        return email
+
+    @staticmethod
+    def send_provider_no_show_email(client, service_request):
+        """Notify client that provider did not show up"""
+        first_name = _first_name(client)
+        subject = "Provider No-Show - Your Request is Open Again"
+        body = f"""Hi {first_name},
+
+We're sorry to hear your provider didn't show up.
+
+Your request has been reopened and is available for another provider to accept.
+
+Regards,
+MzansiServe Team"""
+        body_html = f"""<html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+<p>Hi {first_name},</p>
+<p>We're sorry to hear your provider didn't show up.</p>
+<p>Your request has been reopened and is available for another provider to accept.</p>
+<p>Regards,<br>MzansiServe Team</p>
+</body></html>"""
+        email = EmailService.queue_email(
+            recipient=client.email,
+            subject=subject,
+            body=body,
+            body_html=body_html,
+            metadata={'type': 'provider_no_show', 'user_id': str(client.id),
+                      'request_id': str(service_request.id)}
+        )
+        EmailService.send_email(email_id=email.id)
+        return email

@@ -281,7 +281,10 @@ def get_dashboard():
             'current_user': user.to_dict(),
             'wallet': {
                 'balance': wallet_balance,
-                'currency': wallet.currency if wallet else 'ZAR'
+                'currency': wallet.currency if wallet else 'ZAR',
+                'transactions': [t.to_dict() for t in WalletTransaction.query.filter_by(
+                   wallet_id=wallet.id
+                ).order_by(WalletTransaction.created_at.desc()).limit(50).all()] if wallet else []
             },
             'recent_orders': [o.to_dict() for o in recent_orders],
             'recent_rides': [r.to_dict() for r in recent_rides],
@@ -512,7 +515,20 @@ def create_withdrawal_request():
         balance = float(wallet.balance) if wallet.balance else 0.0
         if amount > balance:
             return error_response('INSUFFICIENT_BALANCE', f'Balance is R{balance:.2f}', None, 400)
-        wr = WithdrawalRequest(user_id=user_id, amount=amount, status='pending')
+        user_data = user.data or {}
+        banking_details = user_data.get('banking_details') or data.get('banking_details')
+
+        if not banking_details:
+            return error_response('MISSING_BANKING_DETAILS',
+             'Please add your banking details before requesting a payout.',
+              None, 400
+           )
+
+        wr = WithdrawalRequest(user_id=user_id,
+                               amount=amount,
+                               status='pending',
+                               banking_details=banking_details
+        )
         db.session.add(wr)
         db.session.flush()
         WalletService.add_transaction(

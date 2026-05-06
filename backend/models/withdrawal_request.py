@@ -16,6 +16,7 @@ class WithdrawalRequest(db.Model):
     requested_at = db.Column(db.DateTime(timezone=True), default=datetime.utcnow)
     processed_at = db.Column(db.DateTime(timezone=True), nullable=True)
     admin_notes = db.Column(db.Text, nullable=True)
+    banking_details = db.Column(JSONB, nullable=True)
     created_at = db.Column(db.DateTime(timezone=True), default=datetime.utcnow)
     updated_at = db.Column(db.DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -34,6 +35,7 @@ class WithdrawalRequest(db.Model):
             'requested_at': self.requested_at.isoformat() if self.requested_at else None,
             'processed_at': self.processed_at.isoformat() if self.processed_at else None,
             'admin_notes': self.admin_notes,
+            'banking_details': self.banking_details or {},
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }
