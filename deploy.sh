@@ -335,6 +335,24 @@ remote "
   docker compose -f docker-compose.yml --env-file .env logs --tail=15
 "
 
+info "Validating production frontend mode…"
+remote "
+  set -e
+  FRONTEND_CMD=\$(docker inspect mzansiserve-frontend-1 --format='{{json .Config.Cmd}}')
+  echo \"Frontend command: \$FRONTEND_CMD\"
+  echo \"\$FRONTEND_CMD\" | grep -q 'npm run dev' && {
+    echo 'ERROR: frontend container is running in dev mode.'
+    exit 1
+  }
+
+  curl -fsS http://127.0.0.1/ > /tmp/mzansiserve-index.html
+  if grep -q '@vite/client' /tmp/mzansiserve-index.html; then
+    echo 'ERROR: production homepage is still serving Vite dev HTML.'
+    exit 1
+  fi
+  echo 'Production frontend validation passed.'
+"
+
 info "Step 5/5 — Deployment summary"
 COMMIT=$(remote "cd $REMOTE_DIR && git log --oneline -1" 2>/dev/null || echo "unknown")
 
