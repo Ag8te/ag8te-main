@@ -97,8 +97,7 @@ def test_1_2_3_registration_approval_login(client, app, db_session):
             res = client.post('/api/auth/register', data=json.dumps(reg_data), content_type='application/json')
             res_json = res.get_json()
             assert res.status_code == 201, f"Reg failed for {role}: {res_json}"
-        
-        user_id = res_json['data']['user']['id']
+            user_id = res_json['data']['user']['id']
         
         with app.app_context():
             u = User.query.get(user_id)
@@ -133,9 +132,10 @@ def test_4_5_6_request_flows(client, app, db_session):
     with patch('backend.services.email_service.EmailService.send_email') as mock_send:
         mock_send.return_value = True
         
-        client.post('/api/auth/register', data=json.dumps({
+        res = client.post('/api/auth/register', data=json.dumps({
             "email": client_email, "password": client_pass, "role": "client", "full_name": "Req Client"
         }), content_type='application/json')
+        assert res.status_code == 201, f"Registration failed: {res.get_json()}"
     
     with app.app_context():
         u = User.query.filter_by(email=client_email).first()
@@ -167,9 +167,8 @@ def test_12_wallet_withdrawal(client, app, db_session):
         res = client.post('/api/auth/register', data=json.dumps({
             "email": driver_email, "password": driver_pass, "role": "driver", "full_name": "Wallet Driver"
         }), content_type='application/json')
-    
-    assert res.status_code == 201, f"Registration failed: {res.get_json()}"
-    user_id = res.get_json()['data']['user']['id']
+        assert res.status_code == 201, f"Registration failed: {res.get_json()}"
+        user_id = res.get_json()['data']['user']['id']
     
     admin = create_admin(db_session)
     admin_headers = get_auth_header(client, admin.email, "admin123", "admin")
@@ -212,9 +211,10 @@ def test_15_16_shop_purchases(client, app, db_session):
     with patch('backend.services.email_service.EmailService.send_email') as mock_send:
         mock_send.return_value = True
         
-        client.post('/api/auth/register', data=json.dumps({
+        res = client.post('/api/auth/register', data=json.dumps({
             "email": client_email, "password": client_pass, "role": "client", "full_name": "Shop Client"
         }), content_type='application/json')
+        assert res.status_code == 201, f"Registration failed: {res.get_json()}"
     
     with app.app_context():
         u = User.query.filter_by(email=client_email).first()
@@ -320,9 +320,12 @@ def test_7_19_booking_reject_certificate(client, app, db_session):
     with patch('backend.services.email_service.EmailService.send_email') as mock_send:
         mock_send.return_value = True
         
-        client.post('/api/auth/register', data=json.dumps({"email": client_email, "password": client_pass, "role": "client", "full_name": "Cert Client"}), content_type='application/json')
+        res1 = client.post('/api/auth/register', data=json.dumps({"email": client_email, "password": client_pass, "role": "client", "full_name": "Cert Client"}), content_type='application/json')
+        assert res1.status_code == 201, f"Client registration failed: {res1.get_json()}"
+        
         # Register professional
-        client.post('/api/auth/register', data=json.dumps({"email": prof_email, "password": client_pass, "role": "professional", "full_name": "Cert Prof"}), content_type='application/json')
+        res2 = client.post('/api/auth/register', data=json.dumps({"email": prof_email, "password": client_pass, "role": "professional", "full_name": "Cert Prof"}), content_type='application/json')
+        assert res2.status_code == 201, f"Professional registration failed: {res2.get_json()}"
     
     with app.app_context():
         c_user = User.query.filter_by(email=client_email).first()
