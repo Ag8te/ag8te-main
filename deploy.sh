@@ -72,14 +72,14 @@ echo ""
 # ─── Stream logs ─────────────────────────────────────────────────────────────
 if [[ "$ACTION" == "logs" ]]; then
   info "Streaming logs from VM (Ctrl+C to stop)…"
-  remote "cd $REMOTE_DIR && docker compose --env-file .env logs -f --tail=100"
+  remote "cd $REMOTE_DIR && docker compose -f docker-compose.yml --env-file .env logs -f --tail=100"
   exit 0
 fi
 
 # ─── Restart only ────────────────────────────────────────────────────────────
 if [[ "$ACTION" == "restart" ]]; then
   info "Restarting containers on VM…"
-  remote "cd $REMOTE_DIR && docker compose --env-file .env up -d"
+  remote "cd $REMOTE_DIR && docker compose -f docker-compose.yml --env-file .env up -d"
   success "Containers restarted."
   exit 0
 fi
@@ -232,7 +232,7 @@ success ".env uploaded."
 
 if [[ "$ACTION" == "env" ]]; then
   info "Recreating containers to pick up new .env…"
-  remote "cd $REMOTE_DIR && docker compose --env-file .env up -d"
+  remote "cd $REMOTE_DIR && docker compose -f docker-compose.yml --env-file .env up -d"
   success "Done — env-only deploy complete."
   exit 0
 fi
@@ -302,24 +302,22 @@ remote "
     export VITE_API_URL='http://$PUBLIC_IP:5006'
   fi
 
-  # ── Free up ports from any host-level services ──
-  echo 'Freeing ports on host...'
+  # ── Free up ports from host-level services only ──
+  # Do not kill the currently running Docker-bound ports here, otherwise
+  # we guarantee downtime before the replacement containers are ready.
+  echo 'Stopping host-level web servers if present...'
   sudo systemctl stop nginx   2>/dev/null || true
   sudo systemctl disable nginx 2>/dev/null || true
   sudo systemctl stop apache2  2>/dev/null || true
   sudo systemctl disable apache2 2>/dev/null || true
-  sudo fuser -k 80/tcp   2>/dev/null || true
-  sudo fuser -k 5006/tcp 2>/dev/null || true
-  sudo fuser -k 443/tcp  2>/dev/null || true
-  sleep 1
-  echo 'Ports cleared.'
+  echo 'Host-level port cleanup complete.'
 
   # Make entrypoint executable
   chmod +x docker-entrypoint.sh 2>/dev/null || true
 
   # Build & bring up (detached)
   # docker-entrypoint.sh handles: flask db upgrade + flask seed-all (if RUN_SEEDERS=true)
-  RUN_SEEDERS=$RUN_SEEDERS PUBLIC_IP=\$PUBLIC_IP HOST=\$HOST docker compose --env-file .env up --build -d
+  RUN_SEEDERS=$RUN_SEEDERS PUBLIC_IP=\$PUBLIC_IP HOST=\$HOST docker compose -f docker-compose.yml --env-file .env up --build -d
 
   # Clean up dangling images
   docker image prune -f 2>/dev/null || true
@@ -331,10 +329,10 @@ sleep 5
 remote "
   cd $REMOTE_DIR
   echo '--- Running containers ---'
-  docker compose ps
+  docker compose -f docker-compose.yml ps
   echo ''
   echo '--- Last 15 log lines ---'
-  docker compose --env-file .env logs --tail=15
+  docker compose -f docker-compose.yml --env-file .env logs --tail=15
 "
 
 info "Step 5/5 — Deployment summary"
