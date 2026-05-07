@@ -56,7 +56,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const token = localStorage.getItem("token") || localStorage.getItem("adminToken");
       if (token) {
         try {
-          const result = await apiFetch("/api/profile", {
+          const result = await apiFetch("/api/auth/me", {
             headers: { Authorization: `Bearer ${token}` }
           });
           if (result.success && result.data) {

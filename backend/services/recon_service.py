@@ -5,7 +5,7 @@ we credit the earner's wallet and record in EarningsRecon so we don't double-cre
 """
 from datetime import datetime, timezone
 from decimal import Decimal
-from sqlalchemy import and_, func
+from sqlalchemy import and_, func, or_
 from backend.extensions import db
 from backend.models import User, ServiceRequest, AppSetting, EarningsRecon
 from backend.services.wallet_service import WalletService
@@ -49,6 +49,10 @@ def _earnings_for_user_month(user_id, role, period_yyyy_mm):
         ServiceRequest.status == 'completed',
         ServiceRequest.updated_at >= start,
         ServiceRequest.updated_at < end,
+        or_(
+            ServiceRequest.details['wallet_credited'].astext != 'true',
+            ServiceRequest.details['wallet_credited'].is_(None)
+        )
     ).first()
     gross = float(row[0]) if row and row[0] else 0.0
     rate = _admin_fee_rate_for_role(role)

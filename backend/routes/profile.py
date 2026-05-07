@@ -136,24 +136,29 @@ def update_profile():
         
         # 🔥 Attach files to each vehicle
         for i, vehicle in enumerate(request_data.get("driver_services", [])):
+            if not isinstance(vehicle, dict):
+                continue
+            
+               
     # Disk document
-             disk_key = f"vehicles[{i}][disk_document]"
-             if disk_key in request.form:
+            disk_key = f"vehicles[{i}][disk_document]"
+            if disk_key in request.files:
             
                  vehicle["disk_document"] = request.files[disk_key]
 
     # Multiple images
-                 image_key = f"vehicles[{i}][images]"
-                 vehicle["images"] = request.files.getlist(image_key)
+            image_key = f"vehicles[{i}][images]"
+            vehicle["images"] = request.files.getlist(image_key)
         
         data = schema.load(request_data, partial=True)
         data = {k: v for k, v in data.items() if v is not None}
         
         result, error = ProfileService.handle_profile_update(user_id, data, request.files)
         if error:
+            current_app.logger.error(f"PROFILE UPDATE ERROR: {error}")
             status_code = 403 if error == "NOT_APPROVED" else 400
             if error == "INTERNAL_ERROR": status_code = 500
-            return error_response(error, 'Previous changes pending you cannot make new ones', None, status_code)
+            return error_response(error, error, None, status_code)
             
         return success_response(result, 'Profile update processed successfully')
         
@@ -162,8 +167,50 @@ def update_profile():
         return error_response('VALIDATION_ERROR', 'Invalid input data', e.messages, 400)
     except Exception as e:
         current_app.logger.error(f"Update profile error: {str(e)}")
-        return error_response('INTERNAL_ERROR', 'Previous changes pending you cannot make new ones', None, 500)
+        return error_response('INTERNAL_ERROR', 'Failed to update profile', None, 500)
 
+@bp.route('/banking-details', methods=['PATCH'])
+@require_auth
+def update_banking_details():
+    """Save banking details directly to user.data - no admin approval needed."""
+    try:
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+
+        if not user:
+            return error_response('NOT_FOUND', 'User not found', None, 404)
+
+        if user.role not in ('driver', 'professional', 'service-provider'):
+            return error_response('FORBIDDEN', 'Only providers can update banking details', None, 403)
+
+        data = request.json or {}
+        banking_details = data.get('banking_details')
+
+        if not banking_details:
+            return error_response('MISSING_FIELDS', 'banking_details is required', None, 400)
+
+        required = ['bank_name', 'account_holder', 'account_number', 'branch_code']
+        missing = [f for f in required if not banking_details.get(f)]
+        if missing:
+            return error_response(
+                'MISSING_FIELDS',
+                f'Missing required fields: {", ".join(missing)}',
+                None, 400
+            )
+
+        updated_data = dict(user.data) if user.data else {}
+        updated_data['banking_details'] = banking_details
+        user.data = updated_data
+        db.session.commit()
+        return success_response(
+            {'banking_details': banking_details},
+            'Banking details updated successfully'
+        )
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Update banking details error: {str(e)}")
+        return error_response('INTERNAL_ERROR', 'Failed to update banking details', None, 500)
 
 @bp.route('/upload-photo', methods=['POST'])
 @require_auth

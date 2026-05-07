@@ -11,9 +11,12 @@ from flask_jwt_extended import get_jwt_identity
 from marshmallow import Schema, ValidationError, fields, validate
 from sqlalchemy import and_, or_, func
 
+from backend.services.email_service import EmailService
 from backend.extensions import db
 from backend.models import AppSetting, Payment, ServiceRequest, User, Wallet, DriverRating, ClientRating, ProfessionalRating, ProviderRating, Order
 from backend.services.wallet_service import WalletService
+from backend.services.notification_service import NotificationService
+from backend.services.email_service import EmailService
 from backend.services.payment_service import PaymentService
 from backend.utils.decorators import require_auth, require_role
 from backend.utils.response import error_response, success_response
@@ -129,8 +132,21 @@ def create_request():
         user_id = get_jwt_identity()
 
         service_request, error = RequestService.create_request(data, user_id)
+        
+        provider = None
+        if service_request and service_request.request_type in ("professional", "provider") and service_request.provider_id:
+            provider = User.query.get(service_request.provider_id)
+            requester = User.query.get(service_request.requester_id)
+            if provider and provider.email:
+                try:
+                    EmailService.send_booking_notification(provider, service_request, requester)
+                except Exception as e:
+                    current_app.logger.error(f"Error sending booking notification: {str(e)}")
+
         if error:
             return error_response(error, 'Failed to create request', None, 400)
+        
+        db.session.commit()
 
         wallet = Wallet.query.filter_by(user_id=user_id).first()
         return success_response({
@@ -521,8 +537,35 @@ def accept_request(request_id):
             service_request.details = details
         
         service_request.provider_id = user_id
+        provider = User.query.get(user_id)
+        
+        if provider and provider.email:
+            try:
+                EmailService.send_request_accepted_email(provider, service_request)
+            except Exception as e:
+                current_app.logger.error(f"Error sending request accepted email: {str(e)}")
+        
         service_request.status = 'accepted'
         db.session.commit()
+
+        try:
+            NotificationService.notify(
+                user_id=service_request.requester_id,
+                type='request_accepted',
+                title='Your booking has been accepted',
+                body='A provider has accepted your booking request',
+                entity_type='service_request',
+                entity_id=service_request.id
+            )
+        except Exception as notif_err:
+            current_app.logger.error(f"Notification error on accept: {str(notif_err)}")
+        
+        try:
+            client = User.query.get(service_request.requester_id)
+            if client:
+                EmailService.send_booking_accepted_email(client, service_request)
+        except Exception as email_err:
+            current_app.logger.error(f"Email error on accept: {str(email_err)}")
         
         payload = RequestService.serialize_request(service_request) if service_request.request_type == 'cab' else service_request.to_dict()
         return success_response(payload, 'Request accepted successfully')
@@ -1118,7 +1161,54 @@ def professional_has_arrived(request_id):
         service_request.details = details
         service_request.status = 'completed'
         db.session.commit()
-        return success_response(service_request.to_dict(), 'Professional has arrived. You can rate your service.')
+
+        try:
+            admin_fee_setting = AppSetting.query.get('professional_admin_fee_rate')
+            admin_fee_rate = float(admin_fee_setting.value) if admin_fee_setting else 0.10
+            net_amount = float(service_request.payment_amount or 0) * (1.0 - admin_fee_rate)
+            if net_amount > 0 and service_request.provider_id:
+                wallet = WalletService.get_or_create_wallet(str(service_request.provider_id))
+                WalletService.add_transaction(
+                    wallet_id=wallet.id,
+                    user_id=str(service_request.provider_id),
+                    transaction_type='earnings_transfer',
+                    amount=net_amount,
+                    currency='ZAR',
+                    external_id=service_request.id,
+                    description=f"Earnings for job {service_request.id}",
+                    metadata={
+                        'service_request_id': service_request.id,
+                        'role': 'professional'
+                    }
+                )
+                credited_details = dict(service_request.details or {})
+                credited_details['wallet_credited'] = True
+                service_request.details = credited_details
+                db.session.commit()
+        except Exception as wallet_err:
+            current_app.logger.error(f"Wallet credit error after professional completion: {str(wallet_err)}")
+        
+        try:
+            NotificationService.notify(
+                user_id=service_request.requester_id,
+                type='job_completed',
+                title='Your job has been completed',
+                body='Your service has been marked as completed. Please rate your experience.',
+                entity_type='service_request',
+                entity_id=service_request.id
+            )
+        except Exception as notif_err:
+            current_app.logger.error(f"Notification error on job completion: {str(notif_err)}")
+        
+        try:
+            client = User.query.get(service_request.requester_id)
+            if client:
+                EmailService.send_job_completed_email(client, service_request)
+        except Exception as email_err:
+            current_app.logger.error(f"Email error on professional completion: {str(email_err)}")
+        
+        return success_response(service_request.to_dict(), 'Professional has completed the job. You can rate your service.')    
+
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f"Professional has arrived error: {str(e)}")
@@ -1141,7 +1231,26 @@ def professional_mark_no_show(request_id):
         service_request.status = 'pending'
         service_request.provider_id = None
         db.session.commit()
+
+        try:
+            NotificationService.notify(
+                user_id=service_request.requester_id,
+                type='professional_no_show',
+                title='Professional has no-showed',
+                body='The professional has no-showed and is available for another professional.',
+                entity_type='service_request',
+                entity_id=service_request.id
+            )
+        except Exception as notif_err:
+            current_app.logger.error(f"Notification error on professional no-show: {str(notif_err)}")
+        try:
+            client = User.query.get(service_request.requester_id)
+            if client:
+                EmailService.send_provider_no_show_email(client, service_request)
+        except Exception as email_err:
+            current_app.logger.error(f"Email error on professional no-show: {str(email_err)}")
         return success_response(service_request.to_dict(), 'Request is now pending for another professional.')
+        
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f"Professional mark no-show error: {str(e)}")
@@ -1234,7 +1343,52 @@ def provider_has_arrived(request_id):
         service_request.details = details
         service_request.status = 'completed'
         db.session.commit()
-        return success_response(service_request.to_dict(), 'Service provider has arrived. You can rate your service.')
+        try:
+            admin_fee_setting = AppSetting.query.get('driver_admin_fee_rate')
+            admin_fee_rate = float(admin_fee_setting.value) if admin_fee_setting else 0.10
+            net_amount = float(service_request.payment_amount or 0) * (1.0 - admin_fee_rate)
+            if net_amount > 0 and service_request.provider_id:
+                wallet = WalletService.get_or_create_wallet(str(service_request.provider_id))
+                WalletService.add_transaction(
+                    wallet_id=wallet.id,
+                    user_id=str(service_request.provider_id),
+                    transaction_type='earnings_transfer',
+                    amount=net_amount,
+                    currency='ZAR',
+                    external_id=service_request.id,
+                    description=f"Earnings for job {service_request.id}",
+                    metadata={
+                        'service_request_id': service_request.id,
+                        'role': 'service-provider'
+                    }
+                )
+                credited_details = dict(service_request.details or {})
+                credited_details['wallet_credited'] = True
+                service_request.details = credited_details
+                db.session.commit()
+        except Exception as wallet_err:
+            current_app.logger.error(f"Wallet credit error after provider completion: {str(wallet_err)}")
+
+        try:
+            NotificationService.notify(
+                user_id=service_request.requester_id,
+                type='job_completed',
+                title='Your job has been completed',
+                body='Your service has been marked as completed. Please rate your experience.',
+                entity_type='service_request',
+                entity_id=service_request.id
+            )
+        except Exception as notif_err:
+            current_app.logger.error(f"Notification error on provider completion: {str(notif_err)}")
+        try:
+            client = User.query.get(service_request.requester_id)
+            if client:
+                EmailService.send_job_completed_email(client, service_request)
+        except Exception as email_err:
+            current_app.logger.error(f"Email error on provider completion: {str(email_err)}")
+        
+        return success_response(service_request.to_dict(), 'Service provider has completed the job. You can rate your service.')
+        
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f"Provider has arrived error: {str(e)}")
@@ -1257,7 +1411,25 @@ def provider_mark_no_show(request_id):
         service_request.status = 'pending'
         service_request.provider_id = None
         db.session.commit()
+        try:
+            NotificationService.notify(
+                user_id=service_request.requester_id,
+                type='provider_no_show',
+                title='Provider marked as no-show',
+                body='Your request is now open again for another service provider to accept.',
+                entity_type='service_request',
+                entity_id=service_request.id
+            )
+        except Exception as notif_err:
+            current_app.logger.error(f"Notification error on provider no-show: {str(notif_err)}")
+        try:
+            client = User.query.get(service_request.requester_id)
+            if client:
+                EmailService.send_provider_no_show_email(client, service_request)
+        except Exception as email_err:
+            current_app.logger.error(f"Email error on provider no-show: {str(email_err)}")
         return success_response(service_request.to_dict(), 'Request is now pending for another service provider.')
+        
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f"Provider mark no-show error: {str(e)}")
@@ -1398,6 +1570,25 @@ def reject_request(request_id):
             service_request.status = 'pending'
             service_request.provider_id = None
         db.session.commit()
+
+        try:
+            NotificationService.notify(
+                user_id=service_request.requester_id,
+                type='request_rejected',
+                title='A provider declined your booking',
+                body='Your request is still open and can be accepted by another provider.',
+                entity_type='service_request',
+                entity_id=service_request.id
+            )
+        except Exception as notif_err:
+            current_app.logger.error(f"Notification error on reject: {str(notif_err)}")
+        
+        try:
+            client = User.query.get(service_request.requester_id)
+            if client:
+                EmailService.send_booking_rejected_email(client, service_request)
+        except Exception as email_err:
+            current_app.logger.error(f"Email error on reject: {str(email_err)}")
         
         return success_response(service_request.to_dict(), 'Request rejected successfully')
         

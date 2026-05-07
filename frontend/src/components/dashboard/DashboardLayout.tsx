@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   AppBar,
   Toolbar,
@@ -29,6 +29,7 @@ import {
 } from '@mui/icons-material';
 import { getDashboardTheme } from '@/lib/dashboard-theme';
 import Sidebar from './Sidebar';
+import { apiFetch } from '@/lib/api';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -40,6 +41,17 @@ interface DashboardLayoutProps {
   role: string;
   navStructure: any[];
   actions?: React.ReactNode;
+}
+
+interface AppNotification {
+    id: string;
+    type: string;
+    title: string;
+    body: string;
+    status: string;
+    entity_type: string;
+    entity_id: string;
+    created_at: string;
 }
 
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({
@@ -55,6 +67,10 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 }) => {
   const [sidebarVisible, setSidebarVisible] = useState(false);
   const [profileAnchor, setProfileAnchor] = useState<null | HTMLElement>(null);
+  const [notifAnchor, setNotifAnchor] = useState<null | HTMLElement>(null);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const theme = getDashboardTheme('light'); 
   const muiTheme = useMuiTheme();
   const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'));
@@ -63,6 +79,48 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   const closeProfileMenu = () => setProfileAnchor(null);
 
   const drawerWidth = 280;
+
+  const fetchNotifications = async () => {
+      try {
+          const res = await apiFetch('/api/notifications');
+          if (res.success) {
+              setNotifications(res.data.notifications || []);
+              setUnreadCount(res.data.unread_count || 0);
+          }
+      } catch (_err) {
+          // fail silently — bell just won't update
+      }
+  };
+
+  useEffect(() => {
+      fetchNotifications();
+      pollRef.current = setInterval(fetchNotifications, 30000);
+      return () => {
+          if (pollRef.current) clearInterval(pollRef.current);
+      };
+  }, []);
+
+  const handleMarkRead = async (notifId: string) => {
+      try {
+          await apiFetch(`/api/notifications/${notifId}/read`, { method: 'PATCH' });
+          fetchNotifications();
+      } catch (_err) { /* fail silently */ }
+  };
+
+  const handleMarkAllRead = async () => {
+      try {
+          await apiFetch('/api/notifications/read-all', { method: 'PATCH' });
+          fetchNotifications();
+      } catch (_err) { /* fail silently */ }
+  };
+
+  const timeAgo = (dateStr: string) => {
+      const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
+      if (diff < 60) return 'just now';
+      if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+      if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+      return `${Math.floor(diff / 86400)}d ago`;
+  };
 
   return (
     <ThemeProvider theme={theme}>
@@ -133,12 +191,82 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                 {actions}
                 
-                <IconButton size="small" sx={{ color: 'text.secondary' }}>
-                  <Badge badgeContent={0} color="error" variant="dot">
-                    <NotificationsIcon />
-                  </Badge>
+                <IconButton
+                    size="small"
+                    sx={{ color: 'text.secondary' }}
+                    onClick={(e) => setNotifAnchor(e.currentTarget)}
+                >
+                    <Badge badgeContent={unreadCount > 0 ? unreadCount : 0} color="error">
+                        <NotificationsIcon />
+                    </Badge>
                 </IconButton>
 
+                <Menu
+                    anchorEl={notifAnchor}
+                    open={Boolean(notifAnchor)}
+                    onClose={() => setNotifAnchor(null)}
+                    PaperProps={{
+                        elevation: 0,
+                        sx: {
+                            mt: 1.5,
+                            width: 360,
+                            maxHeight: 480,
+                            overflow: 'hidden',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.15))',
+                        }
+                    }}
+                    transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+                    anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+                >
+                    <Box sx={{ px: 2, py: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid', borderColor: 'divider' }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Notifications</Typography>
+                        {unreadCount > 0 && (
+                            <Button size="small" onClick={handleMarkAllRead} sx={{ fontSize: '0.7rem' }}>
+                                Mark all read
+                            </Button>
+                        )}
+                    </Box>
+                    <Box sx={{ overflowY: 'auto', flexGrow: 1 }}>
+                        {notifications.length === 0 ? (
+                            <Box sx={{ p: 3, textAlign: 'center' }}>
+                                <Typography variant="body2" color="text.secondary">No notifications yet</Typography>
+                            </Box>
+                        ) : (
+                            notifications.map((n) => (
+                                <MenuItem
+                                    key={n.id}
+                                    onClick={() => { handleMarkRead(n.id); setNotifAnchor(null); }}
+                                    sx={{
+                                        alignItems: 'flex-start',
+                                        gap: 1.5,
+                                        py: 1.5,
+                                        px: 2,
+                                        bgcolor: n.status === 'unread' ? 'action.hover' : 'transparent',
+                                        borderBottom: '1px solid',
+                                        borderColor: 'divider',
+                                        whiteSpace: 'normal'
+                                    }}
+                                >
+                                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: n.status === 'unread' ? 'primary.main' : 'transparent', mt: 0.8, flexShrink: 0 }} />
+                                    <Box sx={{ flexGrow: 1 }}>
+                                        <Typography variant="body2" sx={{ fontWeight: n.status === 'unread' ? 700 : 400 }}>
+                                            {n.title}
+                                        </Typography>
+                                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.3 }}>
+                                            {n.body}
+                                        </Typography>
+                                        <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 0.5 }}>
+                                            {timeAgo(n.created_at)}
+                                        </Typography>
+                                    </Box>
+                                </MenuItem>
+                            ))
+                        )}
+                    </Box>
+                </Menu>
+                 
                 <Divider orientation="vertical" flexItem sx={{ height: 24, alignSelf: 'center', mx: 1 }} />
 
                 <Button

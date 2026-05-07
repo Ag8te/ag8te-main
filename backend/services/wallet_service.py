@@ -37,7 +37,7 @@ class WalletService:
         Returns:
             WalletTransaction: Created transaction
         """
-        wallet = Wallet.query.get(wallet_id)
+        wallet = Wallet.query.filter_by(id=wallet_id).with_for_update().first()
         if not wallet:
             raise ValueError(f"Wallet {wallet_id} not found")
         
