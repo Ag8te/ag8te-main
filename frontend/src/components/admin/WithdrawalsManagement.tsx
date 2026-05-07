@@ -13,7 +13,6 @@ import {
     Mail,
     Filter,
     MessageSquare,
-    DollarSign,
     RefreshCw
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -40,6 +39,12 @@ interface WithdrawalRequest {
     user_name?: string;
     user_email?: string;
     user_role?: string;
+    banking_details?: {
+        bank_name: string;
+        account_number: string;
+        account_holder: string;
+        branch_code: string;
+    };
 }
 
 export const WithdrawalsManagement = () => {
@@ -255,10 +260,36 @@ export const WithdrawalsManagement = () => {
                                 <p className="text-[10px] font-bold text-[#5e35b1] uppercase tracking-widest">Amount to Pay</p>
                                 <p className="text-3xl font-bold text-slate-900 tracking-tighter">R {selectedRequest?.amount.toFixed(2)}</p>
                             </div>
-                            <div className="h-12 w-12  bg-white shadow-sm flex items-center justify-center text-[#5e35b1]">
-                                <DollarSign className="h-6 w-6" />
-                            </div>
                         </div>
+
+                        {selectedRequest?.banking_details?.bank_name ? (
+                            <div className="bg-slate-50 border border-slate-100 p-4 space-y-3">
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Bank Details</p>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <p className="text-[10px] text-slate-400 font-bold uppercase">Bank Name</p>
+                                        <p className="text-sm font-bold text-slate-900 tracking-tighter">{selectedRequest?.banking_details.bank_name}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] text-slate-400 font-bold uppercase">Account Holder</p>
+                                        <p className="text-sm font-bold text-slate-900 tracking-tighter">{selectedRequest?.banking_details.account_holder}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] text-slate-400 font-bold uppercase">Account Number</p>
+                                        <p className="text-sm font-bold text-slate-900 tracking-tighter">{selectedRequest?.banking_details.account_number}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] text-slate-400 font-bold uppercase">Branch Code</p>
+                                        <p className="text-sm font-bold text-slate-900 tracking-tighter">{selectedRequest?.banking_details.branch_code}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="bg-amber-50 border border-amber-100 p-3">
+                                <p className="text-[11px] font-bold text-amber-600">No bank details provided for this request.</p>
+                                </div>
+                             
+                        )}
 
                         <div className="space-y-2">
                             <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">Administrative Notes</label>

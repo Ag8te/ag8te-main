@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     Box,
     Typography,
@@ -19,7 +19,11 @@ import {
     TableHead,
     TableRow,
     Chip,
-    CircularProgress
+    CircularProgress,
+    MenuItem,
+    Select,
+    FormControl,
+    InputLabel
 } from "@mui/material";
 import {
     AccountBalanceWallet as WalletIcon,
@@ -32,13 +36,30 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiFetch } from "@/lib/api";
 
+// Added SA bank list with branch codes
+const SA_BANKS: { name: string; branch_code: string }[] = [
+    { name: "ABSA",           branch_code: "632005" },
+    { name: "African Bank",   branch_code: "430000" },
+    { name: "Bidvest Bank",   branch_code: "462005" },
+    { name: "Capitec",        branch_code: "470010" },
+    { name: "Discovery Bank", branch_code: "679000" },
+    { name: "FNB",            branch_code: "250655" },
+    { name: "Investec",       branch_code: "580105" },
+    { name: "Nedbank",        branch_code: "198765" },
+    { name: "Standard Bank",  branch_code: "051001" },
+    { name: "TymeBank",       branch_code: "678910" },
+];
+
 interface Transaction {
     id: string;
-    transaction_type: 'top-up' | 'payment' | 'withdrawal' | 'credit' | 'debit';
+    transaction_type: 'top-up' | 'payment' | 'withdrawal' |    'refund' | 'cancellation_refund' | 'earnings_transfer' | 'withdrawal_reversal';
     amount: number;
-    status: string;
+    currency: string;
+    balance_before: number;
+    balance_after: number;
     created_at: string;
     description: string;
+    external_id: string 
 }
 
 interface WalletManagementProps {
@@ -54,12 +75,51 @@ export const WalletManagement = ({ balance, transactions, role, onWithdrawalRequ
     const [withdrawalAmount, setWithdrawalAmount] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    const [bankingDetails, setBankingDetails] = useState({
+        bank_name: '',
+        account_holder: '',
+        account_number: '',
+        branch_code: ''
+    });
+    const [bankingLoaded, setBankingLoaded] = useState(false);
+    const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+
+    useEffect(() => {
+        const fetchBankingDetails = async () => {
+            try {
+                const res = await apiFetch('/api/profile');
+                if (res.success && res.data?.profile_data?.banking_details) {
+                   // pre-fill from saved profile if they exist
+                   setBankingDetails(res.data.profile_data.banking_details);
+                }
+
+            } catch (_err) {
+                // Banking details are optional; ignore profile fetch errors
+            }
+            setBankingLoaded(true);
+        };
+        fetchBankingDetails();
+    }, []);
+
+    // Bank selection handler auto-fills branch code
+    const handleBankSelect = (bankName: string) => {
+        const bank = SA_BANKS.find(b => b.name === bankName);
+        setBankingDetails(prev => ({
+            ...prev,
+            bank_name: bankName,
+            branch_code: bank ? bank.branch_code : ''
+        }));
+        setValidationErrors(prev => ({
+            ...prev,
+            bank_name: '', branch_code: ''}));
+    };
+
     const handleWithdrawalRequest = async (e: React.FormEvent) => {
         e.preventDefault();
         const amount = parseFloat(withdrawalAmount);
 
-        if (isNaN(amount) || amount <= 0) {
-            toast({ title: "Invalid amount", description: "Please enter a valid amount to withdraw.", variant: "destructive" });
+        if (isNaN(amount) || amount < 200) {
+            toast({ title: "Invalid amount", description: "You can only withdraw amounts of R200 or more.", variant: "destructive" });
             return;
         }
 
@@ -68,11 +128,46 @@ export const WalletManagement = ({ balance, transactions, role, onWithdrawalRequ
             return;
         }
 
+        // Validate banking details before submitting
+        const { bank_name, account_holder, account_number, branch_code } = bankingDetails;
+        const errors: Record<string, string> = {};
+        
+        if (!bank_name.trim()) {
+            errors.bank_name = "Please select your bank.";
+        }
+        if (!account_holder.trim()) {
+            errors.account_holder = "Account holder name is required.";
+        }else if (account_holder.trim().split(' ').filter(Boolean).length < 2) {
+            errors.account_holder = "Please enter your name as it appears on your bank account.";
+        }
+        if (!account_number.trim()) {
+            errors.account_number = "Account number is required.";
+        }else if (!/^\d{8,11}$/.test(account_number.trim())) {
+            errors.account_number = "Account number must be 8-11 digits.";
+        }
+        if (!branch_code.trim()) {
+            errors.branch_code = "Branch code is required.";
+        } else if (!/^\d{6}$/.test(branch_code.trim())) {
+            errors.branch_code = "Branch code must be 6 digits.";
+        }
+
+        if (Object.keys(errors).length > 0) {
+            setValidationErrors(errors);
+            toast({ title: "Validation Error", description: "Please fix the banking details errors before submitting.", variant: "destructive" });
+            return;
+        }
+        setValidationErrors({});
+
         setIsSubmitting(true);
         try {
+            await apiFetch('/api/profile/banking-details', {
+                method: 'PATCH',
+                data: { banking_details: bankingDetails }
+            });
+
             const res = await apiFetch('/api/dashboard/wallet/withdrawal-request', {
                 method: 'POST',
-                data: { amount }
+                data: { amount, banking_details: bankingDetails }
             });
 
             if (res.success) {
@@ -80,11 +175,13 @@ export const WalletManagement = ({ balance, transactions, role, onWithdrawalRequ
                 setWithdrawalAmount("");
                 onWithdrawalRequested();
             }
-        } catch (err: any) {
-            toast({ title: "Error", description: err.message || "Failed to submit request", variant: "destructive" });
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message: "Failed to submit request";
+            toast({ title: "Error", description: message, variant: "destructive" });
         } finally {
             setIsSubmitting(false);
         }
+
     };
 
     return (
@@ -138,6 +235,92 @@ export const WalletManagement = ({ balance, transactions, role, onWithdrawalRequ
                                             }
                                         }}
                                     />
+                                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.08em', pt: 1 }}>
+                                        Banking Details
+                                    </Typography>
+                                    <FormControl fullWidth size="small" error={!!validationErrors.bank_name}>
+                                        <InputLabel>Bank Name</InputLabel>
+                                        <Select 
+                                        value={bankingDetails.bank_name}
+                                            label="Bank Name"
+                                            onChange={(e) => handleBankSelect(e.target.value)}
+                                            sx={{ bgcolor: 'background.paper' }}
+                                        >
+                                            {SA_BANKS.map((bank) => (
+                                                <MenuItem key={bank.name} value={bank.name}>
+                                                    {bank.name}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                        {validationErrors.bank_name && (
+                                            <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.5}}>
+                                                {validationErrors.bank_name}
+                                            </Typography>
+                                        )}
+                                    </FormControl>
+                                    <TextField
+                                        fullWidth
+                                        label="Account Holder Name"
+                                        size="small"
+                                        placeholder="Full name as on your bank account"
+                                        value={bankingDetails.account_holder}
+                                        onChange={(e) => {setBankingDetails(prev => ({
+                                            ...prev, account_holder: e.target.value }));
+                                        setValidationErrors(prev => ({
+                                            ...prev, account_holder: ''
+                                        }));
+                                        }}
+                                        error={!!validationErrors.account_holder}
+                                        helperText={validationErrors.account_holder}
+                                        slotProps={{ input: { sx: { bgcolor: 'background.paper' } } }}
+                                    />
+                                    <TextField
+                                        fullWidth
+                                        label="Account Number"
+                                        size="small"
+                                        placeholder="8 to 11 digits"
+                                        value={bankingDetails.account_number}
+                                        onChange={(e) => {const val = e.target.value.replace(/\D/g, '');setBankingDetails(prev => ({ 
+                                            ...prev, account_number: val 
+                                        }));
+                                        setValidationErrors(prev => ({
+                                            ...prev, account_number: ''
+                                        }));
+                                        }}
+                                        error={!!validationErrors.account_number}
+                                        helperText={validationErrors.account_number || `${bankingDetails.account_number.length} digits entered`}
+                                        inputProps={{ maxLength: 11 }}
+                                    
+                                        slotProps={{ input: { sx: { bgcolor: 'background.paper' } } }}
+                                    />
+                                    <TextField
+                                        fullWidth
+                                        label="Branch Code"
+                                        size="small"
+                                        value={bankingDetails.branch_code}
+                                        onChange={(e) => {
+
+                                           const val = e.target.value.replace(/\D/g, '');
+                                           setBankingDetails(prev => ({ 
+                                            ...prev, branch_code: val 
+                                        }));
+                                        setValidationErrors(prev => ({
+                                            ...prev, branch_code: ''
+                                        }));
+                                        }}
+                                        error={!!validationErrors.branch_code}
+                                        helperText={validationErrors.branch_code || (bankingDetails.bank_name ? 'Auto-filled from selected bank' : 'Select a bank to auto-fill')
+                                        }
+                                        inputProps={{ maxLength: 6 }}
+                                        slotProps={{ input: { sx: { bgcolor: bankingDetails.bank_name ? alpha('#4caf50' , 0.05) : 'background.paper', color: bankingDetails.bank_name ? 'success.dark' : 'text.primary' },
+                                    readOnly: !!bankingDetails.bank_name } }}
+                                    />
+
+                                    {bankingLoaded && bankingDetails.bank_name && (
+                                        <Typography variant="caption" sx={{ color: 'success.main', fontWeight: 600}}>
+                                            Banking details loaded from your profile. Update if needed.
+                                        </Typography>
+                                    )}
                                     <Button
                                         fullWidth
                                         type="submit"
@@ -193,13 +376,19 @@ export const WalletManagement = ({ balance, transactions, role, onWithdrawalRequ
                                     <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.7rem', textTransform: 'uppercase' }}>Details</TableCell>
                                     <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.7rem', textTransform: 'uppercase' }}>Date</TableCell>
                                     <TableCell align="right" sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.7rem', textTransform: 'uppercase' }}>Amount</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.7rem', textTransform: 'uppercase' }}>Status</TableCell>
+                                    <TableCell align="right" sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.7rem', textTransform: 'uppercase' }}>Balance After</TableCell>
                                 </TableRow>
                             </TableHead>
                             <TableBody>
                                 {transactions.length > 0 ? (
                                     transactions.map((tx) => {
-                                        const isCredit = tx.transaction_type === 'credit' || tx.transaction_type === 'payment' || tx.transaction_type === 'top-up';
+                                        const isCredit = [
+                                            'top-up',
+                                            'refund',
+                                            'cancellation_refund',
+                                            'earnings_transfer',
+                                            'withdrawal_reversal'
+                                        ].includes(tx.transaction_type);
                                         return (
                                             <TableRow key={tx.id} hover>
                                                 <TableCell>
@@ -216,7 +405,15 @@ export const WalletManagement = ({ balance, transactions, role, onWithdrawalRequ
                                                 </TableCell>
                                                 <TableCell>
                                                     <Typography variant="body2" sx={{ fontWeight: 700, textTransform: 'capitalize' }}>
-                                                        {tx.transaction_type.replace('-', ' ')}
+                                                        {{
+                                                            'top-up': 'Wallet Top-up',
+                                                            'payment': 'Service Payment',
+                                                            'withdrawal': 'Payout Request',
+                                                            'refund': 'Refund',
+                                                            'cancellation_refund': 'Cancellation Refund',
+                                                            'earnings_transfer': 'Earnings Transfer',
+                                                            'withdrawal_reversal': 'Payout Reversed'
+                                                        }[tx.transaction_type] || tx.transaction_type.replace(/_/g, ' ')}
                                                     </Typography>
                                                     <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block', maxWidth: 200 }}>
                                                         {tx.description || `REF: ${tx.id.slice(-8).toUpperCase()}`}
@@ -232,16 +429,15 @@ export const WalletManagement = ({ balance, transactions, role, onWithdrawalRequ
                                                 </TableCell>
                                                 <TableCell align="right">
                                                     <Chip
-                                                        label={tx.status}
+                                                        label={`R${tx.balance_after?.toFixed(2) || '-'}`}
                                                         size="small"
                                                         sx={{
                                                             height: 20,
                                                             fontSize: '0.6rem',
                                                             fontWeight: 800,
-                                                            textTransform: 'uppercase',
                                                             borderRadius: 1,
-                                                            bgcolor: tx.status === 'completed' ? alpha(theme.palette.success.main, 0.1) : alpha(theme.palette.warning.main, 0.1),
-                                                            color: tx.status === 'completed' ? 'success.dark' : 'warning.dark'
+                                                            bgcolor: alpha(theme.palette.info.main, 0.08),
+                                                            color: 'info.dark'
                                                         }}
                                                     />
                                                 </TableCell>
