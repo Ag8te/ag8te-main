@@ -13,7 +13,7 @@ from backend.extensions import db
 from backend.utils.response import success_response, error_response
 from backend.utils.decorators import require_auth
 from backend.utils.auth import validate_sa_id
-from backend.utils.url import get_callback_frontend_base_url
+from backend.utils.url import append_query_params, get_callback_frontend_return_url
 from backend.services.profile_service import ProfileService
 
 bp = Blueprint('profile', __name__)
@@ -78,6 +78,12 @@ class UpdateProfileSchema(Schema):
     professional_body = fields.Str(allow_none=True, load_default=None)
     operating_areas = fields.List(fields.Str(), allow_none=True, load_default=None)
     availability = fields.Dict(allow_none=True, load_default=None)
+    driver_license_number = fields.Str(allow_none=True, load_default=None)
+    driver_license_code = fields.Str(allow_none=True, load_default=None)
+    driver_license_expiry = fields.Str(allow_none=True, load_default=None)
+    prdp_number = fields.Str(allow_none=True, load_default=None)
+    prdp_expiry = fields.Str(allow_none=True, load_default=None)
+    vehicle_disk_expiry = fields.Str(allow_none=True, load_default=None)
     # Role-specific fields
     professional_services = fields.List(fields.Nested(ServiceSchema), allow_none=True, load_default=None)
     provider_services = fields.List(fields.Nested(ServiceSchema), allow_none=True, load_default=None)
@@ -130,24 +136,29 @@ def update_profile():
         
         # 🔥 Attach files to each vehicle
         for i, vehicle in enumerate(request_data.get("driver_services", [])):
+            if not isinstance(vehicle, dict):
+                continue
+            
+               
     # Disk document
-             disk_key = f"vehicles[{i}][disk_document]"
-             if disk_key in request.form:
+            disk_key = f"vehicles[{i}][disk_document]"
+            if disk_key in request.files:
             
                  vehicle["disk_document"] = request.files[disk_key]
 
     # Multiple images
-                 image_key = f"vehicles[{i}][images]"
-                 vehicle["images"] = request.files.getlist(image_key)
+            image_key = f"vehicles[{i}][images]"
+            vehicle["images"] = request.files.getlist(image_key)
         
         data = schema.load(request_data, partial=True)
         data = {k: v for k, v in data.items() if v is not None}
         
         result, error = ProfileService.handle_profile_update(user_id, data, request.files)
         if error:
+            current_app.logger.error(f"PROFILE UPDATE ERROR: {error}")
             status_code = 403 if error == "NOT_APPROVED" else 400
             if error == "INTERNAL_ERROR": status_code = 500
-            return error_response(error, 'Failed to update profile', None, status_code)
+            return error_response(error, error, None, status_code)
             
         return success_response(result, 'Profile update processed successfully')
         
@@ -410,25 +421,23 @@ def pay_registration_fee():
 def payment_callback():
     try:
         external_id = request.args.get('external_id')
-        frontend_url = get_callback_frontend_base_url()
         
         success, error = ProfileService.handle_payment_callback(external_id)
         
         if success:
             return current_app.make_response((
-                f'<html><body><script>window.location.href="{frontend_url}/profile?payment=success";</script></body></html>',
+                f'<html><body><script>window.location.href="{append_query_params(get_callback_frontend_return_url("/profile"), {"payment": "success", "external_id": external_id})}";</script></body></html>',
                 302
             ))
         else:
             return current_app.make_response((
-                f'<html><body><script>window.location.href="{frontend_url}/profile?payment=error&reason=' + (error or 'unknown') + '";</script></body></html>',
+                f'<html><body><script>window.location.href="{append_query_params(get_callback_frontend_return_url("/profile"), {"payment": "error", "reason": error or "unknown", "external_id": external_id})}";</script></body></html>',
                 302
             ))
-        
+            
     except Exception as e:
         current_app.logger.error(f"Payment callback error: {str(e)}")
-        frontend_url = get_callback_frontend_base_url()
         return current_app.make_response((
-            f'<html><body><script>window.location.href="{frontend_url}/profile?payment=error";</script></body></html>',
+            f'<html><body><script>window.location.href="{append_query_params(get_callback_frontend_return_url("/profile"), {"payment": "error"})}";</script></body></html>',
             302
         ))

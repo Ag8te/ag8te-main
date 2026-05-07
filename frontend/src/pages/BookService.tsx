@@ -20,11 +20,9 @@ import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import { useJsApiLoader, Autocomplete } from "@react-google-maps/api";
 import { getCurrentLocationAddress } from "@/lib/locationUtils";
+import { GOOGLE_MAPS_API_KEY, GOOGLE_MAPS_PLACE_LIBRARIES } from "@/lib/googleMaps";
 import BookingStepWizard from "@/components/BookingStepWizard";
 import { cn } from "@/lib/utils";
-
-const LIBRARIES: ("places")[] = ["places"];
-const GOOGLE_MAPS_API_KEY = "AIzaSyBtXh26PcILBqis4Ad66wPetvU_wUKMNRs";
 
 const DEFAULT_TIME_SLOTS = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00"];
 const DAYS_OF_WEEK: string[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
@@ -94,7 +92,7 @@ const BookService = () => {
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: GOOGLE_MAPS_API_KEY,
-    libraries: LIBRARIES,
+    libraries: GOOGLE_MAPS_PLACE_LIBRARIES,
   });
 
   // Fetch provider data

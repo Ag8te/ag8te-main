@@ -12,6 +12,7 @@ from backend.models.service import ServiceType
 from backend.extensions import db
 from backend.utils.response import success_response, error_response
 from backend.services.pricing_service import PricingService
+from backend.services.request_service import RequestService
 from datetime import datetime, timedelta
 
 bp = Blueprint('public', __name__)
@@ -183,43 +184,48 @@ def get_drivers_nearby():
         if lat is None or lng is None:
             return error_response('INVALID_INPUT', 'Coordinates are required', None, 400)
 
-        # Only live, approved, paid drivers should be considered for nearby ride suggestions.
+        # Only ride-ready drivers should be considered for nearby ride suggestions.
         drivers = User.query.filter_by(
             role='driver',
             is_approved=True,
             is_active=True,
             is_paid=True
         ).all()
+
+        rating_rows = db.session.query(
+            DriverRating.driver_id,
+            func.coalesce(func.avg(DriverRating.rating), 0).label('avg_rating'),
+            func.count(DriverRating.id).label('review_count')
+        ).filter(
+            DriverRating.driver_id.in_([driver.id for driver in drivers])
+        ).group_by(DriverRating.driver_id).all() if drivers else []
+        rating_map = {
+            str(driver_id): {
+                'average_rating': round(float(avg_rating), 1) if avg_rating is not None else 0.0,
+                'reviews_count': int(review_count or 0),
+            }
+            for driver_id, avg_rating, review_count in rating_rows
+        }
         
         nearby = []
         for d in drivers:
-            d_data = d.data or {}
-            # We assume current_location = {lat, lng} is stored in data
-            loc = d_data.get('current_location')
-            if not loc or not isinstance(loc, dict):
-                continue
-            
-            d_lat = loc.get('lat')
-            d_lng = loc.get('lng')
-            updated_at_raw = loc.get('updated_at')
-            if d_lat is None or d_lng is None:
+            eligibility = RequestService.get_driver_cab_eligibility(
+                d,
+                require_fresh_location=True,
+            )
+            if not eligibility.get('eligible'):
                 continue
 
-            # Ignore stale locations so we don't advertise unavailable drivers as nearby.
-            if updated_at_raw:
-                try:
-                    updated_at = datetime.fromisoformat(updated_at_raw.replace('Z', '+00:00'))
-                    if updated_at.tzinfo is not None:
-                        updated_at = updated_at.replace(tzinfo=None)
-                    if updated_at < datetime.utcnow() - timedelta(minutes=15):
-                        continue
-                except ValueError:
-                    continue
+            d_data = d.data or {}
+            loc = eligibility.get('current_location') or {}
+            d_lat = loc.get('lat')
+            d_lng = loc.get('lng')
+            if d_lat is None or d_lng is None:
+                continue
             
             # Simple Haversine for filtering
             dist = _calculate_haversine(lat, lng, d_lat, d_lng)
             if dist <= radius:
-                # Include driver details and car types
                 services = d_data.get('driver_services', [])
                 car_types = []
                 for service in services:
@@ -233,21 +239,24 @@ def get_drivers_nearby():
                     if fallback_type:
                         car_types.append(str(fallback_type).lower())
 
+                vehicle = RequestService._extract_primary_driver_vehicle(d_data)
+                rating_summary = rating_map.get(str(d.id), {'average_rating': 0.0, 'reviews_count': 0})
+                display_name = RequestService._get_user_display_name(d) or 'Driver'
+
                 nearby.append({
                     'id': str(d.id),
-                    'name': d_data.get('full_name', 'Driver'),
+                    'name': display_name,
+                    'first_name': RequestService._get_user_first_name(d),
                     'phone': d_data.get('phone', ''),
                     'location': {'lat': d_lat, 'lng': d_lng},
                     'distance_km': round(dist, 2),
+                    'eta_min': max(1, round(dist * 2)),
                     'car_types': list(set(car_types)),
                     'profile_image_url': d.profile_image_url,
-                    'vehicle': {
-                        'make': (d_data.get('car_details') or {}).get('make', ''),
-                        'model': (d_data.get('car_details') or {}).get('model', ''),
-                        'license_plate': (d_data.get('car_details') or {}).get('plate', ''),
-                        'color': (d_data.get('car_details') or {}).get('color', ''),
-                        'year': (d_data.get('car_details') or {}).get('year', ''),
-                    }
+                    'average_rating': rating_summary['average_rating'],
+                    'reviews_count': rating_summary['reviews_count'],
+                    'is_verified': True,
+                    'vehicle': vehicle,
                 })
         
         # Sort by distance

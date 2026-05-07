@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useLocation } from "react-router-dom";
 import {
   Calendar, MapPin, MessageSquare, Star,
   ChevronRight, Loader2, Package,
   History, ShieldAlert, X, CreditCard,
   Car, ShoppingBag, Wrench, CheckCircle2,
-  XCircle, Clock, ArrowRight
+  XCircle, Clock, ArrowRight, Truck
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -17,14 +18,22 @@ import { ChatOverlay } from "@/components/ChatOverlay";
 import { RatingModal } from "@/components/dashboards/RatingModal";
 import { ProviderReviewModal } from "@/components/dashboards/ProviderReviewModal";
 import { BookingDetailsModal } from "@/components/dashboards/BookingDetailsModal";
+import { TripLiveMap } from "@/components/trips/TripLiveMap";
 import { cn } from "@/lib/utils";
 import { formatUTCtoSAST } from "@/lib/dateUtils";
+import {
+  formatShipmentStatus,
+  getDeliveryEtaLabel,
+  getDeliveryServiceLabel,
+  getTrackingSummary,
+} from "@/lib/shipping";
 
 type Tab = 'services' | 'rides' | 'orders';
 
 const MyBookings = () => {
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState<Tab>('services');
   const [requests, setRequests] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
@@ -37,6 +46,7 @@ const MyBookings = () => {
   const [detailsJob, setDetailsJob] = useState<{ data: any, type: 'service' | 'ride' | 'order' } | null>(null);
   const [isPaying, setIsPaying] = useState<string | null>(null);
   const [cancellingRideId, setCancellingRideId] = useState<string | null>(null);
+  const [hasHandledLandingRequest, setHasHandledLandingRequest] = useState(false);
 
   const fetchAll = async (showLoader: boolean = true) => {
     if (showLoader) setLoading(true);
@@ -140,30 +150,24 @@ const MyBookings = () => {
   const getRideStatusLabel = (req: any) => {
     if (req.request_type !== 'cab') return req.status;
 
-    const details = req.details || {};
-
-    if (req.status === 'completed' || details.cab_arrived_at_location) {
-      return 'completed';
+    switch (req.ride_stage) {
+      case 'completed':
+        return 'completed';
+      case 'on_trip':
+        return 'on trip';
+      case 'driver_arrived':
+        return 'driver arrived';
+      case 'driver_assigned':
+        return 'driver on the way';
+      case 'no_drivers_available':
+        return 'waiting for drivers';
+      case 'searching':
+        return 'finding driver';
+      case 'awaiting_payment':
+        return 'awaiting payment';
+      default:
+        return req.status;
     }
-
-    if (details.cab_trip_started) {
-      return 'on trip';
-    }
-
-    if (details.cab_driver_arrived) {
-      return 'driver arrived';
-    }
-
-    if (req.status === 'accepted') {
-      return 'driver on the way';
-    }
-
-    if (req.status === 'pending' && req.payment_status === 'paid') {
-      if (req.dispatch_state === 'no_drivers_available') return 'waiting for drivers';
-      return 'finding driver';
-    }
-
-    return req.status;
   };
 
   const getProviderName = (req: any) => {
@@ -175,6 +179,21 @@ const MyBookings = () => {
     const carType = req.details?.car_type || req.driver_vehicle?.car_type || req.details?.selected_driver?.car_type;
     if (!carType) return "Standard ride";
     return String(carType).replace(/_/g, ' ');
+  };
+
+  const isActiveRideStage = (req: any) => (
+    ['searching', 'no_drivers_available', 'driver_assigned', 'driver_arrived', 'on_trip'].includes(req.ride_stage)
+  );
+
+  const getRideTimeline = (req: any) => {
+    const stage = req.ride_stage;
+    return [
+      { key: 'searching', label: 'Finding driver', done: stage !== 'awaiting_payment' && stage !== 'cancelled' },
+      { key: 'driver_assigned', label: 'Driver assigned', done: ['driver_assigned', 'driver_arrived', 'on_trip', 'completed'].includes(stage) },
+      { key: 'driver_arrived', label: 'Driver arrived', done: ['driver_arrived', 'on_trip', 'completed'].includes(stage) },
+      { key: 'on_trip', label: 'Trip in progress', done: ['on_trip', 'completed'].includes(stage) },
+      { key: 'completed', label: 'Completed', done: stage === 'completed' },
+    ];
   };
 
   const safeLocation = (req: any) => {
@@ -189,6 +208,36 @@ const MyBookings = () => {
     { key: 'rides', label: 'Cab Rides', icon: <Car className="h-4 w-4" />, count: cabRides.length },
     { key: 'orders', label: 'Shop Orders', icon: <ShoppingBag className="h-4 w-4" />, count: orders.length },
   ];
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tab = params.get('tab');
+    if (tab === 'rides' || tab === 'services' || tab === 'orders') {
+      setActiveTab(tab);
+    }
+  }, [location.search]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const payment = params.get('payment');
+    const requestId = params.get('request_id');
+    if (!isAuthenticated || hasHandledLandingRequest || !requestId) return;
+
+    const targetRequest = requests.find((request) => request.id === requestId && request.request_type === 'cab');
+    if (!targetRequest) return;
+
+    setActiveTab('rides');
+    setDetailsJob({ data: targetRequest, type: 'ride' });
+    setHasHandledLandingRequest(true);
+
+    if (payment === 'success') {
+      toast({ title: 'Ride Request Created', description: 'Your cab request is now live and being tracked here.' });
+    } else if (payment === 'cancelled') {
+      toast({ title: 'Payment Cancelled', description: 'Your cab request was not paid for, so dispatch did not start.', variant: 'destructive' });
+    } else if (payment === 'error') {
+      toast({ title: 'Payment Error', description: 'We could not complete your cab payment. Please try again.', variant: 'destructive' });
+    }
+  }, [isAuthenticated, hasHandledLandingRequest, location.search, requests, toast]);
 
   if (loading) {
     return (
@@ -376,7 +425,7 @@ const MyBookings = () => {
                       <div>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Driver</p>
                         <p className="font-bold text-[#222222]">
-                          {req.driver_name || (req.dispatch_state === 'no_drivers_available' ? "No nearby driver yet" : "Finding nearby driver...")}
+                          {req.driver_name || (req.ride_stage === 'no_drivers_available' ? "No nearby driver yet" : "Finding nearby driver...")}
                         </p>
                       </div>
                       <div>
@@ -404,6 +453,80 @@ const MyBookings = () => {
                         </p>
                       </div>
                     </div>
+
+                    {isActiveRideStage(req) && (
+                      <div className="mt-6 rounded-[2rem] border border-blue-100 bg-gradient-to-br from-blue-50 via-white to-slate-50 p-6">
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                          <div>
+                            <p className="text-[10px] font-bold text-blue-500 uppercase tracking-[0.2em]">Live Ride Progress</p>
+                            <p className="mt-2 text-lg font-bold text-[#222222]">
+                              {req.ride_stage === 'no_drivers_available'
+                                ? 'We are still looking for another nearby driver.'
+                                : req.ride_stage === 'searching'
+                                  ? 'Your request is being offered to nearby drivers.'
+                                  : req.ride_stage === 'driver_assigned'
+                                    ? `${req.driver_name || 'Your driver'} is on the way.`
+                                    : req.ride_stage === 'driver_arrived'
+                                      ? `${req.driver_name || 'Your driver'} has arrived at pickup.`
+                                      : 'You are currently on the trip.'}
+                            </p>
+                            {req.driver_current_location?.updated_at && (
+                              <p className="mt-2 text-sm text-slate-500">
+                                Last driver location sync: {new Date(req.driver_current_location.updated_at).toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' })}
+                              </p>
+                            )}
+                            {req.driver_phone && (
+                              <p className="mt-1 text-sm text-slate-500">Driver contact: {req.driver_phone}</p>
+                            )}
+                          </div>
+                          <Button
+                            variant="ghost"
+                            className="h-11 px-5 rounded-2xl text-primary bg-white border border-blue-100 hover:bg-blue-50 font-bold shrink-0"
+                            onClick={() => setDetailsJob({ data: req, type: 'ride' })}
+                          >
+                            Track Ride <ArrowRight className="h-4 w-4 ml-2" />
+                          </Button>
+                        </div>
+
+                        <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-5">
+                          {getRideTimeline(req).map((step) => (
+                            <div
+                              key={step.key}
+                              className={cn(
+                                "rounded-2xl border px-4 py-3 transition-colors",
+                                step.done
+                                  ? "border-emerald-100 bg-emerald-50"
+                                  : "border-slate-100 bg-white"
+                              )}
+                            >
+                              <div className="flex items-center gap-2">
+                                {step.done ? (
+                                  <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                                ) : (
+                                  <Clock className="h-4 w-4 text-slate-300" />
+                                )}
+                                <span className={cn(
+                                  "text-xs font-bold uppercase tracking-wide",
+                                  step.done ? "text-emerald-700" : "text-slate-400"
+                                )}>
+                                  {step.label}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {req.ride_stage === 'on_trip' && (
+                      <TripLiveMap
+                        className="mt-6"
+                        currentLocation={req.driver_current_location}
+                        destination={req.location_data?.dropoff}
+                        currentLabel="Driver live location"
+                        destinationLabel="Trip destination"
+                      />
+                    )}
 
                     <div className="mt-6 flex items-center gap-4 text-slate-400 text-sm">
                       <div className="flex items-center gap-2">
@@ -465,13 +588,46 @@ const MyBookings = () => {
                           </p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total</p>
-                        <p className="text-3xl font-black text-primary">R{(order.total || 0).toFixed(2)}</p>
+                    <div className="text-right">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total</p>
+                      <p className="text-3xl font-black text-primary">R{(order.total || 0).toFixed(2)}</p>
+                    </div>
+                  </div>
+
+                  {(order.shipping?.quote || order.shipping?.shipment_status || order.shipping?.tracking_reference) && (
+                    <div className="mb-6 rounded-[2rem] border border-emerald-100 bg-emerald-50/70 px-5 py-4">
+                      <div className="flex items-start gap-4">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white text-emerald-600 shadow-sm">
+                          <Truck className="h-5 w-5" />
+                        </div>
+                        <div className="grid flex-1 gap-4 sm:grid-cols-3">
+                          <div>
+                            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700">Delivery Service</p>
+                            <p className="mt-1 text-sm font-bold text-emerald-950">
+                              {getDeliveryServiceLabel(order.shipping)}
+                            </p>
+                            {getDeliveryEtaLabel(order.shipping) ? (
+                              <p className="mt-1 text-xs font-medium text-emerald-700">{getDeliveryEtaLabel(order.shipping)}</p>
+                            ) : null}
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700">Shipment Status</p>
+                            <p className="mt-1 text-sm font-bold capitalize text-emerald-950">
+                              {formatShipmentStatus(order.shipping?.shipment_status)}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700">Tracking Reference</p>
+                            <p className="mt-1 text-sm font-bold text-emerald-950">
+                              {getTrackingSummary(order.shipping)}
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     </div>
+                  )}
 
-                    {/* Order items */}
+                  {/* Order items */}
                     {order.items && order.items.length > 0 && (
                       <div className="py-6 border-y border-slate-50 space-y-3">
                         {order.items.map((item: any, idx: number) => (
