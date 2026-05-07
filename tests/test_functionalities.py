@@ -49,6 +49,12 @@ def make_driver_approval_ready(user):
         "driver_license_expiry": future_date,
         "prdp_number": "PRDP-TEST-12345",
         "prdp_expiry": future_date,
+        "banking_details": {
+            "bank_name": "Test Bank",
+            "account_holder": "Wallet Driver",
+            "account_number": "1234567890",
+            "branch_code": "250655",
+        },
         "proof_of_residence_url": "/uploads/tests/proof-of-residence.pdf",
         "driver_license_url": "/uploads/tests/drivers-license.pdf",
         "prdp_document_url": "/uploads/tests/prdp-document.pdf",
