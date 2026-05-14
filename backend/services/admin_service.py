@@ -616,7 +616,7 @@ class AdminService:
         updated_data = dict(user.data) if user.data else {}
         for key, value in payload.items():
             if key in ('phone', 'next_of_kin', 'driver_services', 'professional_services', 'provider_services',
-                       'highest_qualification', 'professional_body', 'proof_of_residence_url', 'driver_license_url', 'qualification_urls', 'operating_areas', 'availability'):
+                       'highest_qualification', 'professional_body', 'proof_of_residence_url', 'driver_license_url', 'qualification_urls', 'operating_areas', 'availability', 'prdp_document_url', 'vehicle_disk_document_url', 'cv_resume_url'):
                 if value is None and key in updated_data:
                     del updated_data[key]
                 else:

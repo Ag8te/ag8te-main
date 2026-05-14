@@ -460,6 +460,10 @@ def update_user(user_id):
         provider_services_data = None
         if "provider_services" in request_data:
             provider_services_data = request_data.pop("provider_services")
+        
+        driver_services_data = None
+        if "driver_services" in request_data:
+            driver_services_data = request_data.pop("driver_services")
 
         # Convert empty strings to None for optional fields
         for key in [
@@ -519,7 +523,6 @@ def update_user(user_id):
                 "highest_qualification": "highest_qualification",
                 "professional_body": "professional_body",
                 "professional_services": "professional_services",
-                "driver_services": "driver_services",
                 "driver_license_number": "driver_license_number",
                 "driver_license_code": "driver_license_code",
                 "driver_license_expiry": "driver_license_expiry",
@@ -534,13 +537,17 @@ def update_user(user_id):
                     if data[key] is not None:
                         updated_data[data_key] = data[key]
                     elif data_key in updated_data:
-                        del updated_data[data_key]
+                        if data_key != 'driver_services':
+                           del updated_data[data_key]
 
             # Handle sa_citizen special case
             if "sa_citizen" in data and not data["sa_citizen"]:
                 if "sa_id" in updated_data:
                     del updated_data["sa_id"]
 
+        if user.role == 'driver' and driver_services_data is not None:
+            if isinstance(driver_services_data, list) and len(driver_services_data) > 0:
+                updated_data['driver_services'] = driver_services_data
         # Handle service provider services (UserSelectedService model)
         if user.role == "service-provider" and provider_services_data is not None:
             from backend.models import UserSelectedService

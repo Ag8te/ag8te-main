@@ -28,6 +28,25 @@ ALLOWED_AFTER_APPROVAL_BY_ROLE = {
     'client': {'full_name', 'surname', 'phone', 'gender', 'next_of_kin'},
 }
 
+COMPLIANCE_KEYS_BY_ROLE = {
+    'driver': {
+        'driver_services',        # vehicle images + disk document
+        'driver_license_url',     # driver's license
+        'prdp_document_url',      # PRDP document
+        'proof_of_residence_url', # proof of residence
+    },
+    'professional': {
+        'proof_of_residence_url', # proof of residence
+        'driver_license_url',     # ID document
+        'cv_resume_url',          # CV / resume
+        'qualification_urls',     # qualification documents
+    },
+    'service-provider': {
+        'proof_of_residence_url', # proof of residence
+        'driver_license_url',     # ID document
+    }
+}
+
 class ProfileService:
     
     @staticmethod
@@ -73,9 +92,69 @@ class ProfileService:
         user = User.query.get(user_id)
         if not user:
             return None, "USER_NOT_FOUND"
+        
+        if not user.is_approved and user.role not in ('client', 'admin'):
+            compliance_keys = COMPLIANCE_KEYS_BY_ROLE.get(user.role, set())
+
+            # Check if ALL submitted keys are compliance keys
+            # If any non-compliance key is present, block the request
+            non_compliance_keys = set(data.keys()) - compliance_keys
+            if non_compliance_keys:
+                return None, "NOT_APPROVED"
             
-        if not user.is_approved and user.role != 'client':
-            return None, "NOT_APPROVED"
+            # Also block if no files were sent — nothing to update
+            has_files = files and any(files.values())
+            if not has_files and not data:
+                return None, "NO_CHANGES"
+            
+            # Build payload using existing _prepare_payload logic
+            # (handles file saving to disk, URL generation)
+            payload = ProfileService._prepare_payload(user, data, files)
+            if not payload:
+                return None, "NO_CHANGES"
+            
+            # Write directly to user.data — replace not queue
+            updated_data = dict(user.data) if user.data else {}
+            for key, value in payload.items():
+                if key == 'driver_services':
+                    if not isinstance(value, list) or len(value) == 0:
+                        continue
+                    if all(
+                        not any(v for v in (vehicle or {}).values() if v)
+                        for vehicle in value
+                    ):
+                        continue
+                updated_data[key] = value
+            user.data = updated_data
+
+            # sync VehicleImage table when driver replaces
+            # vehicle images via the pre-approval path.
+            # Eligibility reads from user.data (updated above).
+            # VehicleImage table is a secondary store used by the
+            # admin vehicle-images endpoint keep it in sync so
+            # admin thumbnails show the latest images not old ones.
+            if user.role == 'driver' and 'driver_services' in payload:
+                from backend.models import VehicleImage
+                driver_services = payload.get('driver_services') or []
+                for car_index, vehicle in enumerate(driver_services):
+                    new_images = vehicle.get('images') or []
+                    if new_images:
+                        # Delete old rows for this car_index
+                        VehicleImage.query.filter_by(
+                            user_id=user.id,
+                            car_index=car_index
+                        ).delete()
+                        # Insert fresh rows
+                        for image_url in new_images:
+                            db.session.add(VehicleImage(
+                                user_id=user.id,
+                                car_index=car_index,
+                                image_url=image_url
+                            ))
+            db.session.commit()
+
+            return {'updated': True, 'pre_approval': True}, None
+        
             
         # Validate allowed fields
         allowed_keys = ALLOWED_AFTER_APPROVAL_COMMON | ALLOWED_AFTER_APPROVAL_BY_ROLE.get(user.role, set())
@@ -308,9 +387,11 @@ class ProfileService:
           # -------------------------
           # EXISTING FILES (UNCHANGED)
           # -------------------------
-          for key, filename_prefix in [
-              ('proof_of_residence', 'proof_pending'),
-              ('drivers_license_document', 'license_pending')
+          for key, filename_prefix, payload_key in [
+              ('proof_of_residence', 'proof_pending', 'proof_of_residence_url'),
+              ('drivers_license_document', 'license_pending', 'driver_license_url'),
+              ('prdp_document', 'prdp_pending', 'prdp_document_url'),
+               ('cv_resume', 'cv_resume_pending', 'cv_resume_url'),
           ]: 
               if key in files:
                   file = files[key]
@@ -319,9 +400,7 @@ class ProfileService:
                       unique = f"{str(user.id)}_{filename_prefix}_{uuid.uuid4().hex[:8]}.{ext}"
                       file.save(os.path.join(upload_folder, unique))
  
-                      payload[
-                          'driver_license_url' if 'license' in key else 'proof_of_residence_url'
-                      ] = f"/uploads/{unique}"
+                      payload[payload_key] = f"/uploads/{unique}"
   
           # -------------------------
           # QUALIFICATIONS (UNCHANGED)

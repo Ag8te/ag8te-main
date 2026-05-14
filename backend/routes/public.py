@@ -37,7 +37,10 @@ def get_top_providers():
         
         top_profs = db.session.query(User, prof_stats.c.avg_rating, prof_stats.c.review_count).join(
             prof_stats, User.id == prof_stats.c.professional_id
-        ).filter(User.is_approved == True).order_by(prof_stats.c.avg_rating.desc()).limit(limit).all()
+        ).filter(User.is_approved == True,
+                 User.is_active == True,
+                 User.is_paid == True
+        ).order_by(prof_stats.c.avg_rating.desc()).limit(limit).all()
         
         # Driver Ratings
         driver_stats = db.session.query(
@@ -48,7 +51,10 @@ def get_top_providers():
         
         top_drivers = db.session.query(User, driver_stats.c.avg_rating, driver_stats.c.review_count).join(
             driver_stats, User.id == driver_stats.c.driver_id
-        ).filter(User.is_approved == True).order_by(driver_stats.c.avg_rating.desc()).limit(limit).all()
+        ).filter(User.is_approved == True,
+                 User.is_active == True,
+                 User.is_paid == True
+        ).order_by(driver_stats.c.avg_rating.desc()).limit(limit).all()
         
         # Combine and format
         result = []
