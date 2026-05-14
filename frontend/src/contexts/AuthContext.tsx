@@ -137,10 +137,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           return { success: true, data: result.data };
         }
 
-        if (result.data?.token) {
-          localStorage.setItem("token", result.data.token);
-          syncUserState(result.data.user);
-        }
+        
         return { success: true, data: result.data };
       }
       return { success: false, error: result.message || "Registration failed" };
