@@ -1,3 +1,5 @@
+import { requestCurrentPosition } from "@/lib/native";
+
 /**
  * Shared location utility for getting the user's current location
  * via browser Geolocation API + Google Maps reverse geocoding.
@@ -11,11 +13,6 @@ export function getCurrentLocationAddress(
   onLoadingChange: (loading: boolean) => void,
   mode: 'full_address' | 'city_only' = 'full_address'
 ) {
-  if (!navigator.geolocation) {
-    onError("Not Supported", "Your browser does not support location access. Please use a different browser.");
-    return;
-  }
-
   if (!window.google) {
     onError("Maps Not Loaded", "Google Maps is not loaded yet. Please try again in a moment.");
     return;
@@ -23,7 +20,9 @@ export function getCurrentLocationAddress(
 
   onLoadingChange(true);
 
-  navigator.geolocation.getCurrentPosition(
+  requestCurrentPosition(
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+  ).then(
     (position) => {
       const { latitude, longitude } = position.coords;
       const geocoder = new google.maps.Geocoder();
@@ -80,7 +79,6 @@ export function getCurrentLocationAddress(
     () => {
       onLoadingChange(false);
       onError("Location Denied", "Please allow location access or enter your address manually.");
-    },
-    { enableHighAccuracy: true, timeout: 10000 }
+    }
   );
 }

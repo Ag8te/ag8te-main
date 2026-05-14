@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { apiFetch } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { openExternalUrl } from "@/lib/native";
 
 const VerifyEmail = () => {
     const [searchParams] = useSearchParams();
@@ -76,7 +77,7 @@ const VerifyEmail = () => {
                 data: { provider: "yoco" }
             });
             if (result.success && result.data.redirect_url) {
-                window.location.href = result.data.redirect_url;
+                await openExternalUrl(result.data.redirect_url);
             } else {
                 toast({
                     title: "Payment Error",

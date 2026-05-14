@@ -16,6 +16,7 @@ import { useJsApiLoader, Autocomplete, GoogleMap, Marker } from "@react-google-m
 import { formatUTCtoSAST, getMinBookableTimeSAST } from "@/lib/dateUtils";
 import { getCurrentLocationAddress } from "@/lib/locationUtils";
 import { GOOGLE_MAPS_API_KEY, GOOGLE_MAPS_PLACE_LIBRARIES } from "@/lib/googleMaps";
+import { openExternalUrl } from "@/lib/native";
 import { useSearchParams } from "react-router-dom";
 
 type Step = 1 | 2 | 3;
@@ -410,7 +411,7 @@ const Transport = () => {
       if (res.success && res.data?.redirect_url) {
         toast({ title: "Redirecting", description: "Taking you to secure checkout..." });
         setTimeout(() => {
-          window.location.href = res.data.redirect_url;
+          void openExternalUrl(res.data.redirect_url);
         }, 1000);
       } else {
         toast({

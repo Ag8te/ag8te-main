@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+FRONTEND_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+ANDROID_DIR="${FRONTEND_DIR}/android"
+TASK="${1:-bundleRelease}"
+APP_VERSION_NAME="${APP_VERSION_NAME:-1.0.0}"
+APP_VERSION_CODE="${APP_VERSION_CODE:-1}"
+STORE_CHANNEL="${STORE_CHANNEL:-google-play}"
+STRICT_SIGNING="${STRICT_SIGNING:-1}"
+KEYSTORE_PROPERTIES="${ANDROID_DIR}/keystore.properties"
+OUTPUT_AAB="${ANDROID_DIR}/app/build/outputs/bundle/release/app-release.aab"
+OUTPUT_APK="${ANDROID_DIR}/app/build/outputs/apk/release/app-release.apk"
+STORE_OUTPUT_DIR="${FRONTEND_DIR}/store-builds/${STORE_CHANNEL}"
+
+case "${TASK}" in
+  bundleRelease|assembleRelease)
+    ;;
+  *)
+    echo "Unsupported Gradle task: ${TASK}" >&2
+    echo "Use bundleRelease or assembleRelease." >&2
+    exit 1
+    ;;
+esac
+
+if [[ "${STRICT_SIGNING}" == "1" && ! -f "${KEYSTORE_PROPERTIES}" ]]; then
+  echo "Missing ${KEYSTORE_PROPERTIES}." >&2
+  echo "Create it from frontend/android/keystore.properties.example before building a store release." >&2
+  exit 1
+fi
+
+echo "Preparing native web assets..."
+cd "${FRONTEND_DIR}"
+npm run cap:android
+
+echo "Building Android ${TASK} for ${STORE_CHANNEL} (version ${APP_VERSION_NAME} / code ${APP_VERSION_CODE})..."
+cd "${ANDROID_DIR}"
+./gradlew "${TASK}" \
+  -PappVersionName="${APP_VERSION_NAME}" \
+  -PappVersionCode="${APP_VERSION_CODE}"
+
+mkdir -p "${STORE_OUTPUT_DIR}"
+
+if [[ "${TASK}" == "bundleRelease" ]]; then
+  FINAL_OUTPUT="${STORE_OUTPUT_DIR}/mzansiserve-${STORE_CHANNEL}-${APP_VERSION_NAME}-${APP_VERSION_CODE}.aab"
+  cp "${OUTPUT_AAB}" "${FINAL_OUTPUT}"
+  echo "Android App Bundle ready at ${FINAL_OUTPUT}"
+else
+  FINAL_OUTPUT="${STORE_OUTPUT_DIR}/mzansiserve-${STORE_CHANNEL}-${APP_VERSION_NAME}-${APP_VERSION_CODE}.apk"
+  cp "${OUTPUT_APK}" "${FINAL_OUTPUT}"
+  echo "Android APK ready at ${FINAL_OUTPUT}"
+fi
