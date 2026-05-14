@@ -80,7 +80,7 @@ def create_app(config_class=Config):
     from backend.routes import (
         auth, requests, payments, shop, admin, dashboard, 
         location, profile, address, faq, drivers, clients, 
-        public, chat, reports, ads, emergency
+        public, chat, reports, ads, emergency, notifications
     )
     
     blueprints = [
@@ -100,7 +100,8 @@ def create_app(config_class=Config):
         (chat.bp, '/api/chat'),
         (reports.bp, '/api/reports'),
         (ads.bp, '/api/ads'),
-        (emergency.bp, '/api/emergency')
+        (emergency.bp, '/api/emergency'),
+        (notifications.bp, '/api/notifications')
     ]
     
     for bp, prefix in blueprints:
