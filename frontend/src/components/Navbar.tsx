@@ -14,9 +14,9 @@ const navLinks = [
   { label: "Home", to: "/" },
   { label: "Shop", to: "/shop" },
   { label: "Request Cab", to: "/transport", requiresAuth: true },
-  { label: "Professionals", to: "/professionals", requiresAuth: true },
-  { label: "Services", to: "/services", requiresAuth: true },
-  { label: "Adverts", to: "/ads" },
+  { label: "Request Professionals", to: "/professionals", requiresAuth: true },
+  { label: "Request Services", to: "/services", requiresAuth: true },
+  { label: "Adverts", to: "/ads" }
 ];
 
 const Navbar = () => {
