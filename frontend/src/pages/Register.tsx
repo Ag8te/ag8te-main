@@ -257,8 +257,8 @@ const carOptions = [
   { type: "Sedan", seats: [4] },
   { type: "SUV/Luxury", seats: [4] },
   { type: "Van", seats: [6] },
-  { type: "Minibus", seats: [4] },
-  { type: "Backie", seats: [ 1] },
+  { type: "Minibus", seats: [9] },
+  { type: "Bakkie", seats: [ 1] },
 ];
 
 // ─── Country List ─────────────────────────────────────────────────────────────
