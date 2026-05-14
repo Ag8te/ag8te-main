@@ -23,7 +23,7 @@ import {
     AccessTime as Clock,
     Assignment as ClipboardList,
     ForumOutlined as ChatIcon,
-    Settings as SettingsIcon
+    Settings as SettingsIcon, FolderOpen as FolderIcon,
 } from "@mui/icons-material";
 import { MessagesInbox } from "@/components/dashboards/MessagesInbox";
 import { ProfileSettings } from "@/components/dashboards/ProfileSettings";
@@ -33,6 +33,7 @@ import { RatingModal } from "@/components/dashboards/RatingModal";
 import { JobInbox } from "@/components/dashboards/JobInbox";
 import { WalletManagement } from "@/components/dashboards/WalletManagement";
 import { VehicleManagement } from "@/components/dashboards/VehicleManagement";
+import { ComplianceDocuments } from "@/components/dashboards/ComplianceDocuments";
 import { apiFetch } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -57,6 +58,7 @@ const DriverDashboard = () => {
         { id: "messages", label: "Messages", icon: ChatIcon },
         { id: "reviews", label: "Reviews & Feedback", icon: StarIcon },
         { id: "vehicles", label: "My Vehicles", icon: CarIcon },
+        { id: "documents", label: "My Documents", icon: FolderIcon},
         { id: "wallet", label: "Wallet & Earnings", icon: WalletIcon },
         { id: "profile", label: "My Profile", icon: SettingsIcon },
     ];
@@ -497,6 +499,17 @@ const DriverDashboard = () => {
                         <MessagesInbox />
                     </Box>
                 );
+                
+            case "documents":
+                return (
+                    <ComplianceDocuments
+                        role="driver"
+                        profileData={data?.current_user?.data || {}}
+                        isApproved={Boolean(data?.current_user?.is_approved)}
+                        onUpdate={fetchData}
+                    />
+                );
+
             case "profile":
                 return (
                     <Box sx={{ animation: 'fadeIn 0.5s', textAlign: 'center', py: 10 }}>
