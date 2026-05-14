@@ -164,6 +164,8 @@ carYear: (v, f) =>
   f?.role === "driver"
     ? !/^\d{4}$/.test(v)
       ? "Enter valid year"
+       : Number(v) < 2021
+        ? "Car must be 2021 or newer"
       : ""
     : "",
 
@@ -251,10 +253,12 @@ const professionOptions1 = [
 ];
 
 const carOptions = [
-  { type: "Small Hatchback", seats: [3] },
+  { type: "Hatchback", seats: [3] },
   { type: "Sedan", seats: [4] },
-  { type: "SUV", seats: [6] },
-  { type: "Luxury", seats: [4] },
+  { type: "SUV/Luxury", seats: [4] },
+  { type: "Van", seats: [6] },
+  { type: "Minibus", seats: [4] },
+  { type: "Backie", seats: [ 1] },
 ];
 
 // ─── Country List ─────────────────────────────────────────────────────────────
@@ -1054,7 +1058,7 @@ const removeCarImage = (index: number) => {
 
                     <div className="space-y-1">
                       <label className={fieldLabel}>
-                        {form.nationality === "South Africa" ? "ID Number" : "Passport Number"}<Req />
+                        Passport/ID Number<Req />
                       </label>
                       <input placeholder="Enter ID/Passport" value={form.id_number}
                         onChange={(e) => update("id_number", e.target.value)}
@@ -1481,15 +1485,15 @@ const removeCarImage = (index: number) => {
                   <p className={sectionLabel}><ShieldCheck className="w-4 h-4" /> Verification Documents</p>
                   <div className="grid gap-6 sm:grid-cols-2">
                     <FileUploadArea label="Profile Photo" field="profile_photo" accept="image/*" required />
-                    <FileUploadArea label="ID Document / Passport" field="id_document" accept=".pdf,.jpg,.jpeg,.png" required />
+                    <FileUploadArea label="Certified ID Document / Passport" field="id_document" accept=".pdf,.jpg,.jpeg,.png" required />
                     {(form.role === "driver" || form.role === "professional" || form.role === "service-provider") && (
                       <FileUploadArea label="Proof of Residence" field="proof_of_residence" accept=".pdf,.jpg,.jpeg,.png" required />
                     )}
                     {form.role === "driver" && (
                       <>
-                        <FileUploadArea label="Driver's License" field="drivers_license" accept=".pdf,.jpg,.jpeg,.png" required />
-                        <FileUploadArea label="PrDP Document" field="prdp_document" accept=".pdf,.jpg,.jpeg,.png" required />
-                        <FileUploadArea label="Vehicle Disk Document" field="vehicle_disk_document" accept=".pdf,.jpg,.jpeg,.png" required />
+                        <FileUploadArea label="Certified Driver's License" field="drivers_license" accept=".pdf,.jpg,.jpeg,.png" required />
+                        <FileUploadArea label="Certified PrDP Document" field="prdp_document" accept=".pdf,.jpg,.jpeg,.png" required />
+                        <FileUploadArea label="Certified Vehicle Disk Document" field="vehicle_disk_document" accept=".pdf,.jpg,.jpeg,.png" required />
                       </>
                     )}
                     {form.role === "professional" && (
