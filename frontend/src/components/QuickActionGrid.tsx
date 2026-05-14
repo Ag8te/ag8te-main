@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 
 const actions = [
     {
-        title: "Transport",
+        title: "Cab",
         subtitle: "Rides & Deliveries",
         icon: Car,
         href: "/transport",

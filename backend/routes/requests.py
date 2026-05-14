@@ -11,9 +11,9 @@ from flask_jwt_extended import get_jwt_identity
 from marshmallow import Schema, ValidationError, fields, validate
 from sqlalchemy import and_, or_, func
 
-from backend.services.email_service import EmailService
 from backend.extensions import db
 from backend.models import AppSetting, Payment, ServiceRequest, User, Wallet, DriverRating, ClientRating, ProfessionalRating, ProviderRating, Order
+from backend.services.email_service import EmailService
 from backend.services.wallet_service import WalletService
 from backend.services.notification_service import NotificationService
 from backend.services.payment_service import PaymentService
@@ -144,8 +144,6 @@ def create_request():
 
         if error:
             return error_response(error, 'Failed to create request', None, 400)
-        
-        db.session.commit()
 
         wallet = Wallet.query.filter_by(user_id=user_id).first()
         return success_response({
