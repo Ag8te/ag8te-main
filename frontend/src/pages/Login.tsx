@@ -8,7 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { apiFetch } from "@/lib/api";
 import { buildRegistrationPaymentUrl, requiresRegistrationPayment } from "@/lib/registration-payment";
-import { canUseGoogleOAuth, isNativeApp, openExternalUrl } from "@/lib/native";
+import { isGoogleOAuthConfigured, isNativeApp, openExternalUrl } from "@/lib/native";
 
 interface GoogleCredentialResponse {
   credential?: string;
@@ -41,7 +41,7 @@ const Login = () => {
   const [availableRoles, setAvailableRoles] = useState<string[]>([]);
   const [resending, setResending] = useState(false);
   const [isVerificationError, setIsVerificationError] = useState(false);
-  const showGoogleSignIn = canUseGoogleOAuth();
+  const showGoogleSignIn = isGoogleOAuthConfigured();
 
   const checkRoles = async (emailVal: string) => {
     if (!emailVal || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) return;

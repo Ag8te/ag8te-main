@@ -227,17 +227,17 @@ def get_drivers_nearby():
             dist = _calculate_haversine(lat, lng, d_lat, d_lng)
             if dist <= radius:
                 services = d_data.get('driver_services', [])
-                car_types = []
+                car_types = set()
                 for service in services:
                     if isinstance(service, dict) and service.get('car_type'):
-                        car_types.append(str(service.get('car_type')).lower())
+                        car_types.update(RequestService._expand_requested_car_types(service.get('car_type')))
                     elif isinstance(service, str):
-                        car_types.append(service.lower())
+                        car_types.update(RequestService._expand_requested_car_types(service))
 
                 if not car_types and isinstance(d_data.get('car_details'), dict):
                     fallback_type = d_data['car_details'].get('car_type')
                     if fallback_type:
-                        car_types.append(str(fallback_type).lower())
+                        car_types.update(RequestService._expand_requested_car_types(fallback_type))
 
                 vehicle = RequestService._extract_primary_driver_vehicle(d_data)
                 rating_summary = rating_map.get(str(d.id), {'average_rating': 0.0, 'reviews_count': 0})
@@ -251,7 +251,7 @@ def get_drivers_nearby():
                     'location': {'lat': d_lat, 'lng': d_lng},
                     'distance_km': round(dist, 2),
                     'eta_min': max(1, round(dist * 2)),
-                    'car_types': list(set(car_types)),
+                    'car_types': sorted(car_types),
                     'profile_image_url': d.profile_image_url,
                     'average_rating': rating_summary['average_rating'],
                     'reviews_count': rating_summary['reviews_count'],

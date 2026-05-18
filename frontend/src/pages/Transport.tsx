@@ -141,12 +141,21 @@ const VEHICLE_TYPE_ALIASES: Record<string, string[]> = {
   premium: ["luxury", "premium"],
 };
 
+const expandVehicleTypes = (value: string) => {
+  const normalized = String(value).trim().toLowerCase().replace(/\s+/g, "_");
+  const parts = normalized.split(/[/,|+&]+/).filter(Boolean);
+  const source = parts.length ? parts : [normalized];
+  return source.flatMap((part) => VEHICLE_TYPE_ALIASES[part] || [part]);
+};
+
 const getDriversForVehicle = (drivers: any[], vehicleId: string | null) => {
   if (!vehicleId) return [];
   const aliases = VEHICLE_TYPE_ALIASES[vehicleId] || [vehicleId];
   return drivers.filter((driver) =>
     Array.isArray(driver.car_types) &&
-    driver.car_types.some((carType: string) => aliases.includes(String(carType).toLowerCase()))
+    driver.car_types.some((carType: string) =>
+      expandVehicleTypes(carType).some((expandedType) => aliases.includes(expandedType))
+    )
   );
 };
 
@@ -240,13 +249,14 @@ const Transport = () => {
   const handleUseCurrentLocation = async () => {
     getCurrentLocationAddress(
       (address, _city, coords, _postalCode) => {
-        setPickup(address);
+        setPickup(address || "Current location");
         setPickupCoords(coords);
         setPickupValid(true);
       },
       (title, description) => toast({ variant: "destructive", title, description }),
       setIsLocating,
-      'full_address'
+      'full_address',
+      { allowApproximateAddress: true, fallbackAddress: "Current location" }
     );
   };
 
@@ -520,7 +530,9 @@ const Transport = () => {
                             <button
                               type="button"
                               onClick={handleUseCurrentLocation}
-                              className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-xl text-slate-400 hover:text-primary hover:bg-primary/10 transition-all z-10"
+                              disabled={isLocating}
+                              aria-label="Use current location as pickup"
+                              className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-xl text-slate-400 hover:text-primary hover:bg-primary/10 transition-all z-10 disabled:opacity-60"
                               title="Use current location"
                             >
                               {isLocating
@@ -576,6 +588,16 @@ const Transport = () => {
                               <input disabled placeholder="Loading maps..." className="w-full h-16 bg-slate-50 rounded-2xl p-4 pl-16 outline-none" />
                             )}
                           </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={handleUseCurrentLocation}
+                            disabled={isLocating}
+                            className="mt-3 h-10 px-3 rounded-xl text-sm font-bold text-primary hover:bg-primary/10"
+                          >
+                            {isLocating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Navigation className="mr-2 h-4 w-4" />}
+                            Use current location
+                          </Button>
                         </div>
 
                         <div className="relative group">

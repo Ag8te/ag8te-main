@@ -11,7 +11,8 @@ export function getCurrentLocationAddress(
   onSuccess: (address: string, city: string, coords: { lat: number; lng: number }, postalCode: string) => void,
   onError: (title: string, description: string) => void,
   onLoadingChange: (loading: boolean) => void,
-  mode: 'full_address' | 'city_only' = 'full_address'
+  mode: 'full_address' | 'city_only' = 'full_address',
+  options: { allowApproximateAddress?: boolean; fallbackAddress?: string } = {}
 ) {
   if (!window.google) {
     onError("Maps Not Loaded", "Google Maps is not loaded yet. Please try again in a moment.");
@@ -40,7 +41,7 @@ export function getCurrentLocationAddress(
               const hasStreet = components.some((c: any) =>
                 c.types.includes("street_number") || c.types.includes("route")
               );
-              if (!hasStreet) {
+              if (!hasStreet && !options.allowApproximateAddress) {
                 onError("Location Too Vague", "Could not determine your exact street address. Please enter it manually.");
                 return;
               }
@@ -49,7 +50,7 @@ export function getCurrentLocationAddress(
               || components.find((c: any) => c.types.includes("administrative_area_level_2"));
               const postalComp = components.find((c: any) => c.types.includes("postal_code"));
               onSuccess(
-                place.formatted_address || "",
+                place.formatted_address || options.fallbackAddress || "Current location",
                 cityComp?.long_name || "",
                 { lat: latitude, lng: longitude },
                 postalComp?.long_name || ""

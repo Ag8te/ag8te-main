@@ -10,6 +10,12 @@ export const isIOSApp = nativePlatform === "ios";
 export const isAndroidApp = nativePlatform === "android";
 
 export const canUseGoogleOAuth = () => !isNativeApp;
+export const googleOAuthClientId =
+  import.meta.env.VITE_GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com";
+export const isGoogleOAuthConfigured = () =>
+  canUseGoogleOAuth() &&
+  !!googleOAuthClientId &&
+  !googleOAuthClientId.startsWith("YOUR_GOOGLE_CLIENT_ID");
 
 export const defaultMobileApiBaseUrl = "https://mzansiserve.co.za";
 export const publicWebBaseUrl =
