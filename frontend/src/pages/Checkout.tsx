@@ -20,6 +20,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { apiFetch } from "@/lib/api";
 import { getCurrentLocationAddress } from "@/lib/locationUtils";
+import { openExternalUrl } from "@/lib/native";
 import { cn } from "@/lib/utils";
 
 type ShippingQuote = {
@@ -313,7 +314,7 @@ const Checkout = () => {
       });
 
       if (response.success && response.data?.redirect_url) {
-        window.location.href = response.data.redirect_url;
+        await openExternalUrl(response.data.redirect_url);
         return;
       }
 

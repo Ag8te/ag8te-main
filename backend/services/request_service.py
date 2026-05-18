@@ -2,6 +2,7 @@
 Service Request Service - Encapsulates logic for cab and professional services.
 """
 import math
+import re
 import secrets
 import uuid
 from datetime import datetime, timedelta
@@ -694,7 +695,6 @@ class RequestService:
     def _expand_requested_car_types(car_type):
         if not car_type:
             return set()
-        normalized = str(car_type).strip().lower().replace(' ', '_')
         aliases = {
             'small_hatchback': {'small_hatchback', 'hatchback'},
             'hatchback': {'small_hatchback', 'hatchback'},
@@ -704,6 +704,17 @@ class RequestService:
             'luxury': {'luxury', 'premium'},
             'suv': {'suv'},
         }
+        normalized = str(car_type).strip().lower().replace(' ', '_')
+        parts = {
+            part
+            for part in re.split(r'[/,|+&]+', normalized)
+            if part
+        }
+        if len(parts) > 1:
+            expanded = set()
+            for part in parts:
+                expanded.update(aliases.get(part, {part}))
+            return expanded
         return aliases.get(normalized, {normalized})
 
     @staticmethod

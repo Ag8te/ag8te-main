@@ -1,8 +1,9 @@
 """
 Payment Routes
 """
+import html
+import json
 import uuid
-from urllib.parse import quote
 from flask import Blueprint, request, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from marshmallow import Schema, fields, ValidationError
@@ -14,7 +15,6 @@ from backend.utils.response import success_response, error_response
 from backend.utils.decorators import require_auth
 from backend.utils.url import (
     append_query_params,
-    get_callback_frontend_base_url,
     get_callback_frontend_return_url,
     get_public_backend_base_url,
     get_request_frontend_base_url,
@@ -26,10 +26,37 @@ bp = Blueprint('payments', __name__)
 
 
 def _redirect_html(target_url: str, status_code: int = 302):
+    escaped_url = html.escape(target_url, quote=True)
+    script_url = json.dumps(target_url)
     return current_app.make_response((
-        f'<html><body><script>window.location.href="{target_url}";</script></body></html>',
+        (
+            f'<html><head><meta http-equiv="refresh" content="0;url={escaped_url}"></head>'
+            f'<body><script>window.location.replace({script_url});</script>'
+            f'<a href="{escaped_url}">Continue</a></body></html>'
+        ),
         status_code
     ))
+
+
+def _payment_callback_url(
+    backend_url: str,
+    callback_path: str,
+    callback_status: str,
+    external_id: str,
+    provider: str,
+    return_path: str,
+) -> str:
+    return append_query_params(
+        f"{backend_url}{callback_path}",
+        {
+            "callback_status": callback_status,
+            "external_id": external_id,
+            "order_id": external_id,
+            "provider": provider,
+            "frontend_url": get_request_frontend_base_url(),
+            "return_path": return_path,
+        },
+    )
 
 class CreateOrderSchema(Schema):
     items = fields.List(fields.Dict(), required=True)
@@ -190,11 +217,31 @@ def create_order():
         
         # 2. Initialize payment checkout
         backend_url = get_public_backend_base_url()
-        frontend_url = get_request_frontend_base_url()
-        return_path = quote(get_request_frontend_return_path('/shopping-history'), safe='')
-        success_url = f"{backend_url}/api/payments/order-callback?callback_status=success&external_id={order_id}&order_id={order_id}&provider={provider}&frontend_url={frontend_url}&return_path={return_path}"
-        cancel_url = f"{backend_url}/api/payments/order-callback?callback_status=cancel&external_id={order_id}&order_id={order_id}&provider={provider}&frontend_url={frontend_url}&return_path={return_path}"
-        failure_url = f"{backend_url}/api/payments/order-callback?callback_status=failure&external_id={order_id}&order_id={order_id}&provider={provider}&frontend_url={frontend_url}&return_path={return_path}"
+        return_path = get_request_frontend_return_path('/shopping-history')
+        success_url = _payment_callback_url(
+            backend_url,
+            "/api/payments/order-callback",
+            "success",
+            order_id,
+            provider,
+            return_path,
+        )
+        cancel_url = _payment_callback_url(
+            backend_url,
+            "/api/payments/order-callback",
+            "cancel",
+            order_id,
+            provider,
+            return_path,
+        )
+        failure_url = _payment_callback_url(
+            backend_url,
+            "/api/payments/order-callback",
+            "failure",
+            order_id,
+            provider,
+            return_path,
+        )
         
         current_app.logger.info(f"Creating checkout for order {order_id} via {provider} (amount: {amount_in_cents})")
         

@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { apiFetch } from "@/lib/api";
 import { buildRegistrationPaymentUrl, requiresRegistrationPayment } from "@/lib/registration-payment";
+import { isGoogleOAuthConfigured, isNativeApp, openExternalUrl } from "@/lib/native";
 
 interface GoogleCredentialResponse {
   credential?: string;
@@ -40,6 +41,7 @@ const Login = () => {
   const [availableRoles, setAvailableRoles] = useState<string[]>([]);
   const [resending, setResending] = useState(false);
   const [isVerificationError, setIsVerificationError] = useState(false);
+  const showGoogleSignIn = isGoogleOAuthConfigured();
 
   const checkRoles = async (emailVal: string) => {
     if (!emailVal || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) return;
@@ -147,7 +149,7 @@ const Login = () => {
       if (result.success) {
         if (result.data?.payment_required && result.data?.redirect_url) {
           localStorage.setItem("registrationPaymentUser", JSON.stringify(result.data.user));
-          window.location.href = result.data.redirect_url;
+          await openExternalUrl(result.data.redirect_url);
           return;
         }
 
@@ -348,27 +350,33 @@ const Login = () => {
 
             {/* Social Logins */}
             <div className="space-y-4">
-              {/* Google Button Wrapper */}
-              <div className="relative h-[48px] border border-[#222222] rounded-lg overflow-hidden hover:bg-slate-50 transition-colors">
-                <div className="absolute inset-0 z-10 opacity-0 cursor-pointer scale-[5] origin-top-left">
-                  <GoogleLogin
-                    onSuccess={handleGoogleSuccess}
-                    onError={() => setError("Google sign-in was unsuccessful. Please try again.")}
-                    width="100%"
-                    theme="outline"
-                  />
+              {showGoogleSignIn ? (
+                <div className="relative h-[48px] border border-[#222222] rounded-lg overflow-hidden hover:bg-slate-50 transition-colors">
+                  <div className="absolute inset-0 z-10 opacity-0 cursor-pointer scale-[5] origin-top-left">
+                    <GoogleLogin
+                      onSuccess={handleGoogleSuccess}
+                      onError={() => setError("Google sign-in was unsuccessful. Please try again.")}
+                      width="100%"
+                      theme="outline"
+                    />
+                  </div>
+                  <div className="absolute inset-0 flex items-center justify-center gap-3 pointer-events-none">
+                    <svg viewBox="0 0 18 18" width="18" height="18" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285f4" />
+                      <path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34a853" />
+                      <path d="M3.964 10.706c-.18-.54-.282-1.117-.282-1.706s.102-1.166.282-1.706V4.962H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332z" fill="#fbbc05" />
+                      <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.962l3.007 2.332C4.672 5.164 6.656 3.58 9 3.58z" fill="#ea4335" />
+                    </svg>
+                    <span className="text-sm font-semibold text-[#222222]">Continue with Google</span>
+                  </div>
                 </div>
-                <div className="absolute inset-0 flex items-center justify-center gap-3 pointer-events-none">
-                  {/* Google Icon Placeholder or SVG */}
-                  <svg viewBox="0 0 18 18" width="18" height="18" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285f4" />
-                    <path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34a853" />
-                    <path d="M3.964 10.706c-.18-.54-.282-1.117-.282-1.706s.102-1.166.282-1.706V4.962H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332z" fill="#fbbc05" />
-                    <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.962l3.007 2.332C4.672 5.164 6.656 3.58 9 3.58z" fill="#ea4335" />
-                  </svg>
-                  <span className="text-sm font-semibold text-[#222222]">Continue with Google</span>
+              ) : (
+                <div className="rounded-lg border border-[#DDDDDD] bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                  {isNativeApp
+                    ? "Google sign-in is currently available on the web experience. Use your email and password inside the mobile app."
+                    : "Google sign-in is unavailable until a Google client ID is configured for this environment."}
                 </div>
-              </div>
+              )}
 
               <button
                 onClick={() => navigate("/")}
