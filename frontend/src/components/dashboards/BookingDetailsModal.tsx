@@ -16,6 +16,7 @@ import {
     getDeliveryServiceLabel,
     getTrackingSummary,
 } from "@/lib/shipping";
+import { formatUTCtoSAST, formatSASTDate, formatSASTTime } from "@/lib/dateUtils";
 
 interface BookingDetailsModalProps {
     isOpen: boolean;
@@ -132,11 +133,8 @@ export const BookingDetailsModal = ({ isOpen, onClose, data, type }: BookingDeta
                                         </p>
                                         <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
                                             <p className="font-bold text-[#222222]">
-                                                {new Date(data.scheduled_date).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' })}
-                                            </p>
-                                            <p className="text-sm text-slate-500 flex items-center gap-1 mt-1">
-                                                <Clock size={12} /> {data.scheduled_time}
-                                            </p>
+                                                {formatUTCtoSAST(data.scheduled_date, data.scheduled_time)}
+                                            </p>  
                                         </div>
                                     </div>
                                 )}
@@ -149,7 +147,7 @@ export const BookingDetailsModal = ({ isOpen, onClose, data, type }: BookingDeta
                                         </p>
                                         <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
                                             <p className="font-bold text-[#222222]">
-                                                {new Date(data.placed_at).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                                {formatSASTDate(data.placed_at)}
                                             </p>
                                         </div>
                                     </div>
@@ -304,7 +302,7 @@ export const BookingDetailsModal = ({ isOpen, onClose, data, type }: BookingDeta
                                                                 : 'Latest driver location update received.'}
                                                 </p>
                                                 <p className="text-xs text-slate-500 mt-1">
-                                                    Last location sync: {new Date(data.driver_current_location.updated_at).toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' })}
+                                                    Last location sync: {formatSASTTime(data.driver_current_location.updated_at)}
                                                 </p>
                                             </div>
                                         </div>

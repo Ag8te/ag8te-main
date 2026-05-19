@@ -10,6 +10,7 @@ export interface User {
   role: string;
   is_paid?: boolean;
   is_approved?: boolean;
+  registration_rejection_reason?: string | null;
   email_verified?: boolean;
   profile_image_url?: string;
   tracking_number?: string;

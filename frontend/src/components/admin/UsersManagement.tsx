@@ -59,6 +59,8 @@ interface User {
     username: string | null;
     role: string;
     is_approved: boolean;
+    registration_rejection_reason: string | null;
+    registration_review_status: string | null;
     is_active: boolean;
     id_verification_status: string | null;
     created_at: string;
@@ -133,6 +135,8 @@ export const UsersManagement = () => {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isSuspendDialogOpen, setIsSuspendDialogOpen] = useState(false);
+    const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
+    const [rejectionReason, setRejectionReason] = useState("");
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [suspensionReason, setSuspensionReason] = useState("");
@@ -368,6 +372,51 @@ export const UsersManagement = () => {
                 description: error.message || "Failed to approve user.",
                 variant: "destructive"
             });
+        }
+    };
+
+    const handleReject = (user: User) => {
+        setSelectedUser(user);
+        setRejectionReason("");
+        setIsRejectDialogOpen(true);
+    };
+
+    const handleConfirmReject = async () => {
+        if (!selectedUser) return;
+        if (!rejectionReason.trim()) {
+            toast({
+                title: "Rejection reason required",
+                description: "Please provide a reason so the provider knows what to fix.",
+                variant: "destructive"
+            });
+            return;
+        }
+        setIsSubmitting(true);
+        try {
+            const adminHeaders = { Authorization: `Bearer ${localStorage.getItem("adminToken")}` };
+            const res = await apiFetch(`/api/admin/users/${selectedUser.id}/reject`, {
+                method: "PATCH",
+                headers: adminHeaders,
+                data: { reason: rejectionReason.trim() }
+            });
+            if (res?.success) {
+                toast({
+                    title: "Application rejected",
+                    description: "The provider has been notified by email with your reason.",
+                });
+                setIsRejectDialogOpen(false);
+                setSelectedUser(null);
+                setRejectionReason("");
+                fetchUsers();
+            }
+        } catch (error: any) {
+            toast({
+               title: "Error",
+               description: error.message || "Failed to reject user.",
+               variant: "destructive",
+            });
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -892,9 +941,28 @@ export const UsersManagement = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {user.is_active ? (
-                          <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 ">
+                          <span
+                            className={`text-xs font-bold px-2 py-1 ${
+                              user.is_approved || user.registration_review_status === 'approved'
+                                ? "text-green-600 bg-green-50"
+                                : user.registration_review_status === 'resubmitted'
+                                ? "text-blue-600 bg-blue-50"
+                                : user.registration_review_status === 'rejected'
+                                ? "text-red-600 bg-red-50"
+                                : "text-amber-600 bg-amber-50"
+                            }`}
+                            title={
+                              user.registration_rejection_reason ?? undefined
+                            }
+                          >
                             Active{" "}
-                            {user.is_approved ? "| Approved" : "| Pending"}
+                            {user.is_approved || user.registration_review_status === 'approved'
+                              ? "| Approved"
+                              : user.registration_review_status === 'resubmitted'
+                                ? "| Resubmitted"
+                                : user.registration_review_status === 'rejected'
+                                ? "| Rejected"
+                                : "| Pending"}
                           </span>
                         ) : (
                           <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 ">
@@ -946,6 +1014,17 @@ export const UsersManagement = () => {
                                 </button>
                               );
                             })()}
+                          {!user.is_approved &&
+                            user.role !== "client" &&
+                            user.role !== "admin" && (
+                              <button
+                                onClick={() => handleReject(user)}
+                                className="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 p-1.5 transition-colors"
+                                title="Reject Application"
+                              >
+                                <XCircle className="h-4 w-4" />
+                              </button>
+                            )}
                           <button
                             onClick={() => handleImpersonate(user.id)}
                             className="text-purple-600 hover:text-purple-900 bg-purple-50 hover:bg-purple-100 p-1.5 transition-colors"
@@ -1929,60 +2008,73 @@ export const UsersManagement = () => {
                                         // right side = Open + Download buttons
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
                                           {images
-                                          .filter((img: any) => typeof img === 'string' && img.length > 0)
-                                          .map((imgUrl: string, imgIndex: number) => (
-                                            <div
-                                              key={imgIndex}
-                                              className="border border-slate-200 bg-slate-50 p-4 flex items-center justify-between gap-4"
-                                            >
-                                              {/* Left side — thumbnail + label + url */}
-                                              <div className="flex items-center gap-3 min-w-0">
-                                                <img
-                                                  src={getImageUrl(imgUrl)}
-                                                  alt={`Vehicle ${imgIndex + 1}`}
-                                                  className="w-14 h-12 object-cover border border-slate-200 rounded shrink-0"
-                                                  onError={(e) => {
-                                                    (e.target as HTMLImageElement).style.display = "none";
-                                                  }}
-                                                />
-                                                <div className="min-w-0">
-                                                  <div className="flex items-center gap-2 text-slate-800 font-semibold">
-                                                    {/* Reuse same FileText icon as registration docs */}
-                                                    <FileText className="w-4 h-4 text-[#5e35b1]" />
-                                                    <span className="truncate">
-                                                      Vehicle Image {imgIndex + 1}
-                                                    </span>
+                                            .filter(
+                                              (img: any) =>
+                                                typeof img === "string" &&
+                                                img.length > 0,
+                                            )
+                                            .map(
+                                              (
+                                                imgUrl: string,
+                                                imgIndex: number,
+                                              ) => (
+                                                <div
+                                                  key={imgIndex}
+                                                  className="border border-slate-200 bg-slate-50 p-4 flex items-center justify-between gap-4"
+                                                >
+                                                  {/* Left side — thumbnail + label + url */}
+                                                  <div className="flex items-center gap-3 min-w-0">
+                                                    <img
+                                                      src={getImageUrl(imgUrl)}
+                                                      alt={`Vehicle ${imgIndex + 1}`}
+                                                      className="w-14 h-12 object-cover border border-slate-200 rounded shrink-0"
+                                                      onError={(e) => {
+                                                        (
+                                                          e.target as HTMLImageElement
+                                                        ).style.display =
+                                                          "none";
+                                                      }}
+                                                    />
+                                                    <div className="min-w-0">
+                                                      <div className="flex items-center gap-2 text-slate-800 font-semibold">
+                                                        {/* Reuse same FileText icon as registration docs */}
+                                                        <FileText className="w-4 h-4 text-[#5e35b1]" />
+                                                        <span className="truncate">
+                                                          Vehicle Image{" "}
+                                                          {imgIndex + 1}
+                                                        </span>
+                                                      </div>
+                                                      {/* Show the raw stored path for reference */}
+                                                      <p className="text-xs text-slate-500 truncate mt-1">
+                                                        {imgUrl}
+                                                      </p>
+                                                    </div>
                                                   </div>
-                                                  {/* Show the raw stored path for reference */}
-                                                  <p className="text-xs text-slate-500 truncate mt-1">
-                                                    {imgUrl}
-                                                  </p>
-                                                </div>
-                                              </div>
 
-                                              {/* Right side — Open + Download */}
-                                              {/* Same classNames as registration document buttons */}
-                                              <div className="flex items-center gap-2 shrink-0">
-                                                <a
-                                                  href={getImageUrl(imgUrl)}
-                                                  target="_blank"
-                                                  rel="noreferrer"
-                                                  className="inline-flex items-center gap-1 px-3 py-2 text-xs font-bold text-[#5e35b1] bg-purple-50 hover:bg-purple-100 border border-purple-100 transition-colors"
-                                                >
-                                                  <ExternalLink className="w-3.5 h-3.5" />
-                                                  Open
-                                                </a>
-                                                <a
-                                                  href={getImageUrl(imgUrl)}
-                                                  download
-                                                  className="inline-flex items-center gap-1 px-3 py-2 text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 transition-colors"
-                                                >
-                                                  <Download className="w-3.5 h-3.5" />
-                                                  Download
-                                                </a>
-                                              </div>
-                                            </div>
-                                          ))}
+                                                  {/* Right side — Open + Download */}
+                                                  {/* Same classNames as registration document buttons */}
+                                                  <div className="flex items-center gap-2 shrink-0">
+                                                    <a
+                                                      href={getImageUrl(imgUrl)}
+                                                      target="_blank"
+                                                      rel="noreferrer"
+                                                      className="inline-flex items-center gap-1 px-3 py-2 text-xs font-bold text-[#5e35b1] bg-purple-50 hover:bg-purple-100 border border-purple-100 transition-colors"
+                                                    >
+                                                      <ExternalLink className="w-3.5 h-3.5" />
+                                                      Open
+                                                    </a>
+                                                    <a
+                                                      href={getImageUrl(imgUrl)}
+                                                      download
+                                                      className="inline-flex items-center gap-1 px-3 py-2 text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 transition-colors"
+                                                    >
+                                                      <Download className="w-3.5 h-3.5" />
+                                                      Download
+                                                    </a>
+                                                  </div>
+                                                </div>
+                                              ),
+                                            )}
                                         </div>
                                       )}
                                     </div>
@@ -2194,6 +2286,56 @@ export const UsersManagement = () => {
           </AlertDialogContent>
         </AlertDialog>
 
+       {/* Reject Application Dialog */}
+        <AlertDialog
+          open={isRejectDialogOpen}
+          onOpenChange={setIsRejectDialogOpen}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Reject Application?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Rejecting <strong>{selectedUser?.email}</strong> will notify
+                them by email with your reason. They can update their documents
+                and resubmit for review.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="space-y-2">
+              <Label
+                htmlFor="rejection-reason"
+                className="text-[11px] font-bold text-slate-500 uppercase tracking-widest"
+              >
+                Rejection Reason <span className="text-red-500">*</span>
+              </Label>
+              <textarea
+                id="rejection-reason"
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                placeholder="e.g. Driver's licence image is blurry — please re-upload a clear photo."
+                rows={4}
+                className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-[#5e35b1] focus:ring-2 focus:ring-[#5e35b1]/20"
+              />
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setRejectionReason("")}>
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleConfirmReject();
+                }}
+                className="bg-red-600 hover:bg-red-700"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <Loader2 className="animate-spin h-4 w-4 mr-2" />
+                ) : null}
+                Yes, Reject
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
         {/* Delete Confirmation Dialog */}
         <AlertDialog
           open={isDeleteDialogOpen}

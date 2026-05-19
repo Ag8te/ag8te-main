@@ -36,6 +36,8 @@ class User(UserMixin, db.Model):
     # ID verification status
     id_verification_status = db.Column(db.Text, default='pending')
     id_rejection_reason = db.Column(db.Text)
+    registration_rejection_reason = db.Column(db.Text, nullable=True) # stores the admins reason for rejecting the registration
+    registration_review_status = db.Column(db.Text, nullable=True, default='pending')
 
     # Aura Integration
     aura_id = db.Column(db.Text, nullable=True)
@@ -112,6 +114,8 @@ class User(UserMixin, db.Model):
             'nationality': self.nationality,
             'id_verification_status': self.id_verification_status,
             'id_rejection_reason': self.id_rejection_reason,
+            'registration_rejection_reason': self.registration_rejection_reason,
+            'registration_review_status': self.registration_review_status,
             'aura_id': self.aura_id,
             'aura_status': self.aura_status,
             'agent_id': str(self.agent_id) if self.agent_id else None,

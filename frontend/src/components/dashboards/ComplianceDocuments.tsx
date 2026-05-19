@@ -27,6 +27,8 @@ interface ComplianceDocumentsProps {
   profileData: Record<string, any>;
   isApproved: boolean;
   onUpdate: () => void; // refreshes dashboard data after upload
+  rejectionReason?: string | null;
+  registrationReviewStatus?: string | null;
 }
 
 // ── Document definitions per role ─────────────────────────────────────────────
@@ -116,6 +118,8 @@ export const ComplianceDocuments: React.FC<ComplianceDocumentsProps> = ({
   profileData,
   isApproved,
   onUpdate,
+  rejectionReason,
+  registrationReviewStatus,
 }) => {
   const theme = useTheme();
   const { toast } = useToast();
@@ -123,6 +127,43 @@ export const ComplianceDocuments: React.FC<ComplianceDocumentsProps> = ({
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const docs = DOCS_BY_ROLE[role] || [];
+  const isDocFlagged = (doc: {
+    key: string;
+    label: string;
+    fileKey: string;
+  }): boolean => {
+    if (isApproved || !rejectionReason) return false;
+    const reason = rejectionReason.toLowerCase();
+    const aliases: Record<string, string[]> = {
+      driver_license_url: [
+        "driver",
+        "license",
+        "licence",
+        "id document",
+        "id doc",
+        "identity",
+      ],
+      prdp_document_url: ["prdp", "professional driving permit", "pdp"],
+      proof_of_residence_url: [
+        "residence",
+        "proof of residence",
+        "address",
+        "utility",
+      ],
+      cv_resume_url: ["cv", "resume", "curriculum"],
+      qualification_urls: ["qualification", "certificate", "degree", "diploma"],
+    };
+    const terms = [doc.label.toLowerCase(), ...(aliases[doc.key] || [])];
+    return terms.some((term) => reason.includes(term));
+  };
+
+  const isVehicleFlagged = (): boolean => {
+    if (isApproved || !rejectionReason) return false;
+    const reason = rejectionReason.toLowerCase();
+    return ["vehicle", "car", "image", "photo"].some((term) =>
+      reason.includes(term),
+    );
+  };
 
   // ── Vehicle images (driver only) ─────────────────────────────────────────
   const driverServices = profileData?.driver_services || [];
@@ -182,7 +223,7 @@ export const ComplianceDocuments: React.FC<ComplianceDocumentsProps> = ({
         const vechicleData = [{ ...primaryVehicle, images: [] }];
         formData.append("driver_services", JSON.stringify(vechicleData));
       }
-    
+
       Array.from(files).forEach((f) =>
         formData.append("vehicles[0][images]", f),
       );
@@ -223,7 +264,65 @@ export const ComplianceDocuments: React.FC<ComplianceDocumentsProps> = ({
   return (
     <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 800 }}>
       {/* ── Status banner ─────────────────────────────────────────── */}
-      {!isApproved ? (
+      {isApproved ? (
+        <Alert
+          severity="success"
+          icon={<CheckCircleIcon />}
+          sx={{ mb: 3, borderRadius: 2 }}
+        >
+          <Typography fontWeight={700}>Account approved</Typography>
+          <Typography variant="body2">
+            Your documents have been verified. To update any document, please
+            use the Profile page — changes will be reviewed by admin.
+          </Typography>
+        </Alert>
+      ) : registrationReviewStatus === "resubmitted" ? (
+        // ↓ NEW — provider uploaded after rejection, waiting for re-review
+        <Alert
+          severity="info"
+          icon={<CheckCircleIcon />}
+          sx={{ mb: 3, borderRadius: 2 }}
+        >
+          <Typography fontWeight={700} mb={0.5}>
+            Documents Updated — Awaiting Re-Review
+          </Typography>
+          <Typography variant="body2">
+            You have re-uploaded your documents. Admin will review them shortly.
+            You will be notified by email once a decision has been made.
+          </Typography>
+        </Alert>
+      ) : registrationReviewStatus === "rejected" ? (
+        <Alert
+          severity="error"
+          icon={<WarningIcon />}
+          sx={{ mb: 3, borderRadius: 2 }}
+        >
+          <Typography fontWeight={700} mb={0.5}>
+            Application Rejected — Re-upload the highlighted documents
+          </Typography>
+          <Typography variant="body2" mb={1}>
+            Admin left the following reason. The documents flagged below are
+            highlighted in red — replace them and your application will be
+            re-queued for review.
+          </Typography>
+          {rejectionReason && (
+            <Box
+              sx={{
+                bgcolor: alpha(theme.palette.error.main, 0.08),
+                borderLeft: "3px solid",
+                borderColor: "error.main",
+                px: 1.5,
+                py: 1,
+                borderRadius: 1,
+              }}
+            >
+              <Typography variant="body2" fontWeight={600} color="error.dark">
+                {rejectionReason}
+              </Typography>
+            </Box>
+          )}
+        </Alert>
+      ) : (
         <Alert
           severity="warning"
           icon={<WarningIcon />}
@@ -236,18 +335,6 @@ export const ComplianceDocuments: React.FC<ComplianceDocumentsProps> = ({
             Please ensure all required documents below are uploaded correctly.
             Admin will review them and approve your account. You can replace any
             document if you uploaded the wrong one.
-          </Typography>
-        </Alert>
-      ) : (
-        <Alert
-          severity="success"
-          icon={<CheckCircleIcon />}
-          sx={{ mb: 3, borderRadius: 2 }}
-        >
-          <Typography fontWeight={700}>Account approved</Typography>
-          <Typography variant="body2">
-            Your documents have been verified. To update any document, please
-            use the Profile page — changes will be reviewed by admin.
           </Typography>
         </Alert>
       )}
@@ -270,13 +357,17 @@ export const ComplianceDocuments: React.FC<ComplianceDocumentsProps> = ({
               sx={{
                 p: 2.5,
                 border: "1px solid",
-                borderColor: uploaded
-                  ? alpha(theme.palette.success.main, 0.3)
-                  : alpha(theme.palette.warning.main, 0.3),
+                borderColor: isDocFlagged(doc)
+                  ? alpha(theme.palette.error.main, 0.5)
+                  : uploaded
+                    ? alpha(theme.palette.success.main, 0.3)
+                    : alpha(theme.palette.warning.main, 0.3),
                 borderRadius: 2,
-                bgcolor: uploaded
-                  ? alpha(theme.palette.success.main, 0.03)
-                  : alpha(theme.palette.warning.main, 0.03),
+                bgcolor: isDocFlagged(doc)
+                  ? alpha(theme.palette.error.main, 0.05)
+                  : uploaded
+                    ? alpha(theme.palette.success.main, 0.03)
+                    : alpha(theme.palette.warning.main, 0.03),
               }}
             >
               <Stack
@@ -288,12 +379,27 @@ export const ComplianceDocuments: React.FC<ComplianceDocumentsProps> = ({
               >
                 <Stack direction="row" alignItems="center" spacing={1.5}>
                   <FileIcon
-                    sx={{ color: uploaded ? "success.main" : "warning.main" }}
+                    sx={{
+                      color: isDocFlagged(doc)
+                        ? "error.main"
+                        : uploaded
+                          ? "success.main"
+                          : "warning.main",
+                    }}
                   />
                   <Box>
                     <Typography fontWeight={600} fontSize={14}>
                       {doc.label}
                     </Typography>
+                    {isDocFlagged(doc) && (
+                      <Typography
+                        variant="caption"
+                        color="error.main"
+                        fontWeight={700}
+                      >
+                        ⚠ Flagged for re-upload
+                      </Typography>
+                    )}
                     {uploaded ? (
                       <Stack
                         direction="row"
@@ -400,14 +506,30 @@ export const ComplianceDocuments: React.FC<ComplianceDocumentsProps> = ({
         <>
           <Divider sx={{ mb: 3 }} />
           <Stack direction="row" alignItems="center" spacing={1} mb={2}>
-            <CarIcon sx={{ color: primaryColor }} />
-            <Typography variant="h6" fontWeight={700}>
+            <CarIcon
+              sx={{ color: isVehicleFlagged() ? "error.main" : primaryColor }}
+            />
+            <Typography
+              variant="h6"
+              fontWeight={700}
+              color={isVehicleFlagged() ? "error.main" : "inherit"}
+            >
               Vehicle Images
             </Typography>
             <Chip
-              label={`${vehicleImages.length} / 3 minimum`}
+              label={
+                isVehicleFlagged()
+                  ? "Flagged for re-upload"
+                  : `${vehicleImages.length} / 3 minimum`
+              }
               size="small"
-              color={vehicleImages.length >= 3 ? "success" : "warning"}
+              color={
+                isVehicleFlagged()
+                  ? "error"
+                  : vehicleImages.length >= 3
+                    ? "success"
+                    : "warning"
+              }
               sx={{ ml: 1 }}
             />
           </Stack>

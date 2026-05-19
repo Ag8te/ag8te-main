@@ -192,6 +192,52 @@ def approve_user(user_id):
     except Exception as e:
         current_app.logger.error(f"Approve user error: {str(e)}")
         return error_response("INTERNAL_ERROR", "Failed to approve user", None, 500)
+        
+    
+@bp.route("/users/<user_id>/reject", methods=["PATCH"])
+@require_admin
+def reject_user(user_id):
+    """Reject a pending registration with a mandatory reason.
+
+    Body: { "reason": "Blurry driver's licence — please re-upload." }
+    Returns 400 if reason is missing or user is already approved.
+    """
+    try:
+        data = request.get_json(silent=True) or {}
+        reason = (data.get("reason") or "").strip()
+
+        # Validate reason before hitting the service
+        if not reason:
+            return error_response(
+                "MISSING_REASON",
+                "A rejection reason is required.",
+                None,
+                400,
+            )
+
+        user_dict, error = AdminService.reject_user(user_id, reason)
+        if error:
+            status = 404 if error == "NOT_FOUND" else 400
+            messages = {
+                "NOT_FOUND": "User not found.",
+                "ALREADY_APPROVED": "This user is already approved and cannot be rejected.",
+                "MISSING_REASON": "A rejection reason is required.",
+            }
+            return error_response(
+                error,
+                messages.get(error, "Failed to reject user."),
+                None,
+                status,
+            )
+
+        return success_response(
+            user_dict,
+            "User application rejected. The provider has been notified by email."
+        )
+    except Exception as e:
+        current_app.logger.error(f"Reject user error: {str(e)}")
+        return error_response("INTERNAL_ERROR", "Failed to reject user.", None, 500)
+
 
 
 @bp.route("/users/<user_id>/verify-id", methods=["PATCH"])

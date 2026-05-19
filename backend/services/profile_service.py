@@ -126,6 +126,10 @@ class ProfileService:
                         continue
                 updated_data[key] = value
             user.data = updated_data
+            # if provider uploads a doc while in rejected state,
+            # flip status to resubmitted so admin sees signal
+            if user.registration_rejection_reason:
+                user.registration_review_status = 'resubmitted'
 
             # sync VehicleImage table when driver replaces
             # vehicle images via the pre-approval path.
