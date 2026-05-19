@@ -74,6 +74,7 @@ class Config:
 
     FRONTEND_URL = os.environ.get('FRONTEND_URL') or ('https://mzansiserve.co.za' if FLASK_ENV == 'production' else 'http://localhost:8080')
     BACKEND_URL = os.environ.get('BACKEND_URL') or ('https://mzansiserve.co.za' if FLASK_ENV == 'production' else 'http://localhost:5006')
+    MOBILE_APP_URL = os.environ.get('MOBILE_APP_URL') or 'co.za.mzansiserve.app://app'
 
     # Google Maps
     GOOGLE_MAPS_API_KEY = os.environ.get('GOOGLE_MAPS_API_KEY') or ''

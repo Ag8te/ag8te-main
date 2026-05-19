@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { apiFetch } from "@/lib/api";
+import { openExternalUrl } from "@/lib/native";
 import { TERMS_LAST_UPDATED, TERMS_SECTIONS } from "@/pages/Terms";
 import { PRIVACY_LAST_UPDATED, PRIVACY_SECTIONS } from "@/pages/Privacy";
 
@@ -721,7 +722,7 @@ const removeCarImage = (index: number) => {
         if (result.data?.redirect_url) {
           localStorage.setItem("user", JSON.stringify(result.data.user));
           localStorage.setItem("registrationPaymentUser", JSON.stringify(result.data.user));
-          window.location.href = result.data.redirect_url;
+          await openExternalUrl(result.data.redirect_url);
           return;
         }
 

@@ -39,6 +39,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { formatSASTDate, formatSASTTime } from "@/lib/dateUtils";
+import { isLocationPermissionDenied, requestCurrentPosition } from "@/lib/native";
 
 const DriverDashboard = () => {
     const { toast } = useToast();
@@ -96,7 +97,7 @@ const DriverDashboard = () => {
     }, [fetchData, activeTab]);
 
     useEffect(() => {
-        if (authUser?.role !== "driver" || !navigator.geolocation) {
+        if (authUser?.role !== "driver") {
             setLocationStatus("unavailable");
             return;
         }
@@ -105,7 +106,9 @@ const DriverDashboard = () => {
 
         const syncLocation = () => {
             setLocationStatus((current) => (current === "online" ? current : "syncing"));
-            navigator.geolocation.getCurrentPosition(
+            requestCurrentPosition(
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+            ).then(
                 async (position) => {
                     if (cancelled) return;
                     try {
@@ -128,13 +131,12 @@ const DriverDashboard = () => {
                 },
                 (error) => {
                     console.error("Driver geolocation unavailable:", error);
-                    if (error.code === error.PERMISSION_DENIED) {
+                    if (isLocationPermissionDenied(error)) {
                         setLocationStatus("permission_denied");
                     } else {
                         setLocationStatus("error");
                     }
-                },
-                { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+                }
             );
         };
 

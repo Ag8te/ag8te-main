@@ -24,3 +24,11 @@ postgres_data/
 uploads/
 !uploads/.gitkeep
 static/*.apk
+
+# Mobile app signing artifacts
+frontend/android/keystore.properties
+frontend/android/*.keystore
+frontend/android/*.jks
+frontend/android/app/*.keystore
+frontend/android/app/*.jks
+frontend/store-builds/

@@ -21,6 +21,7 @@ import { apiFetch } from "@/lib/api";
 import { useJsApiLoader, Autocomplete } from "@react-google-maps/api";
 import { getCurrentLocationAddress } from "@/lib/locationUtils";
 import { GOOGLE_MAPS_API_KEY, GOOGLE_MAPS_PLACE_LIBRARIES } from "@/lib/googleMaps";
+import { openExternalUrl } from "@/lib/native";
 import BookingStepWizard from "@/components/BookingStepWizard";
 import { cn } from "@/lib/utils";
 
@@ -290,7 +291,7 @@ const BookService = () => {
       });
 
       if (res.success && res.data?.redirect_url) {
-        window.location.href = res.data.redirect_url;
+        await openExternalUrl(res.data.redirect_url);
       } else if (res.success) {
         // Fallback if no redirect URL is provided (shouldn't happen with Yoco, but good practice)
         setStep("done");
