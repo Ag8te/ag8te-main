@@ -38,6 +38,7 @@ import { apiFetch } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { formatSASTDate, formatSASTTime } from "@/lib/dateUtils";
 import { isLocationPermissionDenied, requestCurrentPosition } from "@/lib/native";
 
 const DriverDashboard = () => {
@@ -181,352 +182,735 @@ const DriverDashboard = () => {
     );
 
     const renderContent = () => {
-        const user = data?.current_user;
-        const cabEligibility = data?.cab_eligibility;
-        const onboardingBanner = user && (!user.is_approved || !user.is_paid) ? (
+      const user = data?.current_user;
+      const cabEligibility = data?.cab_eligibility;
+      // ↓ CHANGED — replaced fuzzy FLAGGED_DOC_MAP IIFE with a clean
+      // switch on registration_review_status. No more URL truthiness
+      // guessing or word matching. Status is set explicitly by backend:
+      // pending → rejected → resubmitted → approved
+      const onboardingBanner = (() => {
+        if (!user || user.is_approved) return null;
+
+        const status = user.registration_review_status || "pending";
+
+        // ── Resubmitted — provider uploaded after rejection, waiting for admin
+        if (status === "resubmitted") {
+          return (
             <Paper
-                sx={{
-                    mb: 4,
-                    p: 3,
-                    borderRadius: 4,
-                    bgcolor: alpha(theme.palette.warning.main, 0.05),
-                    border: '1px solid',
-                    borderColor: alpha(theme.palette.warning.main, 0.2)
-                }}
+              elevation={0}
+              sx={{
+                mb: 4,
+                p: 3,
+                borderRadius: 4,
+                bgcolor: alpha(theme.palette.warning.main, 0.05),
+                border: "1px solid",
+                borderColor: alpha(theme.palette.warning.main, 0.3),
+              }}
             >
-                <Box sx={{ display: 'flex', gap: 2 }}>
-                    <WarningIcon sx={{ color: 'warning.main' }} />
-                    <Box>
-                        <Typography variant="h6" sx={{ fontWeight: 700, color: 'warning.dark', mb: 1 }}>Your account is pending approval</Typography>
-                        <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>Complete these steps to start accepting rides:</Typography>
-                        <Stack spacing={1}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                {user.is_paid ? <CheckCircleIcon sx={{ fontSize: 16, color: 'success.main' }} /> : <InfoIcon sx={{ fontSize: 16, color: 'warning.main' }} />}
-                                <Typography variant="caption" sx={{ color: user.is_paid ? 'success.main' : 'warning.main', fontWeight: 600 }}>
-                                    {user.is_paid ? "Registration payment received" : "Complete your Yoco registration payment"}
-                                </Typography>
-                            </Box>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                {user.id_verification_status === 'verified' ? <CheckCircleIcon sx={{ fontSize: 16, color: 'success.main' }} /> : <InfoIcon sx={{ fontSize: 16, color: 'warning.main' }} />}
-                                <Typography variant="caption" sx={{ color: user.id_verification_status === 'verified' ? 'success.main' : 'warning.main', fontWeight: 600 }}>
-                                    {user.id_verification_status === 'verified' ? "Documents verified" : "Upload your driver's license and vehicle registration"}
-                                </Typography>
-                            </Box>
-                        </Stack>
+              <Box sx={{ display: "flex", gap: 2 }}>
+                <CheckCircleIcon sx={{ color: "warning.main", mt: 0.25 }} />
+                <Box sx={{ flex: 1 }}>
+                  <Typography
+                    variant="h6"
+                    sx={{ fontWeight: 700, color: "warning.dark", mb: 1 }}
+                  >
+                    Documents Updated — Awaiting Re-Review
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{ color: "text.secondary", mb: 2 }}
+                  >
+                    You have re-uploaded your documents. Your application is
+                    back in the review queue. You will be notified by email once
+                    a decision has been made.
+                  </Typography>
+                  {user.registration_rejection_reason && (
+                    <Box
+                      sx={{
+                        bgcolor: alpha(theme.palette.warning.main, 0.08),
+                        borderLeft: `4px solid ${theme.palette.warning.main}`,
+                        px: 2,
+                        py: 1.5,
+                      }}
+                    >
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          fontWeight: 700,
+                          color: "warning.dark",
+                          textTransform: "uppercase",
+                          letterSpacing: 1,
+                        }}
+                      >
+                        Original Rejection Reason
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{ color: "warning.dark", mt: 0.5 }}
+                      >
+                        {user.registration_rejection_reason}
+                      </Typography>
                     </Box>
+                  )}
                 </Box>
+              </Box>
             </Paper>
-        ) : null;
-
-        const rideReadinessBanner = cabEligibility ? (
-            <Paper
-                sx={{
-                    mb: 4,
-                    p: 3,
-                    borderRadius: 4,
-                    bgcolor: alpha(
-                        cabEligibility.eligible ? theme.palette.success.main : theme.palette.warning.main,
-                        0.05
-                    ),
-                    border: '1px solid',
-                    borderColor: alpha(
-                        cabEligibility.eligible ? theme.palette.success.main : theme.palette.warning.main,
-                        0.2
-                    )
-                }}
-            >
-                <Stack spacing={2}>
-                    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
-                        {cabEligibility.eligible ? (
-                            <CheckCircleIcon sx={{ color: 'success.main', mt: 0.25 }} />
-                        ) : (
-                            <WarningIcon sx={{ color: 'warning.main', mt: 0.25 }} />
-                        )}
-                        <Box sx={{ flex: 1 }}>
-                            <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
-                                {cabEligibility.eligible ? 'You are ride-ready for cab dispatch' : 'You are not ride-ready yet'}
-                            </Typography>
-                            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                                {cabEligibility.eligible
-                                    ? 'Nearby cab requests can be offered to you while your location stays fresh.'
-                                    : 'You will not receive local cab offers until the items below are completed.'}
-                            </Typography>
-                        </Box>
-                        <Chip
-                            label={cabEligibility.eligible ? 'Ride-ready' : 'Action needed'}
-                            color={cabEligibility.eligible ? 'success' : 'warning'}
-                            variant={cabEligibility.eligible ? 'filled' : 'outlined'}
-                            sx={{ fontWeight: 700 }}
-                        />
-                    </Box>
-                    {!cabEligibility.eligible && cabEligibility.missing_labels?.length ? (
-                        <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-                            {cabEligibility.missing_labels.map((label: string) => (
-                                <Chip key={label} label={label} color="warning" variant="outlined" />
-                            ))}
-                        </Stack>
-                    ) : null}
-                </Stack>
-            </Paper>
-        ) : null;
-
-        const locationBanner = (
-            <Paper
-                sx={{
-                    mb: 4,
-                    p: 3,
-                    borderRadius: 4,
-                    bgcolor: alpha(
-                        locationStatus === 'online' ? theme.palette.success.main : theme.palette.info.main,
-                        0.05
-                    ),
-                    border: '1px solid',
-                    borderColor: alpha(
-                        locationStatus === 'online' ? theme.palette.success.main : theme.palette.info.main,
-                        0.2
-                    )
-                }}
-            >
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, gap: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
-                    <Box>
-                        <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
-                            {locationStatus === 'online' ? 'You are visible for nearby rides' : 'Location sharing status'}
-                        </Typography>
-                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                            {locationStatus === 'online' && lastLocationSyncAt
-                                ? `Live location sharing is active. Last synced at ${lastLocationSyncAt.toLocaleTimeString()}.`
-                                : locationStatus === 'permission_denied'
-                                    ? 'Allow browser location access so clients can see you as a nearby driver.'
-                                    : locationStatus === 'unavailable'
-                                        ? 'This device does not support location sharing.'
-                                        : locationStatus === 'error'
-                                            ? 'We could not update your location just now. Please keep location enabled and stay on this page.'
-                                            : 'Checking your current location so you can appear in nearby ride suggestions.'}
-                        </Typography>
-                    </Box>
-                    <Chip
-                        label={
-                            locationStatus === 'online'
-                                ? 'Online'
-                                : locationStatus === 'permission_denied'
-                                    ? 'Permission needed'
-                                    : locationStatus === 'unavailable'
-                                        ? 'Unavailable'
-                                        : locationStatus === 'error'
-                                            ? 'Sync issue'
-                                            : 'Syncing...'
-                        }
-                        color={locationStatus === 'online' ? 'success' : locationStatus === 'permission_denied' || locationStatus === 'error' ? 'warning' : 'info'}
-                        variant={locationStatus === 'online' ? 'filled' : 'outlined'}
-                        sx={{ fontWeight: 700 }}
-                    />
-                </Box>
-            </Paper>
-        );
-
-        if (loading && !data) return (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 10 }}>
-                <CircularProgress />
-            </Box>
-        );
-
-        switch (activeTab) {
-            case "overview":
-                return (
-                    <Box sx={{ animation: 'fadeIn 0.5s' }}>
-                        {onboardingBanner}
-                        {rideReadinessBanner}
-                        {locationBanner}
-                        <Grid container spacing={3} sx={{ mb: 4 }}>
-                            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                                <StatCard
-                                    title="Ride Earnings"
-                                    value={`R${(data?.driver_earnings || 0).toFixed(2)}`}
-                                    icon={TrendingUpIcon}
-                                    color="primary"
-                                    loading={loading}
-                                />
-                            </Grid>
-                            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                                <StatCard
-                                    title="Wallet Balance"
-                                    value={`R${(data?.wallet?.balance || 0).toFixed(2)}`}
-                                    icon={WalletIcon}
-                                    color="info"
-                                    loading={loading}
-                                />
-                            </Grid>
-                            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                                <StatCard
-                                    title="Completed Rides"
-                                    value={data?.recent_rides?.length || 0}
-                                    icon={CheckCircleIcon}
-                                    color="success"
-                                    loading={loading}
-                                />
-                            </Grid>
-                            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                                <StatCard
-                                    title="Available Rides"
-                                    value={data?.available_cab_requests?.length || 0}
-                                    icon={CarIcon}
-                                    color="secondary"
-                                    loading={loading}
-                                />
-                            </Grid>
-                        </Grid>
-
-                        <Grid container spacing={3}>
-                            <Grid size={{ xs: 12, lg: 7 }}>
-                                <Stack spacing={3}>
-                                    {(data?.active_rides?.length > 0) && (
-                                        <Box>
-                                            <Typography variant="h6" sx={{ fontWeight: 800, mb: 2 }}>Ongoing Ride</Typography>
-                                            <ActiveJobs
-                                                jobs={data.active_rides}
-                                                role="driver"
-                                                onStatusUpdate={fetchData}
-                                            />
-                                        </Box>
-                                    )}
-                                    <Box>
-                                        <JobInbox
-                                            jobs={data?.available_cab_requests || []}
-                                            role="driver"
-                                            onJobAccepted={fetchData}
-                                        />
-                                    </Box>
-                                </Stack>
-                            </Grid>
-                            <Grid size={{ xs: 12, lg: 5 }}>
-                                <Paper variant="outlined" sx={{ borderRadius: 4, overflow: 'hidden' }}>
-                                    <Box sx={{ p: 3, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <Typography variant="h6" fontWeight={800}>Recent Activity</Typography>
-                                        <Button size="small" onClick={() => setActiveTab('wallet')}>View All</Button>
-                                    </Box>
-                                    <Box sx={{ p: 0 }}>
-                                        {data?.recent_rides?.length > 0 ? (
-                                            data.recent_rides.map((ride: any) => (
-                                                <Box key={ride.id} sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid', borderColor: 'divider' }}>
-                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                                        <Avatar sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), color: 'primary.main' }}>
-                                                            <StarIcon fontSize="small" />
-                                                        </Avatar>
-                                                        <Box>
-                                                            <Typography variant="subtitle2" fontWeight={700}>{ride.pickup_address?.split(',')[0] || 'Ride'}</Typography>
-                                                            <Typography variant="caption" color="text.secondary">{new Date(ride.created_at).toLocaleDateString()}</Typography>
-                                                        </Box>
-                                                    </Box>
-                                                    <Box sx={{ textAlign: 'right' }}>
-                                                        <Typography variant="subtitle2" fontWeight={700} color="primary.main">R{ride.payment_amount?.toFixed(2)}</Typography>
-                                                        <Chip label="Completed" size="small" color="success" variant="outlined" sx={{ fontSize: '0.65rem', height: 20 }} />
-                                                    </Box>
-                                                </Box>
-                                            ))
-                                        ) : (
-                                            <Box sx={{ p: 6, textAlign: 'center' }}>
-                                                <Typography variant="body2" color="text.secondary" fontStyle="italic">No recent activity found.</Typography>
-                                            </Box>
-                                        )}
-                                    </Box>
-                                </Paper>
-                            </Grid>
-                        </Grid>
-                    </Box>
-                );
-            case "active":
-                return <ActiveJobs jobs={data?.active_rides || []} role="driver" onStatusUpdate={fetchData} />;
-            case "rides":
-                return (
-                    <Box sx={{ animation: 'fadeIn 0.5s' }}>
-                        {rideReadinessBanner}
-                        <JobInbox jobs={data?.available_cab_requests || []} role="driver" onJobAccepted={fetchData} />
-                    </Box>
-                );
-            case "reviews":
-                return (
-                    <Paper variant="outlined" sx={{ borderRadius: 4, overflow: 'hidden' }}>
-                        <Box sx={{ p: 3, borderBottom: '1px solid', borderColor: 'divider' }}>
-                            <Typography variant="h6" fontWeight={800}>Reviews & Feedback</Typography>
-                        </Box>
-                        <Box sx={{ p: 0 }}>
-                            {data?.recent_rides?.filter((r: any) => r.has_driver_rating).length > 0 ? (
-                                data.recent_rides.filter((r: any) => r.has_driver_rating).map((ride: any) => (
-                                    <Box key={ride.id} sx={{ p: 3, borderBottom: '1px solid', borderColor: 'divider' }}>
-                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                                            <Stack direction="row" spacing={0.5}>
-                                                {[1, 2, 3, 4, 5].map((star) => (
-                                                    <StarIcon key={star} sx={{ fontSize: 16, color: star <= (ride.details?.driver_rating || 0) ? 'warning.main' : 'divider' }} />
-                                                ))}
-                                            </Stack>
-                                            <Typography variant="caption" color="text.secondary">{new Date(ride.created_at).toLocaleDateString()}</Typography>
-                                        </Box>
-                                        <Typography variant="body2" sx={{ fontStyle: 'italic', color: 'text.secondary', mb: 1 }}>
-                                            "{ride.details?.driver_review || "No comments provided."}"
-                                        </Typography>
-                                        <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.disabled', textTransform: 'uppercase' }}>
-                                            Trip: {ride.pickup_address?.split(',')[0]} → {ride.dropoff_address?.split(',')[0]}
-                                        </Typography>
-                                    </Box>
-                                ))
-                            ) : (
-                                <Box sx={{ p: 6, textAlign: 'center' }}>
-                                    <Typography variant="body2" color="text.secondary" fontStyle="italic">No reviews yet.</Typography>
-                                </Box>
-                            )}
-                        </Box>
-                    </Paper>
-                );
-            case "vehicles":
-                {
-                    const approvedVehicles =
-                        data?.driver_services?.length
-                            ? data.driver_services
-                            : data?.current_user?.data?.driver_services?.length
-                                ? data.current_user.data.driver_services
-                                : data?.current_user?.data?.car_details
-                                    ? [data.current_user.data.car_details]
-                                    : [];
-                return (
-                    <VehicleManagement
-                        initialVehicles={approvedVehicles}
-                        pendingVehicles={data?.pending_driver_services || []}
-                        hasPendingVehicleUpdate={Boolean(data?.vehicle_update_pending)}
-                    />
-                );
-                }
-            case "messages":
-                return (
-                    <Box sx={{ animation: 'fadeIn 0.5s' }}>
-                        <MessagesInbox />
-                    </Box>
-                );
-                
-            case "documents":
-                return (
-                    <ComplianceDocuments
-                        role="driver"
-                        profileData={data?.current_user?.data || {}}
-                        isApproved={Boolean(data?.current_user?.is_approved)}
-                        onUpdate={fetchData}
-                    />
-                );
-
-            case "profile":
-                return (
-                    <Box sx={{ animation: 'fadeIn 0.5s', textAlign: 'center', py: 10 }}>
-                        <Typography variant="h5" fontWeight={700} mb={2}>Profile Management</Typography>
-                        <Typography variant="body1" color="text.secondary" mb={4}>Manage your personal information, documents, and availability in the unified profile center.</Typography>
-                        <Button variant="contained" size="large" onClick={() => navigate('/profile')}>
-                            Go to Profile Page
-                        </Button>
-                    </Box>
-                );
-            case "wallet":
-                return <WalletManagement balance={data?.wallet?.balance || 0} transactions={data?.wallet?.transactions || []} role="driver" onWithdrawalRequested={fetchData} />;
-            default:
-                return null;
+          );
         }
+
+        // ── Rejected — admin rejected, provider must fix docs
+        if (status === "rejected") {
+          return (
+            <Paper
+              elevation={0}
+              sx={{
+                mb: 4,
+                p: 3,
+                borderRadius: 4,
+                bgcolor: alpha(theme.palette.error.main, 0.05),
+                border: "1px solid",
+                borderColor: alpha(theme.palette.error.main, 0.3),
+              }}
+            >
+              <Box sx={{ display: "flex", gap: 2 }}>
+                <WarningIcon sx={{ color: "error.main", mt: 0.25 }} />
+                <Box sx={{ flex: 1 }}>
+                  <Typography
+                    variant="h6"
+                    sx={{ fontWeight: 700, color: "error.dark", mb: 1 }}
+                  >
+                    Application Rejected — Action Required
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{ color: "text.secondary", mb: 2 }}
+                  >
+                    Your application was reviewed and could not be approved at
+                    this time.
+                  </Typography>
+                  <Box
+                    sx={{
+                      bgcolor: alpha(theme.palette.error.main, 0.08),
+                      borderLeft: `4px solid ${theme.palette.error.main}`,
+                      px: 2,
+                      py: 1.5,
+                      mb: 2,
+                    }}
+                  >
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        fontWeight: 700,
+                        color: "error.dark",
+                        textTransform: "uppercase",
+                        letterSpacing: 1,
+                      }}
+                    >
+                      Reason
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      sx={{ color: "error.dark", mt: 0.5 }}
+                    >
+                      {user.registration_rejection_reason}
+                    </Typography>
+                  </Box>
+                  <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                    Go to the <strong>My Documents</strong> tab, re-upload the
+                    flagged documents, and your application will be re-queued
+                    for review.
+                  </Typography>
+                </Box>
+              </Box>
+            </Paper>
+          );
+        }
+
+        // ── Pending — not yet reviewed, no rejection
+        return (
+          <Paper
+            sx={{
+              mb: 4,
+              p: 3,
+              borderRadius: 4,
+              bgcolor: alpha(theme.palette.warning.main, 0.05),
+              border: "1px solid",
+              borderColor: alpha(theme.palette.warning.main, 0.2),
+            }}
+          >
+            <Box sx={{ display: "flex", gap: 2 }}>
+              <WarningIcon sx={{ color: "warning.main" }} />
+              <Box>
+                <Typography
+                  variant="h6"
+                  sx={{ fontWeight: 700, color: "warning.dark", mb: 1 }}
+                >
+                  Your account is pending approval
+                </Typography>
+                <Typography
+                  variant="body2"
+                  sx={{ color: "text.secondary", mb: 2 }}
+                >
+                  Complete these steps to start accepting rides:
+                </Typography>
+                <Stack spacing={1}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    {user.is_paid ? (
+                      <CheckCircleIcon
+                        sx={{ fontSize: 16, color: "success.main" }}
+                      />
+                    ) : (
+                      <InfoIcon sx={{ fontSize: 16, color: "warning.main" }} />
+                    )}
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: user.is_paid ? "success.main" : "warning.main",
+                        fontWeight: 600,
+                      }}
+                    >
+                      {user.is_paid
+                        ? "Registration payment received"
+                        : "Complete your Yoco registration payment"}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    {user.id_verification_status === "verified" ? (
+                      <CheckCircleIcon
+                        sx={{ fontSize: 16, color: "success.main" }}
+                      />
+                    ) : (
+                      <InfoIcon sx={{ fontSize: 16, color: "warning.main" }} />
+                    )}
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color:
+                          user.id_verification_status === "verified"
+                            ? "success.main"
+                            : "warning.main",
+                        fontWeight: 600,
+                      }}
+                    >
+                      {user.id_verification_status === "verified"
+                        ? "Documents verified"
+                        : "Upload your driver's license and vehicle registration"}
+                    </Typography>
+                  </Box>
+                </Stack>
+              </Box>
+            </Box>
+          </Paper>
+        );
+      })();
+
+      const rideReadinessBanner = cabEligibility ? (
+        <Paper
+          sx={{
+            mb: 4,
+            p: 3,
+            borderRadius: 4,
+            bgcolor: alpha(
+              cabEligibility.eligible
+                ? theme.palette.success.main
+                : theme.palette.warning.main,
+              0.05,
+            ),
+            border: "1px solid",
+            borderColor: alpha(
+              cabEligibility.eligible
+                ? theme.palette.success.main
+                : theme.palette.warning.main,
+              0.2,
+            ),
+          }}
+        >
+          <Stack spacing={2}>
+            <Box sx={{ display: "flex", alignItems: "flex-start", gap: 2 }}>
+              {cabEligibility.eligible ? (
+                <CheckCircleIcon sx={{ color: "success.main", mt: 0.25 }} />
+              ) : (
+                <WarningIcon sx={{ color: "warning.main", mt: 0.25 }} />
+              )}
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
+                  {cabEligibility.eligible
+                    ? "You are ride-ready for cab dispatch"
+                    : "You are not ride-ready yet"}
+                </Typography>
+                <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                  {cabEligibility.eligible
+                    ? "Nearby cab requests can be offered to you while your location stays fresh."
+                    : "You will not receive local cab offers until the items below are completed."}
+                </Typography>
+              </Box>
+              <Chip
+                label={cabEligibility.eligible ? "Ride-ready" : "Action needed"}
+                color={cabEligibility.eligible ? "success" : "warning"}
+                variant={cabEligibility.eligible ? "filled" : "outlined"}
+                sx={{ fontWeight: 700 }}
+              />
+            </Box>
+            {!cabEligibility.eligible &&
+            cabEligibility.missing_labels?.length ? (
+              <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                {cabEligibility.missing_labels.map((label: string) => (
+                  <Chip
+                    key={label}
+                    label={label}
+                    color="warning"
+                    variant="outlined"
+                  />
+                ))}
+              </Stack>
+            ) : null}
+          </Stack>
+        </Paper>
+      ) : null;
+
+      const locationBanner = (
+        <Paper
+          sx={{
+            mb: 4,
+            p: 3,
+            borderRadius: 4,
+            bgcolor: alpha(
+              locationStatus === "online"
+                ? theme.palette.success.main
+                : theme.palette.info.main,
+              0.05,
+            ),
+            border: "1px solid",
+            borderColor: alpha(
+              locationStatus === "online"
+                ? theme.palette.success.main
+                : theme.palette.info.main,
+              0.2,
+            ),
+          }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: { xs: "flex-start", sm: "center" },
+              gap: 2,
+              flexDirection: { xs: "column", sm: "row" },
+            }}
+          >
+            <Box>
+              <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
+                {locationStatus === "online"
+                  ? "You are visible for nearby rides"
+                  : "Location sharing status"}
+              </Typography>
+              <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                {locationStatus === "online" && lastLocationSyncAt
+                  ? `Live location sharing is active. Last synced at ${formatSASTTime(lastLocationSyncAt.toISOString())}.`
+                  : locationStatus === "permission_denied"
+                    ? "Allow browser location access so clients can see you as a nearby driver."
+                    : locationStatus === "unavailable"
+                      ? "This device does not support location sharing."
+                      : locationStatus === "error"
+                        ? "We could not update your location just now. Please keep location enabled and stay on this page."
+                        : "Checking your current location so you can appear in nearby ride suggestions."}
+              </Typography>
+            </Box>
+            <Chip
+              label={
+                locationStatus === "online"
+                  ? "Online"
+                  : locationStatus === "permission_denied"
+                    ? "Permission needed"
+                    : locationStatus === "unavailable"
+                      ? "Unavailable"
+                      : locationStatus === "error"
+                        ? "Sync issue"
+                        : "Syncing..."
+              }
+              color={
+                locationStatus === "online"
+                  ? "success"
+                  : locationStatus === "permission_denied" ||
+                      locationStatus === "error"
+                    ? "warning"
+                    : "info"
+              }
+              variant={locationStatus === "online" ? "filled" : "outlined"}
+              sx={{ fontWeight: 700 }}
+            />
+          </Box>
+        </Paper>
+      );
+
+      if (loading && !data)
+        return (
+          <Box sx={{ display: "flex", justifyContent: "center", py: 10 }}>
+            <CircularProgress />
+          </Box>
+        );
+
+      switch (activeTab) {
+        case "overview":
+          return (
+            <Box sx={{ animation: "fadeIn 0.5s" }}>
+              {onboardingBanner}
+              {rideReadinessBanner}
+              {locationBanner}
+              <Grid container spacing={3} sx={{ mb: 4 }}>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <StatCard
+                    title="Ride Earnings"
+                    value={`R${(data?.driver_earnings || 0).toFixed(2)}`}
+                    icon={TrendingUpIcon}
+                    color="primary"
+                    loading={loading}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <StatCard
+                    title="Wallet Balance"
+                    value={`R${(data?.wallet?.balance || 0).toFixed(2)}`}
+                    icon={WalletIcon}
+                    color="info"
+                    loading={loading}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <StatCard
+                    title="Completed Rides"
+                    value={data?.recent_rides?.length || 0}
+                    icon={CheckCircleIcon}
+                    color="success"
+                    loading={loading}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <StatCard
+                    title="Available Rides"
+                    value={data?.available_cab_requests?.length || 0}
+                    icon={CarIcon}
+                    color="secondary"
+                    loading={loading}
+                  />
+                </Grid>
+              </Grid>
+
+              <Grid container spacing={3}>
+                <Grid size={{ xs: 12, lg: 7 }}>
+                  <Stack spacing={3}>
+                    {data?.active_rides?.length > 0 && (
+                      <Box>
+                        <Typography
+                          variant="h6"
+                          sx={{ fontWeight: 800, mb: 2 }}
+                        >
+                          Ongoing Ride
+                        </Typography>
+                        <ActiveJobs
+                          jobs={data.active_rides}
+                          role="driver"
+                          onStatusUpdate={fetchData}
+                        />
+                      </Box>
+                    )}
+                    <Box>
+                      <JobInbox
+                        jobs={data?.available_cab_requests || []}
+                        role="driver"
+                        onJobAccepted={fetchData}
+                      />
+                    </Box>
+                  </Stack>
+                </Grid>
+                <Grid size={{ xs: 12, lg: 5 }}>
+                  <Paper
+                    variant="outlined"
+                    sx={{ borderRadius: 4, overflow: "hidden" }}
+                  >
+                    <Box
+                      sx={{
+                        p: 3,
+                        borderBottom: "1px solid",
+                        borderColor: "divider",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Typography variant="h6" fontWeight={800}>
+                        Recent Activity
+                      </Typography>
+                      <Button
+                        size="small"
+                        onClick={() => setActiveTab("wallet")}
+                      >
+                        View All
+                      </Button>
+                    </Box>
+                    <Box sx={{ p: 0 }}>
+                      {data?.recent_rides?.length > 0 ? (
+                        data.recent_rides.map((ride: any) => (
+                          <Box
+                            key={ride.id}
+                            sx={{
+                              p: 2,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              borderBottom: "1px solid",
+                              borderColor: "divider",
+                            }}
+                          >
+                            <Box
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 2,
+                              }}
+                            >
+                              <Avatar
+                                sx={{
+                                  bgcolor: alpha(
+                                    theme.palette.primary.main,
+                                    0.1,
+                                  ),
+                                  color: "primary.main",
+                                }}
+                              >
+                                <StarIcon fontSize="small" />
+                              </Avatar>
+                              <Box>
+                                <Typography
+                                  variant="subtitle2"
+                                  fontWeight={700}
+                                >
+                                  {ride.pickup_address?.split(",")[0] || "Ride"}
+                                </Typography>
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                >
+                                  {formatSASTDate(ride.created_at)}
+                                </Typography>
+                              </Box>
+                            </Box>
+                            <Box sx={{ textAlign: "right" }}>
+                              <Typography
+                                variant="subtitle2"
+                                fontWeight={700}
+                                color="primary.main"
+                              >
+                                R{ride.payment_amount?.toFixed(2)}
+                              </Typography>
+                              <Chip
+                                label="Completed"
+                                size="small"
+                                color="success"
+                                variant="outlined"
+                                sx={{ fontSize: "0.65rem", height: 20 }}
+                              />
+                            </Box>
+                          </Box>
+                        ))
+                      ) : (
+                        <Box sx={{ p: 6, textAlign: "center" }}>
+                          <Typography
+                            variant="body2"
+                            color="text.secondary"
+                            fontStyle="italic"
+                          >
+                            No recent activity found.
+                          </Typography>
+                        </Box>
+                      )}
+                    </Box>
+                  </Paper>
+                </Grid>
+              </Grid>
+            </Box>
+          );
+        case "active":
+          return (
+            <ActiveJobs
+              jobs={data?.active_rides || []}
+              role="driver"
+              onStatusUpdate={fetchData}
+            />
+          );
+        case "rides":
+          return (
+            <Box sx={{ animation: "fadeIn 0.5s" }}>
+              {rideReadinessBanner}
+              <JobInbox
+                jobs={data?.available_cab_requests || []}
+                role="driver"
+                onJobAccepted={fetchData}
+              />
+            </Box>
+          );
+        case "reviews":
+          return (
+            <Paper
+              variant="outlined"
+              sx={{ borderRadius: 4, overflow: "hidden" }}
+            >
+              <Box
+                sx={{ p: 3, borderBottom: "1px solid", borderColor: "divider" }}
+              >
+                <Typography variant="h6" fontWeight={800}>
+                  Reviews & Feedback
+                </Typography>
+              </Box>
+              <Box sx={{ p: 0 }}>
+                {data?.recent_rides?.filter((r: any) => r.has_driver_rating)
+                  .length > 0 ? (
+                  data.recent_rides
+                    .filter((r: any) => r.has_driver_rating)
+                    .map((ride: any) => (
+                      <Box
+                        key={ride.id}
+                        sx={{
+                          p: 3,
+                          borderBottom: "1px solid",
+                          borderColor: "divider",
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            mb: 1,
+                          }}
+                        >
+                          <Stack direction="row" spacing={0.5}>
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <StarIcon
+                                key={star}
+                                sx={{
+                                  fontSize: 16,
+                                  color:
+                                    star <= (ride.details?.driver_rating || 0)
+                                      ? "warning.main"
+                                      : "divider",
+                                }}
+                              />
+                            ))}
+                          </Stack>
+                          <Typography variant="caption" color="text.secondary">
+                            {formatSASTDate(ride.created_at)}
+                          </Typography>
+                        </Box>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            fontStyle: "italic",
+                            color: "text.secondary",
+                            mb: 1,
+                          }}
+                        >
+                          "
+                          {ride.details?.driver_review ||
+                            "No comments provided."}
+                          "
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            fontWeight: 700,
+                            color: "text.disabled",
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          Trip: {ride.pickup_address?.split(",")[0]} →{" "}
+                          {ride.dropoff_address?.split(",")[0]}
+                        </Typography>
+                      </Box>
+                    ))
+                ) : (
+                  <Box sx={{ p: 6, textAlign: "center" }}>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      fontStyle="italic"
+                    >
+                      No reviews yet.
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+            </Paper>
+          );
+        case "vehicles": {
+          const approvedVehicles = data?.driver_services?.length
+            ? data.driver_services
+            : data?.current_user?.data?.driver_services?.length
+              ? data.current_user.data.driver_services
+              : data?.current_user?.data?.car_details
+                ? [data.current_user.data.car_details]
+                : [];
+          return (
+            <VehicleManagement
+              initialVehicles={approvedVehicles}
+              pendingVehicles={data?.pending_driver_services || []}
+              hasPendingVehicleUpdate={Boolean(data?.vehicle_update_pending)}
+            />
+          );
+        }
+        case "messages":
+          return (
+            <Box sx={{ animation: "fadeIn 0.5s" }}>
+              <MessagesInbox />
+            </Box>
+          );
+
+        case "documents":
+          return (
+            <ComplianceDocuments
+              role="driver"
+              profileData={data?.current_user?.data || {}}
+              isApproved={Boolean(data?.current_user?.is_approved)}
+              onUpdate={fetchData}
+              rejectionReason={
+                data?.current_user?.registration_rejection_reason ?? null
+              }
+              registrationReviewStatus={data?.current_user?.registration_review_status ?? null
+                
+              }
+            />
+          );
+
+        case "profile":
+          return (
+            <Box sx={{ animation: "fadeIn 0.5s", textAlign: "center", py: 10 }}>
+              <Typography variant="h5" fontWeight={700} mb={2}>
+                Profile Management
+              </Typography>
+              <Typography variant="body1" color="text.secondary" mb={4}>
+                Manage your personal information, documents, and availability in
+                the unified profile center.
+              </Typography>
+              <Button
+                variant="contained"
+                size="large"
+                onClick={() => navigate("/profile")}
+              >
+                Go to Profile Page
+              </Button>
+            </Box>
+          );
+        case "wallet":
+          return (
+            <WalletManagement
+              balance={data?.wallet?.balance || 0}
+              transactions={data?.wallet?.transactions || []}
+              role="driver"
+              onWithdrawalRequested={fetchData}
+            />
+          );
+        default:
+          return null;
+      }
     };
 
     return (

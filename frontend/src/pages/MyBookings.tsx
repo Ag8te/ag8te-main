@@ -21,7 +21,7 @@ import { ProviderReviewModal } from "@/components/dashboards/ProviderReviewModal
 import { BookingDetailsModal } from "@/components/dashboards/BookingDetailsModal";
 import { TripLiveMap } from "@/components/trips/TripLiveMap";
 import { cn } from "@/lib/utils";
-import { formatUTCtoSAST } from "@/lib/dateUtils";
+import { formatUTCtoSAST, formatSASTDate, formatSASTTime } from "@/lib/dateUtils";
 import {
   formatShipmentStatus,
   getDeliveryEtaLabel,
@@ -473,7 +473,7 @@ const MyBookings = () => {
                             </p>
                             {req.driver_current_location?.updated_at && (
                               <p className="mt-2 text-sm text-slate-500">
-                                Last driver location sync: {new Date(req.driver_current_location.updated_at).toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' })}
+                                Last driver location sync: {formatSASTTime(req.driver_current_location.updated_at)}
                               </p>
                             )}
                             {req.driver_phone && (
@@ -585,7 +585,7 @@ const MyBookings = () => {
                             {order.items?.length || 0} Item{order.items?.length !== 1 ? 's' : ''}
                           </h3>
                           <p className="text-sm text-slate-500 mt-1">
-                            {order.placed_at ? new Date(order.placed_at).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' }) : ''}
+                            {formatSASTDate(order.placed_at)}
                           </p>
                         </div>
                       </div>
@@ -892,7 +892,7 @@ const ServiceCard = ({
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Scheduled</p>
           <p className="text-lg font-bold text-[#222222] flex items-center gap-2">
             <Calendar className="h-4 w-4 text-slate-300" />
-            {req.request_type === 'cab' ? formatUTCtoSAST(req.scheduled_date, req.scheduled_time) : `${req.scheduled_date} at ${req.scheduled_time}`}
+            {formatUTCtoSAST(req.scheduled_date, req.scheduled_time)}
           </p>
         </div>
         <div className="space-y-2">
