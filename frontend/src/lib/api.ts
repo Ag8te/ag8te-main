@@ -3,7 +3,15 @@
  * Wrapper around standard fetch to add base URLs and authorization headers.
  */
 
-export const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5006";
+import {
+    defaultMobileApiBaseUrl,
+    getFrontendBaseUrl,
+    isNativeApp,
+} from "@/lib/native";
+
+export const API_BASE_URL =
+    import.meta.env.VITE_API_URL ||
+    (isNativeApp ? defaultMobileApiBaseUrl : "http://localhost:5006");
 
 /**
  * Returns a fully-qualified URL for an image path.
@@ -14,7 +22,8 @@ export const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:50
 export function getImageUrl(path: string | null | undefined): string {
     if (!path) return "";
     if (path.startsWith("http")) return path;
-    return `${window.location.origin}${path}`;
+    const baseUrl = isNativeApp ? API_BASE_URL : window.location.origin;
+    return `${baseUrl}${path}`;
 }
 
 
@@ -51,6 +60,11 @@ export async function apiFetch<T = any>(
 
     if (token && !headers.has("Authorization")) {
         headers.set("Authorization", `Bearer ${token}`);
+    }
+
+    const frontendBaseUrl = getFrontendBaseUrl();
+    if (frontendBaseUrl && !headers.has("X-Frontend-Url")) {
+        headers.set("X-Frontend-Url", frontendBaseUrl);
     }
 
     // Use either data or body (body is standard fetch, data is our custom wrapper)
