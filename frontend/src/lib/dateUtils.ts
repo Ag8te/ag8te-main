@@ -19,3 +19,52 @@ export function getMinBookableTimeSAST(): string {
   const mm = nowSAST.getMinutes() >= 30 ? "30" : "00";
   return `${hh}:${mm}`;
 }
+
+/**
+ * Format any ISO timestamp from the server into SAST for display.
+ * Use this everywhere you show a server-stored datetime to a user.
+ */
+export function formatSAST(
+  isoString: string | null | undefined,
+  options: Intl.DateTimeFormatOptions = {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }
+): string {
+  if (!isoString) return '—';
+  try {
+    // Ensure string is treated as UTC if no offset present
+    const normalized = isoString.endsWith('Z') || isoString.includes('+')
+      ? isoString
+      : `${isoString}Z`;
+    return new Date(normalized).toLocaleString('en-ZA', {
+      timeZone: 'Africa/Johannesburg',
+      ...options,
+    });
+  } catch {
+    return '—';
+  }
+}
+
+/**
+ * Format a server ISO timestamp as date only in SAST.
+ * e.g. "13 May 2026"
+ */
+export function formatSASTDate(isoString: string | null | undefined): string {
+  return formatSAST(isoString, {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+}
+
+/**
+ * Format a server ISO timestamp as time only in SAST.
+ * e.g. "14:32"
+ */
+export function formatSASTTime(isoString: string | null | undefined): string {
+  return formatSAST(isoString, {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}

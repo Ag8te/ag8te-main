@@ -10,6 +10,7 @@ export interface User {
   role: string;
   is_paid?: boolean;
   is_approved?: boolean;
+  registration_rejection_reason?: string | null;
   email_verified?: boolean;
   profile_image_url?: string;
   tracking_number?: string;
@@ -60,7 +61,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             headers: { Authorization: `Bearer ${token}` }
           });
           if (result.success && result.data) {
-            syncUserState(result.data.user);
+            syncUserState(result.data.user ?? result.data);
           } else {
             if (localStorage.getItem("token")) localStorage.removeItem("token");
             if (localStorage.getItem("adminToken")) {

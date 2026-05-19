@@ -661,3 +661,75 @@ MzansiServe Compliance Team"""
         )
         EmailService.send_email(email_id=email.id)
         return email
+
+    @staticmethod
+    def send_user_registration_rejection_notification(user, reason):
+        """Send registration rejection email to a provider/driver/professional.
+
+        Called by AdminService.reject_user(). reason is already validated
+        (non-empty) before this is called.
+        """
+        first_name = _first_name(user)
+        account_type = (user.role or 'member').replace('-', ' ').title()
+        support_email = current_app.config.get('SUPPORT_EMAIL') or 'support@mzansiserve.co.za'
+        frontend_url = get_public_frontend_base_url()
+        dashboard_url = f"{frontend_url}/dashboard"
+
+        subject = "Application Update, Action Required | MzansiServe"
+
+        body = f"""Hi {first_name},
+
+Thank you for applying to join MzansiServe as a {account_type}.
+
+After reviewing your application, we were unfortunately unable to approve it at this time.
+
+Reason: {reason}
+
+What to do next:
+1. Log in to your dashboard: {dashboard_url}
+2. Go to your Documents tab and re-upload the flagged documents.
+3. Once updated, your application will be re-queued for review.
+
+If you have any questions or need assistance, please contact us:
+{support_email}
+
+We look forward to welcoming you on the platform once the documents are in order.
+
+Warm regards,
+MzansiServe Compliance Team"""
+
+        body_html = f"""<html>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; text-align: left;">
+  <h2 style="color: #c0392b;">Application Update, Action Required</h2>
+  <p>Hi {first_name},</p>
+  <p>Thank you for applying to join MzansiServe as a <strong>{account_type}</strong>.</p>
+  <p>After reviewing your application, we were unfortunately unable to approve it at this time.</p>
+  <p><strong>Reason:</strong><br>
+     <span style="background:#fff3f3; border-left:4px solid #c0392b; padding:8px 12px; display:block; margin-top:6px;">{reason}</span>
+  </p>
+  <h3>What to do next</h3>
+  <ol>
+    <li><a href="{dashboard_url}">Log in to your dashboard</a></li>
+    <li>Go to your <strong>Documents</strong> tab and re-upload the flagged documents.</li>
+    <li>Once updated, your application will be re-queued for review.</li>
+  </ol>
+  <p>If you have any questions or need assistance, please contact us:<br>
+     <a href="mailto:{support_email}">{support_email}</a>
+  </p>
+  <p>We look forward to welcoming you on the platform once the documents are in order.</p>
+  <p>Warm regards,<br>MzansiServe Compliance Team</p>
+</body>
+</html>"""
+
+        email = EmailService.queue_email(
+            recipient=user.email,
+            subject=subject,
+            body=body,
+            body_html=body_html,
+            metadata={
+                'type': 'user_registration_rejection',
+                'user_id': str(user.id),
+            }
+        )
+        EmailService.send_email(email_id=email.id)
+        return email
