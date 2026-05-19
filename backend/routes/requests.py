@@ -11,12 +11,11 @@ from flask_jwt_extended import get_jwt_identity
 from marshmallow import Schema, ValidationError, fields, validate
 from sqlalchemy import and_, or_, func
 
-from backend.services.email_service import EmailService
 from backend.extensions import db
 from backend.models import AppSetting, Payment, ServiceRequest, User, Wallet, DriverRating, ClientRating, ProfessionalRating, ProviderRating, Order
+from backend.services.email_service import EmailService
 from backend.services.wallet_service import WalletService
 from backend.services.notification_service import NotificationService
-from backend.services.email_service import EmailService
 from backend.services.payment_service import PaymentService
 from backend.utils.decorators import require_auth, require_role
 from backend.utils.response import error_response, success_response
@@ -145,8 +144,6 @@ def create_request():
 
         if error:
             return error_response(error, 'Failed to create request', None, 400)
-        
-        db.session.commit()
 
         wallet = Wallet.query.filter_by(user_id=user_id).first()
         return success_response({
@@ -535,6 +532,46 @@ def accept_request(request_id):
             details['accepted_driver_id'] = user_id
             details['assigned_driver'] = RequestService._build_driver_snapshot(user)
             service_request.details = details
+
+        elif service_request.request_type in ('professional', 'provider'):
+            if not user.is_paid:
+                return error_response(
+                    'FORBIDDEN',
+                    'Your registration payment must be completed before accepting bookings',
+                    None, 403
+                )
+            if not user.is_approved:
+                return error_response(
+                    'FORBIDDEN',
+                    'Your account must be approved by an administrator before accepting bookings',
+                    None, 403
+                )
+            if not user.is_active:
+                return error_response(
+                    'FORBIDDEN',
+                    'Your account is not currently active',
+                    None, 403
+                )
+            # Ensure the user's role matches the request type they are
+            # trying to accept — a professional cannot accept a provider
+            # request and vice versa
+            role_to_type = {
+                'professional': 'professional',
+                'service-provider': 'provider'
+            }
+            expected_type = role_to_type.get(user.role)
+            if not expected_type:
+                return error_response(
+                    'FORBIDDEN',
+                    'Your account role is not eligible to accept service request',
+                    None, 403
+                )
+            if expected_type != service_request.request_type:
+                return error_response(
+                    'FORBIDDEN',
+                    'You cannot accept this type of request with your current role',
+                    None, 403
+                )
         
         service_request.provider_id = user_id
         provider = User.query.get(user_id)
@@ -856,6 +893,33 @@ def cab_arrived_at_location(request_id):
         service_request.details = details
         service_request.status = 'completed'
         db.session.commit()
+
+        try:
+            admin_fee_setting = AppSetting.query.get('driver_admin_fee_rate')
+            admin_fee_rate = float(admin_fee_setting.value) if admin_fee_setting else 0.10
+            net_amount = float(service_request.payment_amount or 0) * (1.0 - admin_fee_rate)
+            if net_amount > 0 and service_request.provider_id:
+                wallet = WalletService.get_or_create_wallet(str(service_request.provider_id))
+                WalletService.add_transaction(
+                    wallet_id=wallet.id,
+                    user_id=str(service_request.provider_id),
+                    transaction_type='earnings_transfer',
+                    amount=net_amount,
+                    currency='ZAR',
+                    external_id=str(service_request.id),
+                    description=f"Earnings for ride {service_request.id}",
+                    metadata={
+                        'service_request_id': str(service_request.id),
+                        'role': 'driver',
+                    }
+                )
+                credited_details = dict(service_request.details or {})
+                credited_details['wallet_credited'] = True
+                service_request.details = credited_details
+                db.session.commit()
+        except Exception as wallet_err:
+            current_app.logger.error(f"Cab earnings transfer error: {str(wallet_err)}")
+
         return success_response(RequestService.serialize_request(service_request), 'Arrived at location. You can rate your driver.')
     except Exception as e:
         current_app.logger.error(f"Cab arrived at location error: {str(e)}")

@@ -149,6 +149,8 @@ class AdminService:
                 }
             
         user.is_approved = True
+        user.registration_rejection_reason = None
+        user.registration_review_status = 'approved'
         if user.role in ('professional', 'service-provider'):
             user.is_active = True
             AdminService._setup_user_services(user)
@@ -164,7 +166,32 @@ class AdminService:
             'user': user.to_dict(),
             'action': 'approved'
         }, None
+    
+    @staticmethod
+    def reject_user(user_id, reason):
+        """Reject a pending registration application with a mandatory reason."""
+        user = User.query.get(user_id)
+        if not user:
+            return None, "NOT_FOUND"
 
+        #Guard: cannot reject an already approved user
+        if user.is_approved:
+            return None, "ALREADY_APPROVED"
+        
+        if not reason or not reason.strip():
+            return None, "MISSING_REASON"
+        
+        user.registration_rejection_reason = reason.strip()
+        user.registration_review_status = 'rejected'
+        db.session.commit()
+        
+        try:
+            EmailService.send_user_registration_rejection_notification(user, reason.strip())
+        except Exception as e:
+            logger.error(f"Registration rejection email failed: {e}")
+            
+        return user.to_dict(), None
+        
     @staticmethod
     def verify_id(user_id, status, reason=None):
         """Verify or reject ID documents"""
@@ -616,7 +643,7 @@ class AdminService:
         updated_data = dict(user.data) if user.data else {}
         for key, value in payload.items():
             if key in ('phone', 'next_of_kin', 'driver_services', 'professional_services', 'provider_services',
-                       'highest_qualification', 'professional_body', 'proof_of_residence_url', 'driver_license_url', 'qualification_urls', 'operating_areas', 'availability'):
+                       'highest_qualification', 'professional_body', 'proof_of_residence_url', 'driver_license_url', 'qualification_urls', 'operating_areas', 'availability', 'prdp_document_url', 'vehicle_disk_document_url', 'cv_resume_url'):
                 if value is None and key in updated_data:
                     del updated_data[key]
                 else:

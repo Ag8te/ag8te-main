@@ -10,6 +10,7 @@ export interface User {
   role: string;
   is_paid?: boolean;
   is_approved?: boolean;
+  registration_rejection_reason?: string | null;
   email_verified?: boolean;
   profile_image_url?: string;
   tracking_number?: string;
@@ -60,7 +61,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             headers: { Authorization: `Bearer ${token}` }
           });
           if (result.success && result.data) {
-            syncUserState(result.data.user);
+            syncUserState(result.data);
           } else {
             if (localStorage.getItem("token")) localStorage.removeItem("token");
             if (localStorage.getItem("adminToken")) {
@@ -112,7 +113,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (result.success) {
         localStorage.setItem("adminToken", result.data.token);
         localStorage.setItem("adminUser", JSON.stringify(result.data.user));
-        setUserState(result.data.user);
+        syncUserState(result.data.user);
         return { success: true, data: result.data };
       }
       return { success: false, error: result.message || "Login failed" };
@@ -137,10 +138,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           return { success: true, data: result.data };
         }
 
-        if (result.data?.token) {
-          localStorage.setItem("token", result.data.token);
-          syncUserState(result.data.user);
-        }
+        
         return { success: true, data: result.data };
       }
       return { success: false, error: result.message || "Registration failed" };

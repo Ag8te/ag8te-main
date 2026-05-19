@@ -24,7 +24,7 @@ import {
     Assignment as ClipboardList,
     BusinessCenter as Briefcase,
     ForumOutlined as ChatIcon,
-    Settings as SettingsIcon
+    Settings as SettingsIcon, FolderOpen as FolderIcon,
 } from "@mui/icons-material";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
@@ -33,6 +33,7 @@ import { RatingModal } from "@/components/dashboards/RatingModal";
 import { JobInbox } from "@/components/dashboards/JobInbox";
 import { WalletManagement } from "@/components/dashboards/WalletManagement";
 import { ServiceManagement } from "@/components/dashboards/ServiceManagement";
+import { ComplianceDocuments } from "@/components/dashboards/ComplianceDocuments";
 import { MessagesInbox } from "@/components/dashboards/MessagesInbox";
 import { ProfileSettings } from "@/components/dashboards/ProfileSettings";
 import { apiFetch } from "@/lib/api";
@@ -57,6 +58,7 @@ const ServiceProviderDashboard = () => {
         { id: "messages", label: "Messages", icon: ChatIcon },
         { id: "reviews", label: "Reviews & Feedback", icon: StarIcon },
         { id: "services", label: "My Services", icon: Briefcase },
+        { id: "documents", label: "My Documents", icon: FolderIcon},
         { id: "wallet", label: "Wallet & Earnings", icon: WalletIcon },
         { id: "profile", label: "My Profile", icon: SettingsIcon },
     ];
@@ -112,243 +114,696 @@ const ServiceProviderDashboard = () => {
     );
 
     const renderContent = () => {
-        const user = data?.current_user;
-        const onboardingBanner = user && (!user.is_approved || !user.is_paid) ? (
-            <Paper
-                sx={{
-                    mb: 4,
-                    p: 3,
-                    borderRadius: 4,
-                    bgcolor: alpha(theme.palette.warning.main, 0.05),
-                    border: '1px solid',
-                    borderColor: alpha(theme.palette.warning.main, 0.2)
-                }}
-            >
-                <Box sx={{ display: 'flex', gap: 2 }}>
-                    <WarningIcon sx={{ color: 'warning.main' }} />
-                    <Box>
-                        <Typography variant="h6" sx={{ fontWeight: 700, color: 'warning.dark', mb: 1 }}>Your account is pending approval</Typography>
-                        <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>Complete these steps to start receiving service bookings:</Typography>
-                        <Stack spacing={1}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                {user.is_paid ? <CheckCircleIcon sx={{ fontSize: 16, color: 'success.main' }} /> : <InfoIcon sx={{ fontSize: 16, color: 'warning.main' }} />}
-                                <Typography variant="caption" sx={{ color: user.is_paid ? 'success.main' : 'warning.main', fontWeight: 600 }}>
-                                    {user.is_paid ? "Registration payment received" : "Complete your Yoco registration payment"}
-                                </Typography>
-                            </Box>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                {user.id_verification_status === 'verified' ? <CheckCircleIcon sx={{ fontSize: 16, color: 'success.main' }} /> : <InfoIcon sx={{ fontSize: 16, color: 'warning.main' }} />}
-                                <Typography variant="caption" sx={{ color: user.id_verification_status === 'verified' ? 'success.main' : 'warning.main', fontWeight: 600 }}>
-                                    {user.id_verification_status === 'verified' ? "ID documents verified" : "Upload your business registration / ID via your profile"}
-                                </Typography>
-                            </Box>
-                        </Stack>
-                    </Box>
-                </Box>
-            </Paper>
-        ) : null;
+      const user = data?.current_user;
+      // ↓ CHANGED — replaced fuzzy FLAGGED_DOC_MAP IIFE with a clean
+      // switch on registration_review_status. No more URL truthiness
+      // guessing or word matching. Status is set explicitly by backend:
+      // pending → rejected → resubmitted → approved
+      const onboardingBanner = (() => {
+        if (!user || user.is_approved) return null;
 
-        if (loading && !data) return (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 10 }}>
-                <CircularProgress />
+        const status = user.registration_review_status || "pending";
+
+        // ── Resubmitted — provider uploaded after rejection, waiting for admin
+        if (status === "resubmitted") {
+          return (
+            <Paper
+              elevation={0}
+              sx={{
+                mb: 4,
+                p: 3,
+                borderRadius: 4,
+                bgcolor: alpha(theme.palette.warning.main, 0.05),
+                border: "1px solid",
+                borderColor: alpha(theme.palette.warning.main, 0.3),
+              }}
+            >
+              <Box sx={{ display: "flex", gap: 2 }}>
+                <CheckCircleIcon sx={{ color: "warning.main", mt: 0.25 }} />
+                <Box sx={{ flex: 1 }}>
+                  <Typography
+                    variant="h6"
+                    sx={{ fontWeight: 700, color: "warning.dark", mb: 1 }}
+                  >
+                    Documents Updated — Awaiting Re-Review
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{ color: "text.secondary", mb: 2 }}
+                  >
+                    You have re-uploaded your documents. Your application is
+                    back in the review queue. You will be notified by email once
+                    a decision has been made.
+                  </Typography>
+                  {user.registration_rejection_reason && (
+                    <Box
+                      sx={{
+                        bgcolor: alpha(theme.palette.warning.main, 0.08),
+                        borderLeft: `4px solid ${theme.palette.warning.main}`,
+                        px: 2,
+                        py: 1.5,
+                      }}
+                    >
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          fontWeight: 700,
+                          color: "warning.dark",
+                          textTransform: "uppercase",
+                          letterSpacing: 1,
+                        }}
+                      >
+                        Original Rejection Reason
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{ color: "warning.dark", mt: 0.5 }}
+                      >
+                        {user.registration_rejection_reason}
+                      </Typography>
+                    </Box>
+                  )}
+                </Box>
+              </Box>
+            </Paper>
+          );
+        }
+
+        // ── Rejected — admin rejected, provider must fix docs
+        if (status === "rejected") {
+          return (
+            <Paper
+              elevation={0}
+              sx={{
+                mb: 4,
+                p: 3,
+                borderRadius: 4,
+                bgcolor: alpha(theme.palette.error.main, 0.05),
+                border: "1px solid",
+                borderColor: alpha(theme.palette.error.main, 0.3),
+              }}
+            >
+              <Box sx={{ display: "flex", gap: 2 }}>
+                <WarningIcon sx={{ color: "error.main", mt: 0.25 }} />
+                <Box sx={{ flex: 1 }}>
+                  <Typography
+                    variant="h6"
+                    sx={{ fontWeight: 700, color: "error.dark", mb: 1 }}
+                  >
+                    Application Rejected — Action Required
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{ color: "text.secondary", mb: 2 }}
+                  >
+                    Your application was reviewed and could not be approved at
+                    this time.
+                  </Typography>
+                  <Box
+                    sx={{
+                      bgcolor: alpha(theme.palette.error.main, 0.08),
+                      borderLeft: `4px solid ${theme.palette.error.main}`,
+                      px: 2,
+                      py: 1.5,
+                      mb: 2,
+                    }}
+                  >
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        fontWeight: 700,
+                        color: "error.dark",
+                        textTransform: "uppercase",
+                        letterSpacing: 1,
+                      }}
+                    >
+                      Reason
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      sx={{ color: "error.dark", mt: 0.5 }}
+                    >
+                      {user.registration_rejection_reason}
+                    </Typography>
+                  </Box>
+                  <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                    Go to the <strong>My Documents</strong> tab, re-upload the
+                    flagged documents, and your application will be re-queued
+                    for review.
+                  </Typography>
+                </Box>
+              </Box>
+            </Paper>
+          );
+        }
+
+        // ── Pending — not yet reviewed, no rejection
+        return (
+          <Paper
+            sx={{
+              mb: 4,
+              p: 3,
+              borderRadius: 4,
+              bgcolor: alpha(theme.palette.warning.main, 0.05),
+              border: "1px solid",
+              borderColor: alpha(theme.palette.warning.main, 0.2),
+            }}
+          >
+            <Box sx={{ display: "flex", gap: 2 }}>
+              <WarningIcon sx={{ color: "warning.main" }} />
+              <Box>
+                <Typography
+                  variant="h6"
+                  sx={{ fontWeight: 700, color: "warning.dark", mb: 1 }}
+                >
+                  Your account is pending approval
+                </Typography>
+                <Typography
+                  variant="body2"
+                  sx={{ color: "text.secondary", mb: 2 }}
+                >
+                  Complete these steps to start receiving service bookings:
+                </Typography>
+                <Stack spacing={1}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    {user.is_paid ? (
+                      <CheckCircleIcon
+                        sx={{ fontSize: 16, color: "success.main" }}
+                      />
+                    ) : (
+                      <InfoIcon sx={{ fontSize: 16, color: "warning.main" }} />
+                    )}
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: user.is_paid ? "success.main" : "warning.main",
+                        fontWeight: 600,
+                      }}
+                    >
+                      {user.is_paid
+                        ? "Registration payment received"
+                        : "Complete your Yoco registration payment"}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    {user.id_verification_status === "verified" ? (
+                      <CheckCircleIcon
+                        sx={{ fontSize: 16, color: "success.main" }}
+                      />
+                    ) : (
+                      <InfoIcon sx={{ fontSize: 16, color: "warning.main" }} />
+                    )}
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color:
+                          user.id_verification_status === "verified"
+                            ? "success.main"
+                            : "warning.main",
+                        fontWeight: 600,
+                      }}
+                    >
+                      {user.id_verification_status === "verified"
+                        ? "Documents verified"
+                        : "Upload your business registration / ID via your profile"}
+                    </Typography>
+                  </Box>
+                </Stack>
+              </Box>
             </Box>
+          </Paper>
+        );
+      })();
+      if (loading && !data)
+        return (
+          <Box sx={{ display: "flex", justifyContent: "center", py: 10 }}>
+            <CircularProgress />
+          </Box>
         );
 
-        switch (activeTab) {
-            case "overview":
-                return (
-                    <Box sx={{ animation: 'fadeIn 0.5s' }}>
-                        {onboardingBanner}
-                        <Grid container spacing={3} sx={{ mb: 4 }}>
-                            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                                <StatCard
-                                    title="Provider Earnings"
-                                    value={`R${(data?.service_provider_earnings || 0).toFixed(2)}`}
-                                    icon={TrendingUpIcon}
-                                    color="primary"
-                                    loading={loading}
-                                />
-                            </Grid>
-                            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                                <StatCard
-                                    title="Wallet Balance"
-                                    value={`R${(data?.wallet?.balance || 0).toFixed(2)}`}
-                                    icon={WalletIcon}
-                                    color="info"
-                                    loading={loading}
-                                />
-                            </Grid>
-                            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                                <StatCard
-                                    title="Completed Jobs"
-                                    value={data?.recent_service_provider_jobs?.length || 0}
-                                    icon={CheckCircleIcon}
-                                    color="success"
-                                    loading={loading}
-                                />
-                            </Grid>
-                            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                                <StatCard
-                                    title="Available Requests"
-                                    value={data?.available_service_provider_requests?.length || 0}
-                                    icon={WorkIcon}
-                                    color="secondary"
-                                    loading={loading}
-                                />
-                            </Grid>
-                        </Grid>
+      switch (activeTab) {
+        case "overview":
+          return (
+            <Box sx={{ animation: "fadeIn 0.5s" }}>
+              {onboardingBanner}
+              <Grid container spacing={3} sx={{ mb: 4 }}>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <StatCard
+                    title="Provider Earnings"
+                    value={`R${(data?.service_provider_earnings || 0).toFixed(2)}`}
+                    icon={TrendingUpIcon}
+                    color="primary"
+                    loading={loading}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <StatCard
+                    title="Wallet Balance"
+                    value={`R${(data?.wallet?.balance || 0).toFixed(2)}`}
+                    icon={WalletIcon}
+                    color="info"
+                    loading={loading}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <StatCard
+                    title="Completed Jobs"
+                    value={data?.recent_service_provider_jobs?.length || 0}
+                    icon={CheckCircleIcon}
+                    color="success"
+                    loading={loading}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <StatCard
+                    title="Available Requests"
+                    value={
+                      data?.available_service_provider_requests?.length || 0
+                    }
+                    icon={WorkIcon}
+                    color="secondary"
+                    loading={loading}
+                  />
+                </Grid>
+              </Grid>
 
-                        <Grid container spacing={3} sx={{ mb: 4 }}>
-                            <Grid size={{ xs: 12 }}>
-                                <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: '1px solid', borderColor: 'divider' }}>
-                                    <Typography variant="h6" sx={{ fontWeight: 800, mb: 3 }}>Earnings Overview</Typography>
-                                    <Box sx={{ height: 320, width: '100%' }}>
-                                        <ResponsiveContainer width="100%" height="100%">
-                                            <LineChart data={[
-                                                { name: 'Week 1', earnings: parseFloat(((data?.service_provider_earnings || 0) * 0.2).toFixed(2)) },
-                                                { name: 'Week 2', earnings: parseFloat(((data?.service_provider_earnings || 0) * 0.4).toFixed(2)) },
-                                                { name: 'Week 3', earnings: parseFloat(((data?.service_provider_earnings || 0) * 0.7).toFixed(2)) },
-                                                { name: 'This Week', earnings: data?.service_provider_earnings || 0 },
-                                            ]}>
-                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={alpha(theme.palette.divider, 0.5)} />
-                                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 600, fill: theme.palette.text.secondary }} dy={10} />
-                                                <YAxis axisLine={false} tickLine={false} tickFormatter={(value) => `R${value}`} tick={{ fontSize: 12, fontWeight: 600, fill: theme.palette.text.secondary }} dx={-10} />
-                                                <Tooltip
-                                                    formatter={(value: number) => [`R${value.toFixed(2)}`, 'Earnings']}
-                                                    contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' }}
-                                                />
-                                                <Line type="monotone" dataKey="earnings" stroke={theme.palette.primary.main} strokeWidth={4} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 8, stroke: '#fff', strokeWidth: 2 }} />
-                                            </LineChart>
-                                        </ResponsiveContainer>
-                                    </Box>
-                                </Paper>
-                            </Grid>
-                        </Grid>
+              <Grid container spacing={3} sx={{ mb: 4 }}>
+                <Grid size={{ xs: 12 }}>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 4,
+                      borderRadius: 4,
+                      border: "1px solid",
+                      borderColor: "divider",
+                    }}
+                  >
+                    <Typography variant="h6" sx={{ fontWeight: 800, mb: 3 }}>
+                      Earnings Overview
+                    </Typography>
+                    <Box sx={{ height: 320, width: "100%" }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart
+                          data={[
+                            {
+                              name: "Week 1",
+                              earnings: parseFloat(
+                                (
+                                  (data?.service_provider_earnings || 0) * 0.2
+                                ).toFixed(2),
+                              ),
+                            },
+                            {
+                              name: "Week 2",
+                              earnings: parseFloat(
+                                (
+                                  (data?.service_provider_earnings || 0) * 0.4
+                                ).toFixed(2),
+                              ),
+                            },
+                            {
+                              name: "Week 3",
+                              earnings: parseFloat(
+                                (
+                                  (data?.service_provider_earnings || 0) * 0.7
+                                ).toFixed(2),
+                              ),
+                            },
+                            {
+                              name: "This Week",
+                              earnings: data?.service_provider_earnings || 0,
+                            },
+                          ]}
+                        >
+                          <CartesianGrid
+                            strokeDasharray="3 3"
+                            vertical={false}
+                            stroke={alpha(theme.palette.divider, 0.5)}
+                          />
+                          <XAxis
+                            dataKey="name"
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{
+                              fontSize: 12,
+                              fontWeight: 600,
+                              fill: theme.palette.text.secondary,
+                            }}
+                            dy={10}
+                          />
+                          <YAxis
+                            axisLine={false}
+                            tickLine={false}
+                            tickFormatter={(value) => `R${value}`}
+                            tick={{
+                              fontSize: 12,
+                              fontWeight: 600,
+                              fill: theme.palette.text.secondary,
+                            }}
+                            dx={-10}
+                          />
+                          <Tooltip
+                            formatter={(value: number) => [
+                              `R${value.toFixed(2)}`,
+                              "Earnings",
+                            ]}
+                            contentStyle={{
+                              borderRadius: 12,
+                              border: "none",
+                              boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+                            }}
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey="earnings"
+                            stroke={theme.palette.primary.main}
+                            strokeWidth={4}
+                            dot={{ r: 4, strokeWidth: 2, fill: "#fff" }}
+                            activeDot={{
+                              r: 8,
+                              stroke: "#fff",
+                              strokeWidth: 2,
+                            }}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </Box>
+                  </Paper>
+                </Grid>
+              </Grid>
 
-                        <Grid container spacing={3}>
-                            <Grid size={{ xs: 12, lg: 7 }}>
-                                <Stack spacing={3}>
-                                    {(data?.active_service_provider_jobs?.length > 0) && (
-                                        <Box>
-                                            <Typography variant="h6" sx={{ fontWeight: 800, mb: 2 }}>Ongoing Booking</Typography>
-                                            <ActiveJobs
-                                                jobs={data.active_service_provider_jobs}
-                                                role="service-provider"
-                                                onStatusUpdate={fetchData}
-                                            />
-                                        </Box>
-                                    )}
-                                    <Box>
-                                        <Typography variant="h6" sx={{ fontWeight: 800, mb: 2 }}>Case Inbox</Typography>
-                                        <JobInbox
-                                            jobs={data?.available_service_provider_requests || []}
-                                            role="service-provider"
-                                            onJobAccepted={fetchData}
-                                        />
-                                    </Box>
-                                </Stack>
-                            </Grid>
-                            <Grid size={{ xs: 12, lg: 5 }}>
-                                <Paper variant="outlined" sx={{ borderRadius: 4, overflow: 'hidden' }}>
-                                    <Box sx={{ p: 3, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <Typography variant="h6" fontWeight={800}>Recent Activity</Typography>
-                                        <Button size="small" onClick={() => setActiveTab('wallet')}>View All</Button>
-                                    </Box>
-                                    <Box sx={{ p: 0 }}>
-                                        {data?.recent_service_provider_jobs?.length > 0 ? (
-                                            data.recent_service_provider_jobs.map((job: any) => (
-                                                <Box key={job.id} sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid', borderColor: 'divider' }}>
-                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                                        <Avatar sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), color: 'primary.main' }}>
-                                                            <StarIcon fontSize="small" />
-                                                        </Avatar>
-                                                        <Box>
-                                                            <Typography variant="subtitle2" fontWeight={700}>{job.details?.service_name || 'Service'}</Typography>
-                                                            <Typography variant="caption" color="text.secondary">{new Date(job.created_at).toLocaleDateString()}</Typography>
-                                                        </Box>
-                                                    </Box>
-                                                    <Box sx={{ textAlign: 'right' }}>
-                                                        <Typography variant="subtitle2" fontWeight={700} color="primary.main">R{job.payment_amount?.toFixed(2)}</Typography>
-                                                        <Chip label="Completed" size="small" color="success" variant="outlined" sx={{ fontSize: '0.65rem', height: 20 }} />
-                                                    </Box>
-                                                </Box>
-                                            ))
-                                        ) : (
-                                            <Box sx={{ p: 6, textAlign: 'center' }}>
-                                                <Typography variant="body2" color="text.secondary" fontStyle="italic">No recent activity found.</Typography>
-                                            </Box>
-                                        )}
-                                    </Box>
-                                </Paper>
-                            </Grid>
-                        </Grid>
+              <Grid container spacing={3}>
+                <Grid size={{ xs: 12, lg: 7 }}>
+                  <Stack spacing={3}>
+                    {data?.active_service_provider_jobs?.length > 0 && (
+                      <Box>
+                        <Typography
+                          variant="h6"
+                          sx={{ fontWeight: 800, mb: 2 }}
+                        >
+                          Ongoing Booking
+                        </Typography>
+                        <ActiveJobs
+                          jobs={data.active_service_provider_jobs}
+                          role="service-provider"
+                          onStatusUpdate={fetchData}
+                        />
+                      </Box>
+                    )}
+                    <Box>
+                      <Typography variant="h6" sx={{ fontWeight: 800, mb: 2 }}>
+                        Case Inbox
+                      </Typography>
+                      <JobInbox
+                        jobs={data?.available_service_provider_requests || []}
+                        role="service-provider"
+                        onJobAccepted={fetchData}
+                      />
                     </Box>
-                );
-            case "active":
-                return <ActiveJobs jobs={data?.active_service_provider_jobs || []} role="service-provider" onStatusUpdate={fetchData} />;
-            case "rides":
-                return <JobInbox jobs={data?.available_service_provider_requests || []} role="service-provider" onJobAccepted={fetchData} />;
-            case "reviews":
-                return (
-                    <Paper variant="outlined" sx={{ borderRadius: 4, overflow: 'hidden' }}>
-                        <Box sx={{ p: 3, borderBottom: '1px solid', borderColor: 'divider' }}>
-                            <Typography variant="h6" fontWeight={800}>Reviews & Feedback</Typography>
+                  </Stack>
+                </Grid>
+                <Grid size={{ xs: 12, lg: 5 }}>
+                  <Paper
+                    variant="outlined"
+                    sx={{ borderRadius: 4, overflow: "hidden" }}
+                  >
+                    <Box
+                      sx={{
+                        p: 3,
+                        borderBottom: "1px solid",
+                        borderColor: "divider",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Typography variant="h6" fontWeight={800}>
+                        Recent Activity
+                      </Typography>
+                      <Button
+                        size="small"
+                        onClick={() => setActiveTab("wallet")}
+                      >
+                        View All
+                      </Button>
+                    </Box>
+                    <Box sx={{ p: 0 }}>
+                      {data?.recent_service_provider_jobs?.length > 0 ? (
+                        data.recent_service_provider_jobs.map((job: any) => (
+                          <Box
+                            key={job.id}
+                            sx={{
+                              p: 2,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              borderBottom: "1px solid",
+                              borderColor: "divider",
+                            }}
+                          >
+                            <Box
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 2,
+                              }}
+                            >
+                              <Avatar
+                                sx={{
+                                  bgcolor: alpha(
+                                    theme.palette.primary.main,
+                                    0.1,
+                                  ),
+                                  color: "primary.main",
+                                }}
+                              >
+                                <StarIcon fontSize="small" />
+                              </Avatar>
+                              <Box>
+                                <Typography
+                                  variant="subtitle2"
+                                  fontWeight={700}
+                                >
+                                  {job.details?.service_name || "Service"}
+                                </Typography>
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                >
+                                  {new Date(
+                                    job.created_at,
+                                  ).toLocaleDateString()}
+                                </Typography>
+                              </Box>
+                            </Box>
+                            <Box sx={{ textAlign: "right" }}>
+                              <Typography
+                                variant="subtitle2"
+                                fontWeight={700}
+                                color="primary.main"
+                              >
+                                R{job.payment_amount?.toFixed(2)}
+                              </Typography>
+                              <Chip
+                                label="Completed"
+                                size="small"
+                                color="success"
+                                variant="outlined"
+                                sx={{ fontSize: "0.65rem", height: 20 }}
+                              />
+                            </Box>
+                          </Box>
+                        ))
+                      ) : (
+                        <Box sx={{ p: 6, textAlign: "center" }}>
+                          <Typography
+                            variant="body2"
+                            color="text.secondary"
+                            fontStyle="italic"
+                          >
+                            No recent activity found.
+                          </Typography>
                         </Box>
-                        <Box sx={{ p: 0 }}>
-                            {data?.recent_service_provider_jobs?.filter((r: any) => r.details?.provider_rating).length > 0 ? (
-                                data.recent_service_provider_jobs.filter((r: any) => r.details?.provider_rating).map((job: any) => (
-                                    <Box key={job.id} sx={{ p: 3, borderBottom: '1px solid', borderColor: 'divider' }}>
-                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                                            <Stack direction="row" spacing={0.5}>
-                                                {[1, 2, 3, 4, 5].map((star) => (
-                                                    <StarIcon key={star} sx={{ fontSize: 16, color: star <= (job.details?.provider_rating || 0) ? 'warning.main' : 'divider' }} />
-                                                ))}
-                                            </Stack>
-                                            <Typography variant="caption" color="text.secondary">{new Date(job.created_at).toLocaleDateString()}</Typography>
-                                        </Box>
-                                        <Typography variant="body2" sx={{ fontStyle: 'italic', color: 'text.secondary', mb: 1 }}>
-                                            "{job.details?.provider_review || "No comments provided."}"
-                                        </Typography>
-                                        <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.disabled', textTransform: 'uppercase' }}>
-                                            Job: {job.details?.service_name}
-                                        </Typography>
-                                    </Box>
-                                ))
-                            ) : (
-                                <Box sx={{ p: 6, textAlign: 'center' }}>
-                                    <Typography variant="body2" color="text.secondary" fontStyle="italic">No reviews yet.</Typography>
-                                </Box>
-                            )}
+                      )}
+                    </Box>
+                  </Paper>
+                </Grid>
+              </Grid>
+            </Box>
+          );
+        case "active":
+          return (
+            <ActiveJobs
+              jobs={data?.active_service_provider_jobs || []}
+              role="service-provider"
+              onStatusUpdate={fetchData}
+            />
+          );
+        case "rides":
+          return (
+            <JobInbox
+              jobs={data?.available_service_provider_requests || []}
+              role="service-provider"
+              onJobAccepted={fetchData}
+            />
+          );
+        case "reviews":
+          return (
+            <Paper
+              variant="outlined"
+              sx={{ borderRadius: 4, overflow: "hidden" }}
+            >
+              <Box
+                sx={{
+                  p: 3,
+                  borderBottom: "1px solid",
+                  borderColor: "divider",
+                }}
+              >
+                <Typography variant="h6" fontWeight={800}>
+                  Reviews & Feedback
+                </Typography>
+              </Box>
+              <Box sx={{ p: 0 }}>
+                {data?.recent_service_provider_jobs?.filter(
+                  (r: any) => r.details?.provider_rating,
+                ).length > 0 ? (
+                  data.recent_service_provider_jobs
+                    .filter((r: any) => r.details?.provider_rating)
+                    .map((job: any) => (
+                      <Box
+                        key={job.id}
+                        sx={{
+                          p: 3,
+                          borderBottom: "1px solid",
+                          borderColor: "divider",
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            mb: 1,
+                          }}
+                        >
+                          <Stack direction="row" spacing={0.5}>
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <StarIcon
+                                key={star}
+                                sx={{
+                                  fontSize: 16,
+                                  color:
+                                    star <= (job.details?.provider_rating || 0)
+                                      ? "warning.main"
+                                      : "divider",
+                                }}
+                              />
+                            ))}
+                          </Stack>
+                          <Typography variant="caption" color="text.secondary">
+                            {new Date(job.created_at).toLocaleDateString()}
+                          </Typography>
                         </Box>
-                    </Paper>
-                );
-            case "services":
-                return (
-                    <Box sx={{ animation: 'fadeIn 0.5s' }}>
-                        <ServiceManagement initialServices={data?.service_provider_services || []} role="service-provider" />
-                    </Box>
-                );
-            case "messages":
-                return (
-                    <Box sx={{ animation: 'fadeIn 0.5s' }}>
-                        <MessagesInbox />
-                    </Box>
-                );
-            case "profile":
-                return (
-                    <Box sx={{ animation: 'fadeIn 0.5s', textAlign: 'center', py: 10 }}>
-                        <Typography variant="h5" fontWeight={700} mb={2}>Profile Management</Typography>
-                        <Typography variant="body1" color="text.secondary" mb={4}>Manage your personal information, documents, and availability in the unified profile center.</Typography>
-                        <Button variant="contained" size="large" onClick={() => navigate('/profile')}>
-                            Go to Profile Page
-                        </Button>
-                    </Box>
-                );
-            case "wallet":
-                return <WalletManagement balance={data?.wallet?.balance || 0} transactions={data?.wallet?.transactions || []} role="service-provider" onWithdrawalRequested={fetchData} />;
-            default:
-                return null;
-        }
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            fontStyle: "italic",
+                            color: "text.secondary",
+                            mb: 1,
+                          }}
+                        >
+                          "
+                          {job.details?.provider_review ||
+                            "No comments provided."}
+                          "
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            fontWeight: 700,
+                            color: "text.disabled",
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          Job: {job.details?.service_name}
+                        </Typography>
+                      </Box>
+                    ))
+                ) : (
+                  <Box sx={{ p: 6, textAlign: "center" }}>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      fontStyle="italic"
+                    >
+                      No reviews yet.
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+            </Paper>
+          );
+        case "services":
+          return (
+            <Box sx={{ animation: "fadeIn 0.5s" }}>
+              <ServiceManagement
+                initialServices={data?.service_provider_services || []}
+                role="service-provider"
+              />
+            </Box>
+          );
+        case "messages":
+          return (
+            <Box sx={{ animation: "fadeIn 0.5s" }}>
+              <MessagesInbox />
+            </Box>
+          );
+        case "documents":
+          return (
+            <ComplianceDocuments
+              role="service-provider"
+              profileData={data?.current_user?.data || {}}
+              isApproved={Boolean(data?.current_user?.is_approved)}
+              onUpdate={fetchData}
+              rejectionReason={
+                data?.current_user?.registration_rejection_reason ?? null
+              }
+              registrationReviewStatus={
+                data?.current_user?.registration_review_status ?? null
+              }
+            />
+          );
+        case "profile":
+          return (
+            <Box sx={{ animation: "fadeIn 0.5s", textAlign: "center", py: 10 }}>
+              <Typography variant="h5" fontWeight={700} mb={2}>
+                Profile Management
+              </Typography>
+              <Typography variant="body1" color="text.secondary" mb={4}>
+                Manage your personal information, documents, and availability in
+                the unified profile center.
+              </Typography>
+              <Button
+                variant="contained"
+                size="large"
+                onClick={() => navigate("/profile")}
+              >
+                Go to Profile Page
+              </Button>
+            </Box>
+          );
+        case "wallet":
+          return (
+            <WalletManagement
+              balance={data?.wallet?.balance || 0}
+              transactions={data?.wallet?.transactions || []}
+              role="service-provider"
+              onWithdrawalRequested={fetchData}
+            />
+          );
+        default:
+          return null;
+      }
     };
 
     return (

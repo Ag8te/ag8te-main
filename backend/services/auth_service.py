@@ -151,29 +151,38 @@ class AuthService:
             raw_driver_services = reg_data.get('driver_services') or []
             normalized_services = []
 
+             # car_details is the legacy fallback — use it to fill any
+             # missing fields from driver_services entries so no vehicle
+             # ends up with empty car_type, make, model etc.
+            car_details = reg_data.get('car_details') or {}
+            if not isinstance(car_details, dict):
+                car_details = {}
+
             for service in raw_driver_services:
                 if not isinstance(service, dict):
                     continue
                 normalized_services.append({
-                    'car_make': service.get('car_make') or service.get('make') or '',
-                    'car_model': service.get('car_model') or service.get('model') or '',
-                    'car_year': service.get('car_year') or service.get('year'),
-                    'registration_number': service.get('registration_number') or service.get('registration') or service.get('license_plate') or service.get('plate') or '',
-                    'car_type': service.get('car_type') or '',
-                    'color': service.get('color') or '',
-                    'seats': service.get('seats'),
-                    'disk_expiry': service.get('disk_expiry') or service.get('vehicle_disk_expiry'),
-                    'disk_document': service.get('disk_document') or service.get('vehicle_disk_document_url'),
+                    # Pull from driver_services first, fall back to
+                    # car_details for any field that came in empty
+                    'car_make': service.get('car_make') or service.get('make') or car_details.get('car_make') or car_details.get('make') or'',
+                    'car_model': service.get('car_model') or service.get('model') or car_details.get('car_model') or car_details.get('model') or '',
+                    'car_year': service.get('car_year') or service.get('year') or car_details.get('car_year') or car_details.get('year'),
+                    'registration_number': service.get('registration_number') or service.get('registration') or service.get('license_plate') or service.get('plate') or car_details.get('registration_number') or car_details.get('plate') or '',
+                    'car_type': service.get('car_type') or car_details.get('car_type') or '',
+                    'color': service.get('color') or car_details.get('color') or '',
+                    'seats': service.get('seats') or car_details.get('seats'),
+                    'disk_expiry': service.get('disk_expiry') or service.get('vehicle_disk_expiry') or car_details.get('disk_expiry') or reg_data.get('vehicle_disk_expiry'),
+                    'disk_document': service.get('disk_document') or service.get('vehicle_disk_document_url') or car_details.get('disk_document') or reg_data.get('vehicle_disk_document_url'),
                     'images': service.get('images') or [],
                 })
 
             if normalized_services:
                 return normalized_services
-
-            car_details = reg_data.get('car_details') or {}
-            if not isinstance(car_details, dict) or not any(car_details.values()):
+            
+            # Full fallback — driver_services was empty or missing,
+            # build entirely from car_details
+            if not any(car_details.values()):
                 return []
-
             return [{
                 'car_make': car_details.get('car_make') or car_details.get('make') or '',
                 'car_model': car_details.get('car_model') or car_details.get('model') or '',
@@ -275,7 +284,8 @@ class AuthService:
                             if user_data.get('driver_services'):
                                 images = user_data['driver_services'][0].setdefault('images', [])
                                 images.append(url)
-        
+            user.data =user_data
+            
         if role == 'service-provider':
             user.data = user_data
 
