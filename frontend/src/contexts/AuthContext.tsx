@@ -60,7 +60,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             headers: { Authorization: `Bearer ${token}` }
           });
           if (result.success && result.data) {
-            syncUserState(result.data.user);
+            syncUserState(result.data);
           } else {
             if (localStorage.getItem("token")) localStorage.removeItem("token");
             if (localStorage.getItem("adminToken")) {
@@ -112,7 +112,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (result.success) {
         localStorage.setItem("adminToken", result.data.token);
         localStorage.setItem("adminUser", JSON.stringify(result.data.user));
-        setUserState(result.data.user);
+        syncUserState(result.data.user);
         return { success: true, data: result.data };
       }
       return { success: false, error: result.message || "Login failed" };

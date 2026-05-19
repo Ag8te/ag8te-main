@@ -21,10 +21,12 @@ import { useSearchParams } from "react-router-dom";
 type Step = 1 | 2 | 3;
 
 const VEHICLE_TYPES = [
-  { id: "hatchback", name: "Small Hatchback", desc: "Affordable compact rides", icon: Car, capacity: 3, multiplier: 1, details: "Perfect for zip city travel" },
-  { id: "sedan", name: "Sedan", desc: "Comfortable everyday rides", icon: Car, capacity: 4, multiplier: 1.2, details: "Our most popular standard ride" },
-  { id: "suv", name: "SUV", desc: "Spacious for groups", icon: Users, capacity: 6, multiplier: 1.8, details: "Plenty of room for luggage" },
-  { id: "luxury", name: "Luxury", desc: "Travel in style", icon: Star, capacity: 4, multiplier: 2.5, details: "Premium high-end vehicles" },
+  { id: "hatchback", name: "Hatchback", desc: "Affordable compact rides", icon: Car, capacity: 3, multiplier: 4.5, details: "Perfect for zip city travel" },
+  { id: "sedan", name: "Sedan", desc: "Comfortable everyday rides", icon: Car, capacity: 4, multiplier: 5.5, details: "Our most popular standard ride" },
+  { id: "luxury", name: "Luxury/SUV", desc: "Travel in style", icon: Star, capacity: 4, multiplier: 8, details: "Premium high-end vehicles" },
+  { id: "bakkie", name: "Bakkie", desc: "Versatile for cargo", icon: Car, capacity: 2, multiplier: 15, details: "Great for transporting goods" },
+  { id: "minibus", name: "Minibus", desc: "Comfortable 9 seater transport", icon: Users, capacity: 9, multiplier: 11, details: "Best for small group travel" },
+  { id: "van", name: "Van", desc: "6 seater van with extra space", icon: Users, capacity: 6, multiplier: 9, details: "Perfect for passengers and luggage" },
 ];
 
 /** Local calendar date as YYYY-MM-DD (avoids UTC day-shift from `toISOString()`). */
@@ -135,7 +137,12 @@ const VEHICLE_TYPE_ALIASES: Record<string, string[]> = {
   small_hatchback: ["hatchback", "small_hatchback"],
   sedan: ["sedan", "standard"],
   standard: ["sedan", "standard"],
-  suv: ["suv"],
+  //suv: ["suv"],
+  
+  bakkie: ["bakkie"],
+  minibus: ["minibus"],
+  van: ["van"],
+
   luxury: ["luxury", "premium"],
   premium: ["luxury", "premium"],
 };
