@@ -1,3 +1,5 @@
+import { requestCurrentPosition } from "@/lib/native";
+
 /**
  * Shared location utility for getting the user's current location
  * via browser Geolocation API + Google Maps reverse geocoding.
@@ -9,13 +11,9 @@ export function getCurrentLocationAddress(
   onSuccess: (address: string, city: string, coords: { lat: number; lng: number }, postalCode: string) => void,
   onError: (title: string, description: string) => void,
   onLoadingChange: (loading: boolean) => void,
-  mode: 'full_address' | 'city_only' = 'full_address'
+  mode: 'full_address' | 'city_only' = 'full_address',
+  options: { allowApproximateAddress?: boolean; fallbackAddress?: string } = {}
 ) {
-  if (!navigator.geolocation) {
-    onError("Not Supported", "Your browser does not support location access. Please use a different browser.");
-    return;
-  }
-
   if (!window.google) {
     onError("Maps Not Loaded", "Google Maps is not loaded yet. Please try again in a moment.");
     return;
@@ -23,7 +21,9 @@ export function getCurrentLocationAddress(
 
   onLoadingChange(true);
 
-  navigator.geolocation.getCurrentPosition(
+  requestCurrentPosition(
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+  ).then(
     (position) => {
       const { latitude, longitude } = position.coords;
       const geocoder = new google.maps.Geocoder();
@@ -41,7 +41,7 @@ export function getCurrentLocationAddress(
               const hasStreet = components.some((c: any) =>
                 c.types.includes("street_number") || c.types.includes("route")
               );
-              if (!hasStreet) {
+              if (!hasStreet && !options.allowApproximateAddress) {
                 onError("Location Too Vague", "Could not determine your exact street address. Please enter it manually.");
                 return;
               }
@@ -50,7 +50,7 @@ export function getCurrentLocationAddress(
               || components.find((c: any) => c.types.includes("administrative_area_level_2"));
               const postalComp = components.find((c: any) => c.types.includes("postal_code"));
               onSuccess(
-                place.formatted_address || "",
+                place.formatted_address || options.fallbackAddress || "Current location",
                 cityComp?.long_name || "",
                 { lat: latitude, lng: longitude },
                 postalComp?.long_name || ""
@@ -80,7 +80,6 @@ export function getCurrentLocationAddress(
     () => {
       onLoadingChange(false);
       onError("Location Denied", "Please allow location access or enter your address manually.");
-    },
-    { enableHighAccuracy: true, timeout: 10000 }
+    }
   );
 }

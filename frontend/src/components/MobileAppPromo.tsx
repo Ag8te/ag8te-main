@@ -1,7 +1,56 @@
 import { motion } from "framer-motion";
-import { CheckCircle2, Smartphone } from "lucide-react";
+import { ExternalLink, Smartphone, Store } from "lucide-react";
 
 export const MobileAppPromo = () => {
+    const storeLinks = {
+        apple: import.meta.env.VITE_APPLE_APP_STORE_URL || "",
+        google: import.meta.env.VITE_GOOGLE_PLAY_URL || "",
+        huawei: import.meta.env.VITE_HUAWEI_APPGALLERY_URL || "",
+    };
+
+    const StoreButton = ({
+        href,
+        label,
+        sublabel,
+        variant = "dark",
+        children,
+    }: {
+        href?: string;
+        label: string;
+        sublabel: string;
+        variant?: "dark" | "primary";
+        children: React.ReactNode;
+    }) => {
+        const isEnabled = Boolean(href);
+        const baseClasses =
+            variant === "primary"
+                ? "bg-primary text-white hover:bg-primary/90"
+                : "bg-[#222222] text-white hover:bg-black";
+
+        return (
+            <a
+                href={isEnabled ? href : undefined}
+                target={isEnabled ? "_blank" : undefined}
+                rel={isEnabled ? "noreferrer" : undefined}
+                aria-disabled={!isEnabled}
+                className={`flex items-center gap-3 rounded-xl px-5 py-3 shadow-lg transition-all ${isEnabled ? `${baseClasses} hover:scale-105` : "cursor-not-allowed bg-slate-200 text-slate-500"
+                    }`}
+            >
+                {children}
+                <div className="text-left">
+                    <div className={`text-[10px] uppercase font-semibold leading-none ${isEnabled ? "text-white/60" : "text-slate-500"}`}>
+                        {sublabel}
+                    </div>
+                    <div className="text-lg font-bold leading-tight flex items-center gap-1">
+                        <span>{label}</span>
+                        {isEnabled ? <ExternalLink className="w-4 h-4" /> : null}
+                    </div>
+                    {!isEnabled ? <div className="text-[10px] mt-1 uppercase tracking-wide">Coming soon</div> : null}
+                </div>
+            </a>
+        );
+    };
+
     return (
         <section className="py-12 bg-slate-50 relative overflow-hidden">
             {/* Subtle dot pattern */}
@@ -40,40 +89,36 @@ export const MobileAppPromo = () => {
 
                         {/* App store buttons */}
                         <div className="flex flex-wrap gap-4">
-                            <button className="flex items-center gap-3 bg-[#222222] hover:bg-black text-white rounded-xl px-5 py-3 transition-all hover:scale-105 shadow-lg">
+                            <StoreButton
+                                href={storeLinks.apple}
+                                label="App Store"
+                                sublabel="Download on the"
+                            >
                                 <svg className="w-7 h-7 fill-current" viewBox="0 0 384 512">
                                     <path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41-84.5-41.9-38.9-.9-74.3 22.1-94.6 22.1-20.3 0-48.4-19.1-79-18.3-40.4.6-77.4 25.8-98.1 61.1-41.9 71.4-10.7 177.3 29.8 238.9 19.8 29.1 43.1 61.8 74.5 61.5 30.1-.3 41.4-19.1 77.6-19.1 36.3 0 46.5 19.1 77.8 18.5 31.9-.6 52.3-29.3 72-58.4 22.8-33.1 32.2-65.2 32.6-67.1-.7-.3-62.8-24.3-63-96.1zM288.2 86.4c17.5-22.1 29.4-52.6 26.2-86.4-28.9 1.2-58.8 19.8-79.6 44.1-18.6 21.6-34.8 53-30.7 85.1 32.2 2.5 60.1-17.7 84.1-42.8z" />
                                 </svg>
-                                <div className="text-left">
-                                    <div className="text-[10px] uppercase font-semibold text-white/60 leading-none">Download on the</div>
-                                    <div className="text-lg font-bold leading-tight">App Store</div>
-                                </div>
-                            </button>
+                            </StoreButton>
 
-                            <button
-                                onClick={() => window.location.href = '/mzansiserve.apk'}
-                                className="flex items-center gap-3 bg-primary hover:bg-primary/90 text-white rounded-xl px-5 py-3 transition-all hover:scale-105 shadow-lg"
+                            <StoreButton
+                                href={storeLinks.google}
+                                label="Google Play"
+                                sublabel="Get it on"
+                                variant="primary"
                             >
                                 <Smartphone className="w-7 h-7" />
-                                <div className="text-left">
-                                    <div className="text-[10px] uppercase font-semibold text-white/60 leading-none">Download</div>
-                                    <div className="text-lg font-bold leading-tight">Android APK</div>
-                                </div>
-                            </button>
+                            </StoreButton>
 
-                            <button className="flex items-center gap-3 bg-[#222222] hover:bg-black text-white rounded-xl px-5 py-3 transition-all hover:scale-105 shadow-lg">
-                                <svg className="w-7 h-7" viewBox="0 0 512 512">
-                                    <path fill="#4285F4" d="M464 256c0-13.3-1.2-26.2-3.5-38.7H256v73.2h116.5c-5 26.9-20.2 49.6-43.1 64.9l69 53.5C438.7 373.1 464 320.1 464 256z" />
-                                    <path fill="#34A853" d="M256 464c56.2 0 103.4-18.7 137.9-50.5l-69-53.5c-19.1 12.8-43.6 20.3-68.9 20.3-53 0-97.9-35.8-113.9-84l-71.3 55.3C69.1 421.3 154.6 464 256 464z" />
-                                    <path fill="#FBBC05" d="M142.1 296.3c-4.1-12.8-6.4-26.5-6.4-40.3s2.3-27.5 6.4-40.3L70.8 160.4C54.4 192.6 45 224 45 256s9.4 63.4 25.8 95.6l71.3-55.3z" />
-                                    <path fill="#EA4335" d="M256 122.2c30.6 0 57.9 10.5 79.6 31.3l59.6-59.6C359.4 61.2 312.2 45 256 45 154.6 45 69.1 87.7 38.7 151.6l72.1 55.3c16-48.2 60.9-84 113.9-84z" />
-                                </svg>
-                                <div className="text-left">
-                                    <div className="text-[10px] uppercase font-semibold text-white/60 leading-none">Get it on</div>
-                                    <div className="text-lg font-bold leading-tight">Google Play</div>
-                                </div>
-                            </button>
+                            <StoreButton
+                                href={storeLinks.huawei}
+                                label="AppGallery"
+                                sublabel="Explore on"
+                            >
+                                <Store className="w-7 h-7" />
+                            </StoreButton>
                         </div>
+                        <p className="mt-4 text-sm text-slate-500">
+                            Store links will activate automatically once the published listing URLs are added to the frontend environment.
+                        </p>
                     </div>
 
                     {/* Phone mockup */}

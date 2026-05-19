@@ -54,6 +54,12 @@ def _config_default_frontend() -> str:
     return "http://localhost"
 
 
+def _config_mobile_app_url() -> str:
+    return _strip_trailing_slash(
+        current_app.config.get("MOBILE_APP_URL") or "co.za.mzansiserve.app://app"
+    )
+
+
 def _config_default_backend() -> str:
     if current_app.config.get("FLASK_ENV") == "production":
         return "https://mzansiserve.co.za"
@@ -72,6 +78,66 @@ def _request_origin_base_url() -> str | None:
         parsed = urlparse(header_value)
         if parsed.scheme and parsed.netloc:
             return f"{parsed.scheme}://{parsed.netloc}"
+    return None
+
+
+def _request_payload_dict() -> dict | None:
+    if not has_request_context():
+        return None
+
+    payload = request.get_json(silent=True)
+    return payload if isinstance(payload, dict) else None
+
+
+def _is_allowed_frontend_base_url(value: str | None) -> bool:
+    cleaned = _strip_trailing_slash(value)
+    if not cleaned:
+        return False
+
+    parsed = urlparse(cleaned)
+    if not parsed.scheme:
+        return False
+
+    mobile_parsed = urlparse(_config_mobile_app_url())
+    if parsed.scheme == mobile_parsed.scheme and (
+        not mobile_parsed.netloc or parsed.netloc == mobile_parsed.netloc
+    ):
+        return True
+
+    if parsed.scheme not in {"http", "https"}:
+        return False
+
+    if parsed.hostname in {"localhost", "127.0.0.1"}:
+        return True
+
+    allowed_pairs = set()
+    for candidate in (
+        current_app.config.get("FRONTEND_URL"),
+        _config_default_frontend(),
+        _request_origin_base_url(),
+    ):
+        candidate_parsed = urlparse(_strip_trailing_slash(candidate))
+        if candidate_parsed.scheme and candidate_parsed.netloc:
+            allowed_pairs.add((candidate_parsed.scheme, candidate_parsed.netloc))
+
+    return (parsed.scheme, parsed.netloc) in allowed_pairs
+
+
+def _request_frontend_base_url_override() -> str | None:
+    if not has_request_context():
+        return None
+
+    payload = _request_payload_dict()
+    candidates = [
+        request.headers.get("X-Frontend-Url"),
+        request.args.get("frontend_url"),
+        payload.get("frontend_url") if payload else None,
+    ]
+
+    for candidate in candidates:
+        if _is_allowed_frontend_base_url(candidate):
+            return _strip_trailing_slash(candidate)
+
     return None
 
 
@@ -110,7 +176,9 @@ def get_public_backend_base_url() -> str:
 def get_request_frontend_base_url() -> str:
     """Best frontend base URL for the current browser-initiated request."""
     return _normalize_local_dev_url(
-        _prefer_configured_public_url(_request_origin_base_url(), "FRONTEND_URL") or get_public_frontend_base_url(),
+        _request_frontend_base_url_override()
+        or _prefer_configured_public_url(_request_origin_base_url(), "FRONTEND_URL")
+        or get_public_frontend_base_url(),
         _config_default_frontend()
     )
 
@@ -118,7 +186,9 @@ def get_request_frontend_base_url() -> str:
 def get_callback_frontend_base_url() -> str:
     """Frontend URL for payment callbacks, preferring the encoded source URL."""
     return _normalize_local_dev_url(
-        _prefer_configured_public_url(request.args.get("frontend_url"), "FRONTEND_URL") or get_request_frontend_base_url(),
+        _request_frontend_base_url_override()
+        or _prefer_configured_public_url(request.args.get("frontend_url"), "FRONTEND_URL")
+        or get_request_frontend_base_url(),
         _config_default_frontend()
     )
 
@@ -154,9 +224,9 @@ def get_request_frontend_return_path(default: str = "/") -> str:
 
     candidates = [request.args.get("return_path")]
 
-    json_payload = request.get_json(silent=True)
-    if isinstance(json_payload, dict):
-        candidates.append(json_payload.get("return_path"))
+    payload = _request_payload_dict()
+    if payload:
+        candidates.append(payload.get("return_path"))
 
     candidates.append(request.headers.get("Referer"))
 

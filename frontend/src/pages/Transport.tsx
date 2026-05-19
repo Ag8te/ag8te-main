@@ -16,15 +16,18 @@ import { useJsApiLoader, Autocomplete, GoogleMap, Marker } from "@react-google-m
 import { formatUTCtoSAST, getMinBookableTimeSAST } from "@/lib/dateUtils";
 import { getCurrentLocationAddress } from "@/lib/locationUtils";
 import { GOOGLE_MAPS_API_KEY, GOOGLE_MAPS_PLACE_LIBRARIES } from "@/lib/googleMaps";
+import { openExternalUrl } from "@/lib/native";
 import { useSearchParams } from "react-router-dom";
 
 type Step = 1 | 2 | 3;
 
 const VEHICLE_TYPES = [
-  { id: "hatchback", name: "Small Hatchback", desc: "Affordable compact rides", icon: Car, capacity: 3, multiplier: 1, details: "Perfect for zip city travel" },
-  { id: "sedan", name: "Sedan", desc: "Comfortable everyday rides", icon: Car, capacity: 4, multiplier: 1.2, details: "Our most popular standard ride" },
-  { id: "suv", name: "SUV", desc: "Spacious for groups", icon: Users, capacity: 6, multiplier: 1.8, details: "Plenty of room for luggage" },
-  { id: "luxury", name: "Luxury", desc: "Travel in style", icon: Star, capacity: 4, multiplier: 2.5, details: "Premium high-end vehicles" },
+  { id: "hatchback", name: "Hatchback", desc: "Affordable compact rides", icon: Car, capacity: 3, multiplier: 4.5, details: "Perfect for zip city travel" },
+  { id: "sedan", name: "Sedan", desc: "Comfortable everyday rides", icon: Car, capacity: 4, multiplier: 5.5, details: "Our most popular standard ride" },
+  { id: "luxury", name: "Luxury/SUV", desc: "Travel in style", icon: Star, capacity: 4, multiplier: 8, details: "Premium high-end vehicles" },
+  { id: "bakkie", name: "Bakkie", desc: "Versatile for cargo", icon: Car, capacity: 2, multiplier: 15, details: "Great for transporting goods" },
+  { id: "minibus", name: "Minibus", desc: "Comfortable 9 seater transport", icon: Users, capacity: 9, multiplier: 11, details: "Best for small group travel" },
+  { id: "van", name: "Van", desc: "6 seater van with extra space", icon: Users, capacity: 6, multiplier: 9, details: "Perfect for passengers and luggage" },
 ];
 
 /** Local calendar date as YYYY-MM-DD (avoids UTC day-shift from `toISOString()`). */
@@ -135,9 +138,21 @@ const VEHICLE_TYPE_ALIASES: Record<string, string[]> = {
   small_hatchback: ["hatchback", "small_hatchback"],
   sedan: ["sedan", "standard"],
   standard: ["sedan", "standard"],
-  suv: ["suv"],
+  //suv: ["suv"],
+  
+  bakkie: ["bakkie"],
+  minibus: ["minibus"],
+  van: ["van"],
+
   luxury: ["luxury", "premium"],
   premium: ["luxury", "premium"],
+};
+
+const expandVehicleTypes = (value: string) => {
+  const normalized = String(value).trim().toLowerCase().replace(/\s+/g, "_");
+  const parts = normalized.split(/[/,|+&]+/).filter(Boolean);
+  const source = parts.length ? parts : [normalized];
+  return source.flatMap((part) => VEHICLE_TYPE_ALIASES[part] || [part]);
 };
 
 const getDriversForVehicle = (drivers: any[], vehicleId: string | null) => {
@@ -145,7 +160,9 @@ const getDriversForVehicle = (drivers: any[], vehicleId: string | null) => {
   const aliases = VEHICLE_TYPE_ALIASES[vehicleId] || [vehicleId];
   return drivers.filter((driver) =>
     Array.isArray(driver.car_types) &&
-    driver.car_types.some((carType: string) => aliases.includes(String(carType).toLowerCase()))
+    driver.car_types.some((carType: string) =>
+      expandVehicleTypes(carType).some((expandedType) => aliases.includes(expandedType))
+    )
   );
 };
 
@@ -239,13 +256,14 @@ const Transport = () => {
   const handleUseCurrentLocation = async () => {
     getCurrentLocationAddress(
       (address, _city, coords, _postalCode) => {
-        setPickup(address);
+        setPickup(address || "Current location");
         setPickupCoords(coords);
         setPickupValid(true);
       },
       (title, description) => toast({ variant: "destructive", title, description }),
       setIsLocating,
-      'full_address'
+      'full_address',
+      { allowApproximateAddress: true, fallbackAddress: "Current location" }
     );
   };
 
@@ -410,7 +428,7 @@ const Transport = () => {
       if (res.success && res.data?.redirect_url) {
         toast({ title: "Redirecting", description: "Taking you to secure checkout..." });
         setTimeout(() => {
-          window.location.href = res.data.redirect_url;
+          void openExternalUrl(res.data.redirect_url);
         }, 1000);
       } else {
         toast({
@@ -519,7 +537,9 @@ const Transport = () => {
                             <button
                               type="button"
                               onClick={handleUseCurrentLocation}
-                              className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-xl text-slate-400 hover:text-primary hover:bg-primary/10 transition-all z-10"
+                              disabled={isLocating}
+                              aria-label="Use current location as pickup"
+                              className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-xl text-slate-400 hover:text-primary hover:bg-primary/10 transition-all z-10 disabled:opacity-60"
                               title="Use current location"
                             >
                               {isLocating
@@ -575,6 +595,16 @@ const Transport = () => {
                               <input disabled placeholder="Loading maps..." className="w-full h-16 bg-slate-50 rounded-2xl p-4 pl-16 outline-none" />
                             )}
                           </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={handleUseCurrentLocation}
+                            disabled={isLocating}
+                            className="mt-3 h-10 px-3 rounded-xl text-sm font-bold text-primary hover:bg-primary/10"
+                          >
+                            {isLocating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Navigation className="mr-2 h-4 w-4" />}
+                            Use current location
+                          </Button>
                         </div>
 
                         <div className="relative group">
