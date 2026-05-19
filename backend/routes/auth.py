@@ -21,7 +21,12 @@ from backend.services.wallet_service import WalletService
 from backend.services.payment_service import PaymentService
 from backend.services.agent_service import AgentService
 from backend.services.auth_service import AuthService
-from backend.utils.url import get_callback_frontend_base_url, get_public_backend_base_url, get_request_frontend_base_url
+from backend.utils.url import (
+    append_query_params,
+    get_callback_frontend_return_url,
+    get_public_backend_base_url,
+    get_request_frontend_base_url,
+)
 
 bp = Blueprint('auth', __name__)
 logger = logging.getLogger(__name__)
@@ -578,40 +583,38 @@ def registration_payment_callback():
         external_id = request.args.get('external_id')
         subscription_id = request.args.get('subscription_id')
         callback_status = request.args.get('callback_status')
-        
-        frontend_url = get_callback_frontend_base_url()
-        
+
+        cancelled_url = append_query_params(
+            get_callback_frontend_return_url('/payment-status'),
+            {'payment': 'cancel', 'external_id': external_id}
+        )
+        success_url = append_query_params(
+            get_callback_frontend_return_url('/payment-status'),
+            {'payment': 'success', 'external_id': external_id}
+        )
+
         if callback_status == 'cancel':
             return current_app.make_response((
-                f'<html><body><script>window.location.href="{frontend_url}/payment-status?payment=cancel&external_id=' + (external_id or '') + '";</script></body></html>',
+                f'<html><body><script>window.location.replace("{cancelled_url}");</script></body></html>',
                 302
             ))
 
         user, error = AuthService.verify_registration_payment(external_id, subscription_id, callback_status=callback_status)
-        
+
         if user:
             return current_app.make_response((
-                f'<html><body><script>window.location.href="{frontend_url}/payment-status?payment=success&external_id=' + (external_id or '') + '";</script></body></html>',
+                f'<html><body><script>window.location.replace("{success_url}");</script></body></html>',
                 302
             ))
         else:
             return current_app.make_response((
-                f'<html><body><script>window.location.href="{frontend_url}/payment-status?payment=error&reason=' + (error or 'unknown') + '&external_id=' + (external_id or '') + '";</script></body></html>',
+                f'<html><body><script>window.location.replace("{append_query_params(get_callback_frontend_return_url("/payment-status"), {"payment": "error", "reason": error or "unknown", "external_id": external_id})}");</script></body></html>',
                 302
             ))
-            
+
     except Exception as e:
         logger.exception("registration_callback: failed")
-        frontend_url_fallback = get_callback_frontend_base_url()
         return current_app.make_response((
-            f'<html><body><script>window.location.href="{frontend_url_fallback}/?payment=error";</script></body></html>',
-            302
-        ))
-        
-    except Exception as e:
-        logger.exception("registration_callback: failed")
-        frontend_url_fallback = get_callback_frontend_base_url()
-        return current_app.make_response((
-            f'<html><body><script>window.location.href="{frontend_url_fallback}/?payment=error";</script></body></html>',
+            f'<html><body><script>window.location.replace("{append_query_params(get_callback_frontend_return_url("/payment-status"), {"payment": "error"})}");</script></body></html>',
             302
         ))

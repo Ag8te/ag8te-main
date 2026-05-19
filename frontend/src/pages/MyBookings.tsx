@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiFetch, getImageUrl } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { openExternalUrl } from "@/lib/native";
 import { ChatOverlay } from "@/components/ChatOverlay";
 import { RatingModal } from "@/components/dashboards/RatingModal";
 import { ProviderReviewModal } from "@/components/dashboards/ProviderReviewModal";
@@ -68,7 +69,7 @@ const MyBookings = () => {
     setIsPaying(requestId);
     try {
       const res = await apiFetch(`/api/requests/${requestId}/pay-quote`, { method: 'POST' });
-      if (res.success && res.data?.redirect_url) window.location.href = res.data.redirect_url;
+      if (res.success && res.data?.redirect_url) await openExternalUrl(res.data.redirect_url);
     } catch (err: any) {
       toast({ title: "Payment Error", description: err.message || "Failed to initiate payment", variant: "destructive" });
     } finally {

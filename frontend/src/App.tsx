@@ -1,15 +1,22 @@
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
+import { App as CapacitorApp } from "@capacitor/app";
+import { Browser } from "@capacitor/browser";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import PrivateRoute from "@/components/PrivateRoute";
 import PaymentGate from "@/components/PaymentGate";
 import ScrollToTop from "@/components/ScrollToTop";
+import {
+  configureNativeChrome,
+  isNativeApp,
+  resolveAppReturnPath,
+} from "@/lib/native";
 
 const Index = lazy(() => import("./pages/Index"));
 const Login = lazy(() => import("./pages/Login"));
@@ -59,18 +66,78 @@ const RouteFallback = () => (
   </div>
 );
 
+const NativeAppBoot = () => {
+  useEffect(() => {
+    configureNativeChrome();
+  }, []);
+
+  return null;
+};
+
+const NativeAppLinkHandler = () => {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isNativeApp) return;
+
+    let cancelled = false;
+    let listener: { remove: () => Promise<void> } | undefined;
+
+    const handleIncomingUrl = async (incomingUrl?: string | null) => {
+      if (!incomingUrl) return;
+
+      const returnPath = resolveAppReturnPath(incomingUrl);
+      if (!returnPath || cancelled) return;
+
+      try {
+        await Browser.close();
+      } catch (error) {
+        // Browser.close is a no-op on some platforms if no browser is open.
+      }
+
+      navigate(returnPath, { replace: true });
+    };
+
+    const registerListener = async () => {
+      try {
+        const launchUrl = await CapacitorApp.getLaunchUrl();
+        await handleIncomingUrl(launchUrl?.url);
+
+        listener = await CapacitorApp.addListener("appUrlOpen", ({ url }) => {
+          void handleIncomingUrl(url);
+        });
+      } catch (error) {
+        console.warn("Failed to register native app URL handler:", error);
+      }
+    };
+
+    void registerListener();
+
+    return () => {
+      cancelled = true;
+      if (listener) {
+        void listener.remove();
+      }
+    };
+  }, [navigate]);
+
+  return null;
+};
+
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <ScrollToTop />
-        <AuthProvider>
-          <CartProvider>
-            <Suspense fallback={<RouteFallback />}>
-              <PaymentGate>
-                <Routes>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <NativeAppBoot />
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <NativeAppLinkHandler />
+          <ScrollToTop />
+          <AuthProvider>
+            <CartProvider>
+              <Suspense fallback={<RouteFallback />}>
+                <PaymentGate>
+                  <Routes>
                   {/* ── Public routes ─────────────────────────────── */}
                   <Route path="/" element={<Index />} />
                   <Route path="/login" element={<Login />} />
@@ -176,14 +243,14 @@ const App = () => (
 
                   {/* ── 404 ───────────────────────────────────────── */}
                   <Route path="*" element={<NotFound />} />
-                </Routes>
-              </PaymentGate>
-            </Suspense>
-          </CartProvider>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+                  </Routes>
+                </PaymentGate>
+              </Suspense>
+            </CartProvider>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
 );
 
 export default App;
