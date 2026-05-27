@@ -4,7 +4,7 @@ import { Eye, EyeOff, AlertCircle, Loader2, ShieldCheck, ArrowLeft } from "lucid
 import { GoogleLogin } from "@react-oauth/google";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth, type User } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { apiFetch } from "@/lib/api";
 import { buildRegistrationPaymentUrl, requiresRegistrationPayment } from "@/lib/registration-payment";
@@ -18,7 +18,7 @@ interface GoogleCredentialResponse {
 
 /** Safely converts the API's error field (string | object | undefined) into a plain string. */
 const resolveError = (
-  err: string | { code: string; message: string; details?: any } | undefined,
+  err: string | { code: string; message: string; details?: unknown } | undefined,
   fallback: string
 ): string => {
   if (!err) return fallback;
@@ -41,6 +41,9 @@ const Login = () => {
   const [availableRoles, setAvailableRoles] = useState<string[]>([]);
   const [resending, setResending] = useState(false);
   const [isVerificationError, setIsVerificationError] = useState(false);
+  const [otpChallengeId, setOtpChallengeId] = useState<string | null>(null);
+  const [otpCode, setOtpCode] = useState("");
+  const [otpSentTo, setOtpSentTo] = useState("");
   const showGoogleSignIn = isGoogleOAuthConfigured();
 
   const checkRoles = async (emailVal: string) => {
@@ -60,7 +63,7 @@ const Login = () => {
     }
   };
 
-  const navigateByRole = (u: any) => {
+  const navigateByRole = (u: User) => {
     if (requiresRegistrationPayment(u)) {
       localStorage.setItem("registrationPaymentUser", JSON.stringify(u));
       navigate(buildRegistrationPaymentUrl(redirectTo || undefined));
@@ -136,6 +139,36 @@ const Login = () => {
     e.preventDefault();
     setError("");
 
+    if (otpChallengeId) {
+      if (!/^\d{6}$/.test(otpCode.trim())) {
+        setError("Enter the 6-digit verification code");
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const result = await apiFetch("/api/auth/verify-login-otp", {
+          method: "POST",
+          data: { challenge_id: otpChallengeId, code: otpCode.trim() },
+        });
+
+        if (result.success) {
+          localStorage.setItem("token", result.data.token);
+          localStorage.setItem("user", JSON.stringify(result.data.user));
+          if (setUser) setUser(result.data.user);
+          toast({ title: "Welcome back!", description: "You've been logged in successfully." });
+          navigateByRole(result.data.user);
+        } else {
+          setError(resolveError(result.error, "Verification failed"));
+        }
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : "Could not verify the code");
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     if (!email.trim()) { setError("Email is required"); return; }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setError("Please enter a valid email"); return; }
     if (!password) { setError("Password is required"); return; }
@@ -153,6 +186,14 @@ const Login = () => {
           return;
         }
 
+        if (result.data?.otp_required) {
+          setOtpChallengeId(result.data.challenge_id);
+          setOtpSentTo(result.data.user?.email || email);
+          setOtpCode("");
+          toast({ title: "Verification code sent", description: "Check your email for the 6-digit code." });
+          return;
+        }
+
         toast({ title: "Welcome back!", description: "You've been logged in successfully." });
         navigateByRole(result.data.user);
       } else {
@@ -160,7 +201,7 @@ const Login = () => {
         setError(errorMsg);
 
         // Use a more robust check for the specific verification error
-        const errObj = result.error as any;
+        const errObj = typeof result.error === "object" && result.error !== null ? result.error : null;
         if (errObj?.code === 'EMAIL_NOT_VERIFIED' || errorMsg.toLowerCase().includes("not verified")) {
           setIsVerificationError(true);
         }
@@ -170,6 +211,36 @@ const Login = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleResendOtp = async () => {
+    if (!otpChallengeId) return;
+    setResending(true);
+    setError("");
+    try {
+      const result = await apiFetch("/api/auth/resend-login-otp", {
+        method: "POST",
+        data: { challenge_id: otpChallengeId },
+      });
+      if (result.success) {
+        setOtpChallengeId(result.data.challenge_id);
+        setOtpCode("");
+        toast({ title: "Code resent", description: "A new code has been sent to your email." });
+      } else {
+        setError(resolveError(result.error, "Could not resend the verification code"));
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Could not resend the verification code");
+    } finally {
+      setResending(false);
+    }
+  };
+
+  const resetOtpStep = () => {
+    setOtpChallengeId(null);
+    setOtpCode("");
+    setOtpSentTo("");
+    setError("");
   };
 
   return (
@@ -227,6 +298,12 @@ const Login = () => {
             </AnimatePresence>
 
             <form onSubmit={handleSubmit} className="space-y-6">
+              {otpChallengeId && (
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                  Enter the 6-digit code sent to {otpSentTo}.
+                </div>
+              )}
+
               {/* Role Selector */}
               <div className="space-y-2">
                 <label htmlFor="role" className="text-[13px] font-bold text-[#222222] tracking-wide ml-1">
@@ -237,6 +314,7 @@ const Login = () => {
                     id="role"
                     value={role}
                     onChange={(e) => { setRole(e.target.value); if (error && error.includes("role")) setError(""); }}
+                    disabled={!!otpChallengeId}
                     className="w-full bg-transparent py-4 px-4 text-base text-[#222222] outline-none appearance-none cursor-pointer font-medium h-14"
                   >
                     <option value="" disabled>Select Role...</option>
@@ -266,6 +344,7 @@ const Login = () => {
                     value={email}
                     onChange={(e) => { setEmail(e.target.value); if (error) setError(""); }}
                     onBlur={(e) => checkRoles(e.target.value)}
+                    disabled={!!otpChallengeId}
                     className="w-full bg-transparent py-4 px-4 text-base text-[#222222] outline-none placeholder:text-[#B0B0B0] font-medium h-14"
                     placeholder="name@example.com"
                     autoComplete="email"
@@ -293,6 +372,7 @@ const Login = () => {
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    disabled={!!otpChallengeId}
                     className="w-full bg-transparent py-4 pl-4 pr-16 text-base text-[#222222] outline-none placeholder:text-[#B0B0B0] font-medium h-14"
                     placeholder="Enter your password"
                     autoComplete="current-password"
@@ -308,6 +388,45 @@ const Login = () => {
                   </button>
                 </div>
               </div>
+
+              {otpChallengeId && (
+                <div className="space-y-2">
+                  <label htmlFor="login-otp-input" className="text-[13px] font-bold text-[#222222] tracking-wide ml-1">
+                    Verification Code
+                  </label>
+                  <div className="relative border border-[#DDDDDD] rounded-2xl overflow-hidden focus-within:ring-4 focus-within:ring-primary/10 focus-within:border-primary/50 transition-all bg-slate-50/50">
+                    <input
+                      id="login-otp-input"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={6}
+                      value={otpCode}
+                      onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                      className="w-full bg-transparent py-4 px-4 text-base text-[#222222] outline-none placeholder:text-[#B0B0B0] font-medium h-14 tracking-[0.35em]"
+                      placeholder="000000"
+                      autoComplete="one-time-code"
+                      required
+                    />
+                  </div>
+                  <div className="flex items-center justify-between px-1">
+                    <button
+                      type="button"
+                      onClick={handleResendOtp}
+                      disabled={resending}
+                      className="text-[13px] font-bold text-primary hover:underline underline-offset-4 disabled:opacity-60"
+                    >
+                      {resending ? "Sending..." : "Resend code"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={resetOtpStep}
+                      className="text-[13px] font-bold text-slate-500 hover:text-slate-800"
+                    >
+                      Use different details
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {availableRoles.length > 0 && (
                 <div className="flex items-center gap-2 px-1">
@@ -327,7 +446,7 @@ const Login = () => {
                 {loading ? (
                   <Loader2 className="w-5 h-5 animate-spin mx-auto" />
                 ) : (
-                  "Log in"
+                  otpChallengeId ? "Verify and log in" : "Log in"
                 )}
               </Button>
             </form>

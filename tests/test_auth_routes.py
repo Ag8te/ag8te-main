@@ -38,10 +38,40 @@ def test_login_route_success(client, db_session):
         "role": role
     }
     
-    response = client.post('/api/auth/login',
-                            data=json.dumps(data),
-                            content_type='application/json')
+    with patch("backend.services.email_service.EmailService.send_otp_email"):
+        response = client.post('/api/auth/login',
+                                data=json.dumps(data),
+                                content_type='application/json')
     
+    assert response.status_code == 200
+    res_data = response.get_json()
+    assert res_data['success'] is True
+    assert res_data['data']['otp_required'] is True
+    assert res_data['data']['channel'] == 'email'
+    assert 'challenge_id' in res_data['data']
+    assert 'token' not in res_data['data']
+
+def test_verify_login_otp_issues_token(client, db_session, app):
+    email = "otp-login@example.com"
+    password = "password123"
+    role = "client"
+
+    user = User(email=email, role=role, is_active=True, email_verified=True)
+    user.set_password(password)
+    db_session.session.add(user)
+    db_session.session.commit()
+
+    with patch("backend.services.otp_service.OtpService.generate_code", return_value="123456"), \
+         patch("backend.services.email_service.EmailService.send_otp_email"):
+        login_response = client.post('/api/auth/login',
+                                     data=json.dumps({"email": email, "password": password, "role": role}),
+                                     content_type='application/json')
+
+    challenge_id = login_response.get_json()['data']['challenge_id']
+    response = client.post('/api/auth/verify-login-otp',
+                           data=json.dumps({"challenge_id": challenge_id, "code": "123456"}),
+                           content_type='application/json')
+
     assert response.status_code == 200
     res_data = response.get_json()
     assert res_data['success'] is True

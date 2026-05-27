@@ -21,6 +21,7 @@ from backend.services.wallet_service import WalletService
 from backend.services.payment_service import PaymentService
 from backend.services.agent_service import AgentService
 from backend.services.auth_service import AuthService
+from backend.services.otp_service import OtpService, SENSITIVE_SMS_PURPOSES
 from backend.utils.url import (
     append_query_params,
     get_callback_frontend_return_url,
@@ -79,7 +80,7 @@ class RegisterSchema(Schema):
 class LoginSchema(Schema):
     email = fields.Email(required=True)
     password = fields.Str(required=True)
-    role = fields.Str(required=True, validate=validate.OneOf(['client', 'driver', 'professional', 'service-provider']))
+    role = fields.Str(required=True, validate=validate.OneOf(['client', 'driver', 'professional', 'service-provider', 'agent']))
 
 class ForgotPasswordSchema(Schema):
     email = fields.Email(required=True)
@@ -92,9 +93,25 @@ class ResetPasswordSchema(Schema):
 class VerifyEmailSchema(Schema):
     token = fields.Str(required=True)
 
+class VerifyLoginOtpSchema(Schema):
+    challenge_id = fields.Str(required=True)
+    code = fields.Str(required=True, validate=validate.Length(equal=6))
+
+class ResendLoginOtpSchema(Schema):
+    challenge_id = fields.Str(required=True)
+
+class VerifySensitiveSmsSchema(Schema):
+    purpose = fields.Str(required=True, validate=validate.OneOf(sorted(SENSITIVE_SMS_PURPOSES)))
+    firebase_id_token = fields.Str(required=True)
+
+class VerifyPasswordResetSmsSchema(Schema):
+    email = fields.Email(required=True)
+    firebase_id_token = fields.Str(required=True)
+    role = fields.Str(validate=validate.OneOf(['client', 'driver', 'professional', 'service-provider', 'agent']))
+
 class ResendVerificationSchema(Schema):
     email = fields.Email(required=True)
-    role = fields.Str(required=True, validate=validate.OneOf(['client', 'driver', 'professional', 'service-provider']))
+    role = fields.Str(required=True, validate=validate.OneOf(['client', 'driver', 'professional', 'service-provider', 'agent']))
 
 @bp.route('/register', methods=['POST'])
 def register():
@@ -154,6 +171,38 @@ def login():
                 'payment_required': True,
                 'message': 'Registration payment is still pending. Redirecting to Yoco.'
             }, 'Registration payment required.', 200)
+        challenge = OtpService.create_email_login_challenge(user)
+        return success_response({
+            'user': user.to_dict(),
+            'otp_required': True,
+            'challenge_id': str(challenge.id),
+            'channel': 'email',
+            'expires_at': challenge.expires_at.isoformat() if challenge.expires_at else None
+        }, 'Login OTP sent')
+    except ValidationError as e:
+        return error_response('VALIDATION_ERROR', 'Invalid input data', e.messages, 400)
+    except Exception as e:
+        logger.exception("login: failed")
+        return error_response('INTERNAL_ERROR', 'Login failed', None, 500)
+
+
+@bp.route('/verify-login-otp', methods=['POST'])
+def verify_login_otp():
+    """Verify email OTP after password login and issue the session JWT."""
+    try:
+        schema = VerifyLoginOtpSchema()
+        data = schema.load(request.json)
+        challenge, error = OtpService.verify_email_challenge(data['challenge_id'], data['code'], purpose='login')
+
+        if error == "OTP_EXPIRED":
+            return error_response('OTP_EXPIRED', 'The verification code has expired. Please request a new code.', None, 400)
+        if error:
+            return error_response('INVALID_OTP', 'Invalid verification code', None, 400)
+
+        user = challenge.user
+        if not user or not user.is_active:
+            return error_response('ACCOUNT_INACTIVE', 'Account is inactive', None, 403)
+
         access_token = create_access_token(identity=str(user.id))
         return success_response({
             'user': user.to_dict(),
@@ -161,9 +210,101 @@ def login():
         }, 'Login successful')
     except ValidationError as e:
         return error_response('VALIDATION_ERROR', 'Invalid input data', e.messages, 400)
-    except Exception as e:
-        logger.exception("login: failed")
-        return error_response('INTERNAL_ERROR', 'Login failed', None, 500)
+    except Exception:
+        logger.exception("verify_login_otp: failed")
+        return error_response('INTERNAL_ERROR', 'Failed to verify login code', None, 500)
+
+
+@bp.route('/resend-login-otp', methods=['POST'])
+def resend_login_otp():
+    """Resend a login OTP for an existing login challenge."""
+    try:
+        schema = ResendLoginOtpSchema()
+        data = schema.load(request.json)
+        from backend.models import OtpChallenge
+        challenge = OtpChallenge.query.get(data['challenge_id'])
+        if not challenge or challenge.purpose != 'login' or challenge.channel != 'email' or not challenge.user:
+            return error_response('INVALID_OTP', 'Invalid login challenge', None, 400)
+        if challenge.used:
+            return error_response('INVALID_OTP', 'This login challenge has already been used', None, 400)
+
+        new_challenge = OtpService.create_email_login_challenge(challenge.user)
+        return success_response({
+            'challenge_id': str(new_challenge.id),
+            'channel': 'email',
+            'expires_at': new_challenge.expires_at.isoformat() if new_challenge.expires_at else None
+        }, 'Login OTP resent')
+    except ValidationError as e:
+        return error_response('VALIDATION_ERROR', 'Invalid input data', e.messages, 400)
+    except Exception:
+        logger.exception("resend_login_otp: failed")
+        return error_response('INTERNAL_ERROR', 'Failed to resend login code', None, 500)
+
+
+@bp.route('/verify-sensitive-sms', methods=['POST'])
+@jwt_required()
+def verify_sensitive_sms():
+    """Verify Firebase phone OTP for sensitive authenticated actions."""
+    try:
+        schema = VerifySensitiveSmsSchema()
+        data = schema.load(request.json)
+        user = User.query.get(get_jwt_identity())
+        if not user:
+            return error_response('USER_NOT_FOUND', 'User not found', None, 404)
+
+        claims, error = OtpService.verify_firebase_phone_token(
+            data['firebase_id_token'],
+            expected_phone=OtpService.user_phone(user)
+        )
+        if error:
+            return error_response(error, 'SMS verification failed', None, 400)
+
+        verification, error = OtpService.record_sms_verification(user, data['purpose'], claims)
+        if error:
+            return error_response(error, 'Invalid SMS verification purpose', None, 400)
+
+        return success_response({
+            'verification_id': str(verification.id),
+            'purpose': verification.purpose,
+            'channel': 'sms',
+            'verified_at': verification.verified_at.isoformat() if verification.verified_at else None
+        }, 'SMS verification successful')
+    except ValidationError as e:
+        return error_response('VALIDATION_ERROR', 'Invalid input data', e.messages, 400)
+    except Exception:
+        logger.exception("verify_sensitive_sms: failed")
+        return error_response('INTERNAL_ERROR', 'Failed to verify SMS code', None, 500)
+
+
+@bp.route('/verify-password-reset-sms', methods=['POST'])
+def verify_password_reset_sms():
+    """Verify Firebase phone OTP and issue a password reset token."""
+    try:
+        schema = VerifyPasswordResetSmsSchema()
+        data = schema.load(request.json)
+        if data.get('role'):
+            user = User.query.filter_by(email=data['email'], role=data['role']).first()
+        else:
+            user = User.query.filter_by(email=data['email']).first()
+
+        if not user:
+            return error_response('INVALID_CREDENTIALS', 'Unable to verify this account', None, 400)
+
+        claims, error = OtpService.verify_firebase_phone_token(
+            data['firebase_id_token'],
+            expected_phone=OtpService.user_phone(user)
+        )
+        if error:
+            return error_response(error, 'SMS verification failed', None, 400)
+
+        OtpService.record_sms_verification(user, 'password_reset', claims)
+        token = create_password_reset_token(user.id)
+        return success_response({'token': token}, 'SMS verified. You can now reset your password.')
+    except ValidationError as e:
+        return error_response('VALIDATION_ERROR', 'Invalid input data', e.messages, 400)
+    except Exception:
+        logger.exception("verify_password_reset_sms: failed")
+        return error_response('INTERNAL_ERROR', 'Failed to verify password reset SMS', None, 500)
 
 @bp.route('/google-login', methods=['POST'])
 def google_login():
