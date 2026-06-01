@@ -37,31 +37,10 @@ const Login = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
-  const [redirectTo, setRedirectTo] = useState(searchParams.get("from") || null);
-  const [availableRoles, setAvailableRoles] = useState<string[]>([]);
+  const redirectTo = searchParams.get("from") || null;
   const [resending, setResending] = useState(false);
   const [isVerificationError, setIsVerificationError] = useState(false);
-  const [otpChallengeId, setOtpChallengeId] = useState<string | null>(null);
-  const [otpCode, setOtpCode] = useState("");
-  const [otpSentTo, setOtpSentTo] = useState("");
   const showGoogleSignIn = isGoogleOAuthConfigured();
-
-  const checkRoles = async (emailVal: string) => {
-    if (!emailVal || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) return;
-    try {
-      const res = await apiFetch<{ roles: string[] }>(`/api/auth/roles-for-email?email=${encodeURIComponent(emailVal)}`);
-      if (res.success && res.data.roles.length > 0) {
-        setAvailableRoles(res.data.roles);
-        if (!res.data.roles.includes(role)) {
-          setRole(res.data.roles[0]);
-        }
-      } else {
-        setAvailableRoles([]);
-      }
-    } catch (err) {
-      console.error("Failed to fetch roles:", err);
-    }
-  };
 
   const navigateByRole = (u: User) => {
     if (requiresRegistrationPayment(u)) {
@@ -85,7 +64,7 @@ const Login = () => {
     try {
       const result = await apiFetch("/api/auth/google-login", {
         method: "POST",
-        data: { token: credentialResponse.credential, role },
+        data: { token: credentialResponse.credential, role: role || "client" },
       });
       if (result.success) {
         localStorage.setItem("token", result.data.token);
@@ -139,36 +118,6 @@ const Login = () => {
     e.preventDefault();
     setError("");
 
-    if (otpChallengeId) {
-      if (!/^\d{6}$/.test(otpCode.trim())) {
-        setError("Enter the 6-digit verification code");
-        return;
-      }
-
-      setLoading(true);
-      try {
-        const result = await apiFetch("/api/auth/verify-login-otp", {
-          method: "POST",
-          data: { challenge_id: otpChallengeId, code: otpCode.trim() },
-        });
-
-        if (result.success) {
-          localStorage.setItem("token", result.data.token);
-          localStorage.setItem("user", JSON.stringify(result.data.user));
-          if (setUser) setUser(result.data.user);
-          toast({ title: "Welcome back!", description: "You've been logged in successfully." });
-          navigateByRole(result.data.user);
-        } else {
-          setError(resolveError(result.error, "Verification failed"));
-        }
-      } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : "Could not verify the code");
-      } finally {
-        setLoading(false);
-      }
-      return;
-    }
-
     if (!email.trim()) { setError("Email is required"); return; }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setError("Please enter a valid email"); return; }
     if (!password) { setError("Password is required"); return; }
@@ -187,10 +136,16 @@ const Login = () => {
         }
 
         if (result.data?.otp_required) {
-          setOtpChallengeId(result.data.challenge_id);
-          setOtpSentTo(result.data.user?.email || email);
-          setOtpCode("");
+          sessionStorage.setItem("pendingLoginOtp", JSON.stringify({
+            challengeId: result.data.challenge_id,
+            email: result.data.user?.email || email,
+            from: redirectTo,
+            expiresAt: result.data.expires_at || null,
+          }));
           toast({ title: "Verification code sent", description: "Check your email for the 6-digit code." });
+          const params = new URLSearchParams();
+          if (redirectTo) params.set("from", redirectTo);
+          navigate(`/login/otp${params.toString() ? `?${params.toString()}` : ""}`);
           return;
         }
 
@@ -211,36 +166,6 @@ const Login = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleResendOtp = async () => {
-    if (!otpChallengeId) return;
-    setResending(true);
-    setError("");
-    try {
-      const result = await apiFetch("/api/auth/resend-login-otp", {
-        method: "POST",
-        data: { challenge_id: otpChallengeId },
-      });
-      if (result.success) {
-        setOtpChallengeId(result.data.challenge_id);
-        setOtpCode("");
-        toast({ title: "Code resent", description: "A new code has been sent to your email." });
-      } else {
-        setError(resolveError(result.error, "Could not resend the verification code"));
-      }
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Could not resend the verification code");
-    } finally {
-      setResending(false);
-    }
-  };
-
-  const resetOtpStep = () => {
-    setOtpChallengeId(null);
-    setOtpCode("");
-    setOtpSentTo("");
-    setError("");
   };
 
   return (
@@ -298,12 +223,6 @@ const Login = () => {
             </AnimatePresence>
 
             <form onSubmit={handleSubmit} className="space-y-6">
-              {otpChallengeId && (
-                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-                  Enter the 6-digit code sent to {otpSentTo}.
-                </div>
-              )}
-
               {/* Role Selector */}
               <div className="space-y-2">
                 <label htmlFor="role" className="text-[13px] font-bold text-[#222222] tracking-wide ml-1">
@@ -314,7 +233,6 @@ const Login = () => {
                     id="role"
                     value={role}
                     onChange={(e) => { setRole(e.target.value); if (error && error.includes("role")) setError(""); }}
-                    disabled={!!otpChallengeId}
                     className="w-full bg-transparent py-4 px-4 text-base text-[#222222] outline-none appearance-none cursor-pointer font-medium h-14"
                   >
                     <option value="" disabled>Select Role...</option>
@@ -343,8 +261,6 @@ const Login = () => {
                     type="email"
                     value={email}
                     onChange={(e) => { setEmail(e.target.value); if (error) setError(""); }}
-                    onBlur={(e) => checkRoles(e.target.value)}
-                    disabled={!!otpChallengeId}
                     className="w-full bg-transparent py-4 px-4 text-base text-[#222222] outline-none placeholder:text-[#B0B0B0] font-medium h-14"
                     placeholder="name@example.com"
                     autoComplete="email"
@@ -372,7 +288,6 @@ const Login = () => {
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    disabled={!!otpChallengeId}
                     className="w-full bg-transparent py-4 pl-4 pr-16 text-base text-[#222222] outline-none placeholder:text-[#B0B0B0] font-medium h-14"
                     placeholder="Enter your password"
                     autoComplete="current-password"
@@ -389,54 +304,6 @@ const Login = () => {
                 </div>
               </div>
 
-              {otpChallengeId && (
-                <div className="space-y-2">
-                  <label htmlFor="login-otp-input" className="text-[13px] font-bold text-[#222222] tracking-wide ml-1">
-                    Verification Code
-                  </label>
-                  <div className="relative border border-[#DDDDDD] rounded-2xl overflow-hidden focus-within:ring-4 focus-within:ring-primary/10 focus-within:border-primary/50 transition-all bg-slate-50/50">
-                    <input
-                      id="login-otp-input"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      maxLength={6}
-                      value={otpCode}
-                      onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                      className="w-full bg-transparent py-4 px-4 text-base text-[#222222] outline-none placeholder:text-[#B0B0B0] font-medium h-14 tracking-[0.35em]"
-                      placeholder="000000"
-                      autoComplete="one-time-code"
-                      required
-                    />
-                  </div>
-                  <div className="flex items-center justify-between px-1">
-                    <button
-                      type="button"
-                      onClick={handleResendOtp}
-                      disabled={resending}
-                      className="text-[13px] font-bold text-primary hover:underline underline-offset-4 disabled:opacity-60"
-                    >
-                      {resending ? "Sending..." : "Resend code"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={resetOtpStep}
-                      className="text-[13px] font-bold text-slate-500 hover:text-slate-800"
-                    >
-                      Use different details
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {availableRoles.length > 0 && (
-                <div className="flex items-center gap-2 px-1">
-                  <ShieldCheck className="w-4 h-4 text-emerald-500" />
-                  <p className="text-[12px] text-emerald-600 font-bold uppercase tracking-tight">
-                    Found roles: {availableRoles.join(", ")}
-                  </p>
-                </div>
-              )}
-
               <Button
                 id="login-submit-button"
                 type="submit"
@@ -446,7 +313,7 @@ const Login = () => {
                 {loading ? (
                   <Loader2 className="w-5 h-5 animate-spin mx-auto" />
                 ) : (
-                  otpChallengeId ? "Verify and log in" : "Log in"
+                  "Log in"
                 )}
               </Button>
             </form>

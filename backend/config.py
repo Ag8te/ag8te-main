@@ -39,6 +39,7 @@ class Config:
     BREVO_SENDER_NAME = os.environ.get('BREVO_SENDER_NAME') or DEFAULT_FROM_NAME
     OTP_SECRET_KEY = os.environ.get('OTP_SECRET_KEY') or JWT_SECRET_KEY
     OTP_LOGIN_EXPIRES_MINUTES = int(os.environ.get('OTP_LOGIN_EXPIRES_MINUTES') or 10)
+    OTP_TRUSTED_DEVICE_DAYS = int(os.environ.get('OTP_TRUSTED_DEVICE_DAYS') or 7)
     OTP_SENSITIVE_EXPIRES_MINUTES = int(os.environ.get('OTP_SENSITIVE_EXPIRES_MINUTES') or 10)
     OTP_MAX_ATTEMPTS = int(os.environ.get('OTP_MAX_ATTEMPTS') or 5)
     FIREBASE_PROJECT_ID = os.environ.get('FIREBASE_PROJECT_ID')

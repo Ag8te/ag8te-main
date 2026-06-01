@@ -80,7 +80,8 @@ class RegisterSchema(Schema):
 class LoginSchema(Schema):
     email = fields.Email(required=True)
     password = fields.Str(required=True)
-    role = fields.Str(required=True, validate=validate.OneOf(['client', 'driver', 'professional', 'service-provider', 'agent']))
+    role = fields.Str(validate=validate.OneOf(['client', 'driver', 'professional', 'service-provider', 'agent']))
+    trusted_device_token = fields.Str()
 
 class ForgotPasswordSchema(Schema):
     email = fields.Email(required=True)
@@ -156,7 +157,7 @@ def login():
         user, error = AuthService.login_user(
             email=data['email'],
             password=data['password'],
-            role=data['role']
+            role=data.get('role')
         )
         
         if error == "INVALID_CREDENTIALS":
@@ -171,6 +172,14 @@ def login():
                 'payment_required': True,
                 'message': 'Registration payment is still pending. Redirecting to Yoco.'
             }, 'Registration payment required.', 200)
+        trusted_device_token = (request.json or {}).get('trusted_device_token')
+        if OtpService.is_trusted_login_device(user, trusted_device_token):
+            access_token = create_access_token(identity=str(user.id))
+            return success_response({
+                'user': user.to_dict(),
+                'token': access_token,
+                'otp_skipped': True
+            }, 'Login successful')
         challenge = OtpService.create_email_login_challenge(user)
         return success_response({
             'user': user.to_dict(),
@@ -206,7 +215,9 @@ def verify_login_otp():
         access_token = create_access_token(identity=str(user.id))
         return success_response({
             'user': user.to_dict(),
-            'token': access_token
+            'token': access_token,
+            'trusted_device_token': OtpService.create_trusted_login_device_token(user),
+            'trusted_device_expires_days': current_app.config.get('OTP_TRUSTED_DEVICE_DAYS', 7)
         }, 'Login successful')
     except ValidationError as e:
         return error_response('VALIDATION_ERROR', 'Invalid input data', e.messages, 400)

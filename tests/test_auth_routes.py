@@ -51,6 +51,26 @@ def test_login_route_success(client, db_session):
     assert 'challenge_id' in res_data['data']
     assert 'token' not in res_data['data']
 
+def test_login_route_success_without_role(client, db_session):
+    email = "login-no-role@example.com"
+    password = "password123"
+
+    user = User(email=email, role="client", is_active=True, email_verified=True)
+    user.set_password(password)
+    db_session.session.add(user)
+    db_session.session.commit()
+
+    with patch("backend.services.email_service.EmailService.send_otp_email"):
+        response = client.post('/api/auth/login',
+                               data=json.dumps({"email": email, "password": password}),
+                               content_type='application/json')
+
+    assert response.status_code == 200
+    res_data = response.get_json()
+    assert res_data['success'] is True
+    assert res_data['data']['otp_required'] is True
+    assert res_data['data']['user']['role'] == "client"
+
 def test_verify_login_otp_issues_token(client, db_session, app):
     email = "otp-login@example.com"
     password = "password123"
@@ -76,6 +96,46 @@ def test_verify_login_otp_issues_token(client, db_session, app):
     res_data = response.get_json()
     assert res_data['success'] is True
     assert 'token' in res_data['data']
+    assert 'trusted_device_token' in res_data['data']
+
+def test_login_skips_otp_for_trusted_device(client, db_session, app):
+    email = "trusted-login@example.com"
+    password = "password123"
+    role = "client"
+
+    user = User(email=email, role=role, is_active=True, email_verified=True)
+    user.set_password(password)
+    db_session.session.add(user)
+    db_session.session.commit()
+
+    with patch("backend.services.otp_service.OtpService.generate_code", return_value="123456"), \
+         patch("backend.services.email_service.EmailService.send_otp_email"):
+        login_response = client.post('/api/auth/login',
+                                     data=json.dumps({"email": email, "password": password, "role": role}),
+                                     content_type='application/json')
+
+    challenge_id = login_response.get_json()['data']['challenge_id']
+    verify_response = client.post('/api/auth/verify-login-otp',
+                                  data=json.dumps({"challenge_id": challenge_id, "code": "123456"}),
+                                  content_type='application/json')
+    trusted_device_token = verify_response.get_json()['data']['trusted_device_token']
+
+    with patch("backend.services.email_service.EmailService.send_otp_email") as mock_send_otp:
+        response = client.post('/api/auth/login',
+                               data=json.dumps({
+                                   "email": email,
+                                   "password": password,
+                                   "role": role,
+                                   "trusted_device_token": trusted_device_token,
+                               }),
+                               content_type='application/json')
+
+    assert response.status_code == 200
+    res_data = response.get_json()
+    assert res_data['success'] is True
+    assert res_data['data']['otp_skipped'] is True
+    assert 'token' in res_data['data']
+    mock_send_otp.assert_not_called()
 
 def test_login_route_unpaid_non_client_redirects_to_payment(client, db_session):
     email = "driver-login@example.com"

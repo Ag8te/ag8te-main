@@ -3,11 +3,13 @@ OTP Service
 """
 import logging
 import secrets
+import hashlib
 from datetime import datetime, timedelta
 
 from flask import current_app
 from google.auth.transport.requests import Request
 from google.oauth2 import id_token
+from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 
 from backend.extensions import db
 from backend.models import OtpChallenge, User
@@ -22,6 +24,17 @@ class OtpService:
     @staticmethod
     def _secret():
         return current_app.config.get('OTP_SECRET_KEY') or current_app.config.get('JWT_SECRET_KEY')
+
+    @staticmethod
+    def _trusted_device_serializer():
+        return URLSafeTimedSerializer(
+            OtpService._secret(),
+            salt='login-otp-trusted-device'
+        )
+
+    @staticmethod
+    def _password_fingerprint(user):
+        return hashlib.sha256(str(user.password_hash or '').encode('utf-8')).hexdigest()
 
     @staticmethod
     def generate_code():
@@ -65,6 +78,33 @@ class OtpService:
         challenge.verified_at = datetime.utcnow()
         db.session.commit()
         return challenge, None
+
+    @staticmethod
+    def create_trusted_login_device_token(user):
+        return OtpService._trusted_device_serializer().dumps({
+            'user_id': str(user.id),
+            'role': user.role,
+            'password_fingerprint': OtpService._password_fingerprint(user),
+        })
+
+    @staticmethod
+    def is_trusted_login_device(user, token):
+        if not user or not token:
+            return False
+
+        try:
+            payload = OtpService._trusted_device_serializer().loads(
+                token,
+                max_age=current_app.config.get('OTP_TRUSTED_DEVICE_DAYS', 7) * 24 * 60 * 60
+            )
+        except (BadSignature, SignatureExpired, TypeError, ValueError):
+            return False
+
+        return (
+            payload.get('user_id') == str(user.id)
+            and payload.get('role') == user.role
+            and payload.get('password_fingerprint') == OtpService._password_fingerprint(user)
+        )
 
     @staticmethod
     def verify_firebase_phone_token(firebase_id_token, expected_phone=None):
