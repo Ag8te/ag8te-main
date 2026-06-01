@@ -4,7 +4,7 @@ import { Eye, EyeOff, AlertCircle, Loader2, ShieldCheck, ArrowLeft } from "lucid
 import { GoogleLogin } from "@react-oauth/google";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth, type User } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { apiFetch } from "@/lib/api";
 import { buildRegistrationPaymentUrl, requiresRegistrationPayment } from "@/lib/registration-payment";
@@ -18,7 +18,7 @@ interface GoogleCredentialResponse {
 
 /** Safely converts the API's error field (string | object | undefined) into a plain string. */
 const resolveError = (
-  err: string | { code: string; message: string; details?: any } | undefined,
+  err: string | { code: string; message: string; details?: unknown } | undefined,
   fallback: string
 ): string => {
   if (!err) return fallback;
@@ -37,30 +37,12 @@ const Login = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
-  const [redirectTo, setRedirectTo] = useState(searchParams.get("from") || null);
-  const [availableRoles, setAvailableRoles] = useState<string[]>([]);
+  const redirectTo = searchParams.get("from") || null;
   const [resending, setResending] = useState(false);
   const [isVerificationError, setIsVerificationError] = useState(false);
   const showGoogleSignIn = isGoogleOAuthConfigured();
 
-  const checkRoles = async (emailVal: string) => {
-    if (!emailVal || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) return;
-    try {
-      const res = await apiFetch<{ roles: string[] }>(`/api/auth/roles-for-email?email=${encodeURIComponent(emailVal)}`);
-      if (res.success && res.data.roles.length > 0) {
-        setAvailableRoles(res.data.roles);
-        if (!res.data.roles.includes(role)) {
-          setRole(res.data.roles[0]);
-        }
-      } else {
-        setAvailableRoles([]);
-      }
-    } catch (err) {
-      console.error("Failed to fetch roles:", err);
-    }
-  };
-
-  const navigateByRole = (u: any) => {
+  const navigateByRole = (u: User) => {
     if (requiresRegistrationPayment(u)) {
       localStorage.setItem("registrationPaymentUser", JSON.stringify(u));
       navigate(buildRegistrationPaymentUrl(redirectTo || undefined));
@@ -82,7 +64,7 @@ const Login = () => {
     try {
       const result = await apiFetch("/api/auth/google-login", {
         method: "POST",
-        data: { token: credentialResponse.credential, role },
+        data: { token: credentialResponse.credential, role: role || "client" },
       });
       if (result.success) {
         localStorage.setItem("token", result.data.token);
@@ -153,6 +135,20 @@ const Login = () => {
           return;
         }
 
+        if (result.data?.otp_required) {
+          sessionStorage.setItem("pendingLoginOtp", JSON.stringify({
+            challengeId: result.data.challenge_id,
+            email: result.data.user?.email || email,
+            from: redirectTo,
+            expiresAt: result.data.expires_at || null,
+          }));
+          toast({ title: "Verification code sent", description: "Check your email for the 6-digit code." });
+          const params = new URLSearchParams();
+          if (redirectTo) params.set("from", redirectTo);
+          navigate(`/login/otp${params.toString() ? `?${params.toString()}` : ""}`);
+          return;
+        }
+
         toast({ title: "Welcome back!", description: "You've been logged in successfully." });
         navigateByRole(result.data.user);
       } else {
@@ -160,7 +156,7 @@ const Login = () => {
         setError(errorMsg);
 
         // Use a more robust check for the specific verification error
-        const errObj = result.error as any;
+        const errObj = typeof result.error === "object" && result.error !== null ? result.error : null;
         if (errObj?.code === 'EMAIL_NOT_VERIFIED' || errorMsg.toLowerCase().includes("not verified")) {
           setIsVerificationError(true);
         }
@@ -265,7 +261,6 @@ const Login = () => {
                     type="email"
                     value={email}
                     onChange={(e) => { setEmail(e.target.value); if (error) setError(""); }}
-                    onBlur={(e) => checkRoles(e.target.value)}
                     className="w-full bg-transparent py-4 px-4 text-base text-[#222222] outline-none placeholder:text-[#B0B0B0] font-medium h-14"
                     placeholder="name@example.com"
                     autoComplete="email"
@@ -308,15 +303,6 @@ const Login = () => {
                   </button>
                 </div>
               </div>
-
-              {availableRoles.length > 0 && (
-                <div className="flex items-center gap-2 px-1">
-                  <ShieldCheck className="w-4 h-4 text-emerald-500" />
-                  <p className="text-[12px] text-emerald-600 font-bold uppercase tracking-tight">
-                    Found roles: {availableRoles.join(", ")}
-                  </p>
-                </div>
-              )}
 
               <Button
                 id="login-submit-button"

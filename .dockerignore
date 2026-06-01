@@ -10,6 +10,13 @@ env
 .git
 .gitignore
 frontend/node_modules
+frontend/dist
+frontend/build
+frontend/android
+frontend/ios
+frontend/store-builds
+frontend/.vite
+frontend/coverage
 dist
 build
 .DS_Store

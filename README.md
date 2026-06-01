@@ -140,6 +140,9 @@ mzansi-serve/
 - `DATABASE_URL` – PostgreSQL connection string  
 - `SECRET_KEY`, `JWT_SECRET_KEY` – Flask app & JWT secrets  
 - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `DEFAULT_FROM_EMAIL` – email  
+- `BREVO_API_KEY`, `BREVO_SENDER_EMAIL`, `BREVO_SENDER_NAME` – Brevo transactional email for login OTPs
+- `OTP_SECRET_KEY`, `OTP_LOGIN_EXPIRES_MINUTES`, `OTP_MAX_ATTEMPTS` – email OTP security settings
+- `FIREBASE_PROJECT_ID` – Firebase Authentication project used to verify phone OTP ID tokens for sensitive actions
 - `PAYPAL_CLIENT_ID`, `PAYPAL_SECRET`, `PAYPAL_BASE_URL` – PayPal (optional)  
 - `YOCO_SECRET_KEY` – Yoco payments (optional)  
 - `FRONTEND_URL` – Frontend base URL (default: http://localhost:5006)  
@@ -151,7 +154,11 @@ See `env.example` for a full template.
 - `POST /api/auth/register` - User registration
 - `POST /api/auth/register-with-payment` - User registration with registration fee checkout
 - `GET /api/auth/agents` - List agents (for registration dropdown; displays agent_id)
-- `POST /api/auth/login` - User login
+- `POST /api/auth/login` - Validate credentials and send email OTP
+- `POST /api/auth/verify-login-otp` - Verify email OTP and issue JWT
+- `POST /api/auth/resend-login-otp` - Resend pending login OTP
+- `POST /api/auth/verify-sensitive-sms` - Verify Firebase phone OTP for payouts and payment verification
+- `POST /api/auth/verify-password-reset-sms` - Verify Firebase phone OTP and issue a password reset token
 - `POST /api/auth/logout` - User logout
 - `POST /api/auth/forgot-password` - Request password reset
 - `POST /api/auth/reset-password` - Reset password with token

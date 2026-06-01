@@ -19,7 +19,7 @@ export interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string, role: string) => Promise<{ success: boolean; data?: any; error?: string }>;
+  login: (email: string, password: string, role?: string) => Promise<{ success: boolean; data?: any; error?: string }>;
   adminLogin: (email: string, password: string) => Promise<{ success: boolean; data?: any; error?: string }>;
   register: (data: FormData | Record<string, any>) => Promise<{ success: boolean; data?: any; error?: string }>;
   logout: () => void;
@@ -29,6 +29,7 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
+const LOGIN_TRUSTED_DEVICE_KEY = "loginTrustedDeviceToken";
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUserState] = useState<User | null>(null);
@@ -81,13 +82,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     initAuth();
   }, [syncUserState]);
 
-  const login = useCallback(async (email: string, password: string, role: string) => {
+  const login = useCallback(async (email: string, password: string, role?: string) => {
     try {
+      const trustedDeviceToken = localStorage.getItem(LOGIN_TRUSTED_DEVICE_KEY);
       const result = await apiFetch("/api/auth/login", {
-        data: { email, password, role }
+        data: {
+          email,
+          password,
+          ...(role ? { role } : {}),
+          ...(trustedDeviceToken ? { trusted_device_token: trustedDeviceToken } : {}),
+        }
       });
 
       if (result.success) {
+        if (result.data?.otp_required) {
+          return { success: true, data: result.data };
+        }
+
         if (result.data?.payment_required) {
           localStorage.setItem("user", JSON.stringify(result.data.user));
           localStorage.setItem("registrationPaymentUser", JSON.stringify(result.data.user));
@@ -95,6 +106,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
 
         localStorage.setItem("token", result.data.token);
+        if (result.data?.trusted_device_token) {
+          localStorage.setItem(LOGIN_TRUSTED_DEVICE_KEY, result.data.trusted_device_token);
+        }
         syncUserState(result.data.user);
         return { success: true, data: result.data };
       }
