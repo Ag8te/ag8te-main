@@ -223,7 +223,7 @@ def android_findings() -> list[Finding]:
             resolved_store_file = (
                 store_file
                 if store_file.is_absolute()
-                else (FRONTEND_DIR / "android" / store_file).resolve()
+                else (FRONTEND_DIR / "android/app" / store_file).resolve()
             )
             if resolved_store_file.exists():
                 findings.append(
