@@ -116,6 +116,20 @@
     letter-spacing: -0.01em;
   }
 
+  .native-app {
+    --native-safe-top: calc(env(safe-area-inset-top, 0px) + 10px);
+  }
+
+  .native-app #root {
+    min-height: 100%;
+    padding-top: var(--native-safe-top);
+  }
+
+  .native-app .native-safe-top,
+  .native-app .MuiAppBar-positionSticky {
+    top: 0;
+  }
+
   /* Poppins weight ladder:
      300 = light   (prose / captions)
      400 = normal  (body copy)  ← default

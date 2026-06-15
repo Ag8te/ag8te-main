@@ -179,15 +179,16 @@ const Login = () => {
           className="w-full max-w-[568px] border border-[#DDDDDD] rounded-xl shadow-[0_8px_28px_rgba(0,0,0,0.12)] overflow-hidden bg-white"
         >
           {/* Header */}
-          <div className="px-6 py-4 border-b border-[#DDDDDD] flex items-center justify-center relative">
+          <div className="min-h-14 px-14 py-4 border-b border-[#DDDDDD] flex items-center justify-center relative sm:px-40">
             <Link
               to="/"
-              className="absolute left-6 top-1/2 -translate-y-1/2 flex items-center gap-2 text-sm font-semibold text-[#222222] hover:text-primary transition-colors group"
+              aria-label="Back to website"
+              className="absolute left-4 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold text-[#222222] hover:bg-slate-50 hover:text-primary transition-colors group sm:left-6 sm:h-auto sm:w-auto sm:justify-start sm:gap-2 sm:rounded-none sm:hover:bg-transparent"
             >
               <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-              <span>Back to website</span>
+              <span className="hidden whitespace-nowrap sm:inline">Back to website</span>
             </Link>
-            <h1 className="text-base font-bold text-[#222222]">Log in or sign up</h1>
+            <h1 className="text-center text-sm font-bold text-[#222222] sm:text-base">Log in or sign up</h1>
           </div>
 
           <div className="p-6">

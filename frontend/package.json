@@ -19,6 +19,7 @@
     "android:assemble:release": "bash scripts/build_android_release.sh assembleRelease",
     "huawei:bundle:release": "STORE_CHANNEL=huawei bash scripts/build_android_release.sh bundleRelease",
     "huawei:assemble:release": "STORE_CHANNEL=huawei bash scripts/build_android_release.sh assembleRelease",
+    "ios:archive:release": "bash scripts/build_ios_release.sh",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",

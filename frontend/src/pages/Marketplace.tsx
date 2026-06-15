@@ -234,7 +234,7 @@ const ads = () => {
                             >
                                 <div className={`relative ${viewMode === 'list' ? "w-64 shrink-0" : "aspect-[4/3]"}`}>
                                     <img
-                                        src={ad.images?.[0] || "https://images.unsplash.com/photo-1549421263-5ec394a5ad4c?q=80&w=800&auto=format&fit=crop"}
+                                        src={ad.images?.[0] || "https://images.unsplash.com/photo-1549421263-5ec394a5ad4c?q=80&w=800&fm=jpg&fit=crop"}
                                         alt={ad.title}
                                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                                     />

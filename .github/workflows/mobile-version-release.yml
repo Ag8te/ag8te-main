@@ -1,0 +1,62 @@
+name: Create Mobile Version Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Semantic version change
+        required: true
+        default: patch
+        type: choice
+        options: [patch, minor, major]
+      custom_version:
+        description: Optional exact semantic version, for example 1.2.0
+        required: false
+        type: string
+
+concurrency:
+  group: mobile-version-release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  version-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Configure release identity
+        run: |
+          if [[ "${{ github.ref_name }}" != "main" ]]; then
+            echo "Run mobile version releases from main." >&2
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump tracked mobile version and changelog
+        id: version
+        run: |
+          python3 scripts/mobile_version.py bump \
+            --type "${{ inputs.bump }}" \
+            --custom "${{ inputs.custom_version }}"
+
+      - name: Commit and tag release
+        run: |
+          git add mobile-version.json CHANGELOG.md
+          git commit -m "release: mobile ${{ steps.version.outputs.version_name }}"
+          git tag -a "${{ steps.version.outputs.tag }}" -m "MzansiServe mobile ${{ steps.version.outputs.version_name }}"
+          git push origin "HEAD:${{ github.ref_name }}"
+          git push origin "${{ steps.version.outputs.tag }}"
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.version.outputs.tag }}" \
+            --title "MzansiServe ${{ steps.version.outputs.version_name }}" \
+            --notes-file "${{ steps.version.outputs.notes_file }}"

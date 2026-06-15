@@ -80,14 +80,14 @@ const HeroCarousel = () => {
   }, [next, slides.length]);
 
   if (slides.length === 0) {
-    return <div className="h-[600px] w-full bg-slate-900 animate-pulse" />;
+    return <div className="h-[640px] w-full bg-slate-900 animate-pulse sm:h-[700px] lg:h-[850px]" />;
   }
 
   const slide = slides[current];
   const IconComponent = iconMap[slide.badge || "Shop"] || ShoppingBag;
 
   return (
-    <section id="home" className="relative h-[800px] lg:h-[850px] w-full overflow-hidden">
+    <section id="home" className="relative h-[720px] w-full overflow-hidden sm:h-[760px] lg:h-[850px]">
       {/* Background images */}
       <AnimatePresence mode="wait">
         <motion.div
@@ -108,8 +108,8 @@ const HeroCarousel = () => {
       </AnimatePresence>
 
       {/* Content */}
-      <div className="relative z-10 flex h-full items-center pb-32 lg:pb-40">
-        <div className="container mx-auto px-8 lg:px-12">
+      <div className="relative z-10 flex h-full items-center pb-24 pt-6 sm:pb-28 lg:pb-40 lg:pt-0">
+        <div className="container mx-auto px-6 sm:px-8 lg:px-12">
           <AnimatePresence mode="wait">
             <motion.div
               key={slide.id}
@@ -121,7 +121,7 @@ const HeroCarousel = () => {
               <motion.div
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.3, duration: 0.5 }}
-                className="mb-8 inline-flex items-center gap-3 rounded-full bg-white/10 px-5 py-2 backdrop-blur-xl border border-white/10 shadow-2xl"
+                className="mb-4 inline-flex items-center gap-3 rounded-full bg-white/10 px-4 py-2 backdrop-blur-xl border border-white/10 shadow-2xl sm:mb-8 sm:px-5"
               >
                 <div className="h-6 w-6 rounded-full bg-white/20 flex items-center justify-center">
                   <IconComponent className="h-3.5 w-3.5 text-white" />
@@ -129,20 +129,20 @@ const HeroCarousel = () => {
                 <span className="text-[10px] font-black tracking-[0.2em] uppercase text-white">{slide.badge}</span>
               </motion.div>
 
-              <h1 className="mb-8 text-5xl font-bold leading-[1.05] text-white sm:text-6xl lg:text-7xl tracking-tighter whitespace-pre-line drop-shadow-sm">
+              <h1 className="mb-4 text-4xl font-bold leading-[1.08] text-white sm:mb-8 sm:text-6xl lg:text-7xl tracking-tighter whitespace-pre-line drop-shadow-sm">
                 {slide.title}
               </h1>
 
-              <p className="mb-12 max-w-lg text-xl text-white/90 font-medium leading-relaxed drop-shadow-sm">
+              <p className="mb-6 max-w-lg text-base text-white/90 font-medium leading-relaxed drop-shadow-sm sm:mb-12 sm:text-xl">
                 {slide.subtitle}
               </p>
 
-              <div className="flex flex-wrap gap-5">
+              <div className="flex max-w-sm flex-col gap-3 sm:max-w-none sm:flex-row sm:flex-wrap sm:gap-5">
                 {slide.cta_text && (
                   <Button
                     size="lg"
                     className={cn(
-                      "h-16 px-10 rounded-2xl text-white font-bold text-lg shadow-2xl transition-all hover:-translate-y-1 active:scale-95 border-none",
+                      "h-12 w-full px-6 rounded-lg text-white font-bold text-base shadow-2xl transition-all active:scale-95 border-none sm:h-16 sm:w-auto sm:rounded-2xl sm:px-10 sm:text-lg sm:hover:-translate-y-1",
                       slide.ctaColor || "bg-primary"
                     )}
                     onClick={() => navigate(slide.cta_link || '/')}
@@ -154,7 +154,7 @@ const HeroCarousel = () => {
                   <Button
                     size="lg"
                     variant="outline"
-                    className="h-16 border-white/30 text-white bg-white/5 hover:bg-white/10 px-10 rounded-2xl backdrop-blur-md transition-all font-bold text-lg border-2"
+                    className="h-12 w-full border-white/30 text-white bg-white/5 hover:bg-white/10 px-6 rounded-lg backdrop-blur-md transition-all font-bold text-base border-2 sm:h-16 sm:w-auto sm:rounded-2xl sm:px-10 sm:text-lg"
                     onClick={() => navigate(slide.learnMore || '/')}
                   >
                     Explore Details
@@ -169,8 +169,8 @@ const HeroCarousel = () => {
       {slides.length > 1 && (
         <>
           {/* Navigation controls - Refined Minimal Style */}
-          <div className="absolute bottom-28 lg:bottom-32 right-12 z-50 flex items-center gap-4">
-            <div className="flex gap-2 mr-4">
+          <div className="absolute bottom-6 left-6 right-6 z-20 flex items-center justify-between gap-4 sm:bottom-10 sm:left-auto sm:right-8 lg:bottom-32 lg:right-12">
+            <div className="flex gap-2 sm:mr-4">
               {slides.map((_, idx) => (
                 <button
                   key={idx}
@@ -186,17 +186,17 @@ const HeroCarousel = () => {
                 />
               ))}
             </div>
-            <div className="flex gap-2">
+            <div className="flex shrink-0 gap-2">
               <button
                 onClick={prev}
-                className="group flex h-12 w-12 items-center justify-center rounded-full border border-white/20 bg-black/10 text-white backdrop-blur-xl transition-all hover:bg-black/30 hover:scale-105 active:scale-95"
+                className="group flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black/20 text-white backdrop-blur-xl transition-all hover:bg-black/30 active:scale-95 sm:h-12 sm:w-12 sm:hover:scale-105"
                 aria-label="Previous slide"
               >
                 <ChevronLeft size={20} className="group-hover:-translate-x-0.5 transition-transform" />
               </button>
               <button
                 onClick={next}
-                className="group flex h-12 w-12 items-center justify-center rounded-full border border-white/20 bg-black/10 text-white backdrop-blur-xl transition-all hover:bg-black/30 hover:scale-105 active:scale-95"
+                className="group flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black/20 text-white backdrop-blur-xl transition-all hover:bg-black/30 active:scale-95 sm:h-12 sm:w-12 sm:hover:scale-105"
                 aria-label="Next slide"
               >
                 <ChevronRight size={20} className="group-hover:translate-x-0.5 transition-transform" />
