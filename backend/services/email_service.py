@@ -813,3 +813,159 @@ MzansiServe Compliance Team"""
         )
         EmailService.send_email(email_id=email.id)
         return email
+
+    # ───────────────────────────────────────────
+    # NEW: Panic alert notifications
+    # ─────────────────────────────────────────────
+
+    @staticmethod
+    def send_panic_admin_notification(alert) -> bool:
+        """
+        Urgent panic alert email to the platform admin.
+        Called immediately when a panic is triggered.
+        Admin email is read from app config ADMIN_EMAIL or SUPPORT_EMAIL.
+        """
+        admin_email = (
+            current_app.config.get("ADMIN_EMAIL")
+            or current_app.config.get("SUPPORT_EMAIL")
+            or "support@mzansiserve.co.za"
+        )
+        user = alert.user
+        d = user.data or {}
+        first = (d.get("full_name") or d.get("first_name") or "").strip()
+        last = (d.get("surname") or d.get("last_name") or "").strip()
+        if first and not last and " " in first:
+            first, last = first.split(" ", 1)
+        full_name = f"{first} {last}".strip() or user.email
+        role = (user.role or "user").replace("-", " ").title()
+        phone = d.get("phone") or "Not provided"
+        maps_link = (
+            f"https://www.google.com/maps?q={alert.latitude},{alert.longitude}"
+            if alert.latitude and alert.longitude else None
+        )
+        location_html = (
+            f"""<p><strong>GPS:</strong> {alert.latitude}, {alert.longitude}<br>
+            <a href="{maps_link}" style="color:#dc2626;font-weight:bold;">
+            View on Google Maps &rarr;</a></p>"""
+            if maps_link else "<p><strong>GPS Location:</strong> Not available from device</p>"
+        )
+        booking_html = (
+            f"<p><strong>Booking ID:</strong> {alert.booking_id}</p>"
+            if alert.booking_id else ""
+        )
+        armed_html = (
+            f"<p><strong>Armed Response:</strong> {alert.armed_response_status}</p>"
+            if alert.armed_response_status and alert.armed_response_status != "pending_provider"
+            else "<p><strong>Armed Response:</strong> No provider configured, manual response required</p>"
+        )
+        subject = f"PANIC ALERT - {full_name} ({role})"
+        body = (
+            f"PANIC ALERT\n\nUser: {full_name}\nRole: {role}\nPhone: {phone}\n"
+            f"Email: {user.email}\n"
+            f"{f'Booking: {alert.booking_id}' if alert.booking_id else ''}\n\n"
+            f"GPS: {alert.latitude}, {alert.longitude}\n"
+            f"{maps_link or 'Location not available'}\n\n"
+            f"Alert ID: {alert.id}\nTime: {alert.created_at}\n\n"
+            f"Emergency: Police 10111 | Ambulance 10177 | Emergency 112"
+        )
+        body_html = f"""
+<html><body style="font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;">
+<div style="max-width:600px;margin:auto;background:#fff;border-radius:8px;overflow:hidden;">
+  <div style="background:#dc2626;padding:24px;text-align:center;">
+    <h1 style="color:#fff;margin:0;font-size:26px;">PANIC ALERT</h1>
+    <p style="color:#fecaca;margin:6px 0 0;">MzansiServe Emergency Notification</p>
+  </div>
+  <div style="padding:28px;">
+    <div style="background:#fef2f2;border:2px solid #dc2626;border-radius:8px;padding:16px;margin-bottom:20px;">
+      <h2 style="color:#dc2626;margin:0 0 10px;">Immediate Attention Required</h2>
+      <p style="margin:0;color:#7f1d1d;">A user has triggered the panic button. Attempt contact immediately.</p>
+    </div>
+    <h3 style="border-bottom:2px solid #dc2626;padding-bottom:6px;">User Details</h3>
+    <p><strong>Name:</strong> {full_name}</p>
+    <p><strong>Role:</strong> {role}</p>
+    <p><strong>Phone:</strong> {phone}</p>
+    <p><strong>Email:</strong> {user.email}</p>
+    {booking_html}
+    <h3 style="border-bottom:2px solid #dc2626;padding-bottom:6px;">Location</h3>
+    {location_html}
+    <h3 style="border-bottom:2px solid #dc2626;padding-bottom:6px;">Alert Info</h3>
+    <p><strong>Alert ID:</strong> {alert.id}</p>
+    <p><strong>Time:</strong> {alert.created_at}</p>
+    {armed_html}
+    <div style="margin-top:24px;padding:16px;background:#f9fafb;border-radius:8px;text-align:center;">
+      <p style="margin:0 0 6px;font-weight:bold;">Emergency Numbers</p>
+      <p style="margin:0;font-size:16px;">Police: <strong>10111</strong> &nbsp;|&nbsp; Ambulance: <strong>10177</strong> &nbsp;|&nbsp; Emergency: <strong>112</strong></p>
+    </div>
+  </div>
+</div>
+</body></html>"""
+        email = EmailService.queue_email(
+            recipient=admin_email,
+            subject=subject,
+            body=body,
+            body_html=body_html,
+            metadata={"type": "panic_admin", "alert_id": str(alert.id), "user_id": str(alert.user_id)},
+        )
+        return EmailService.send_email(email_id=email.id)
+
+    @staticmethod
+    def send_panic_next_of_kin_notification(alert) -> bool:
+        """
+        Notifies the user's next of kin by email when a panic is triggered.
+        Reads next_of_kin from user.data. Returns False if no email on file.
+        """
+        user = alert.user
+        nok = (user.data or {}).get("next_of_kin") or {}
+        nok_email = (nok.get("contact_email") or nok.get("email") or "").strip()
+        nok_name = (nok.get("full_name") or nok.get("name") or "Emergency Contact").strip()
+        if not nok_email:
+            return False
+        d = user.data or {}
+        first = (d.get("full_name") or d.get("first_name") or "").strip()
+        last = (d.get("surname") or d.get("last_name") or "").strip()
+        if first and not last and " " in first:
+            first, last = first.split(" ", 1)
+        full_name = f"{first} {last}".strip() or user.email
+        phone = d.get("phone") or "Not on file"
+        maps_link = (
+            f"https://www.google.com/maps?q={alert.latitude},{alert.longitude}"
+            if alert.latitude and alert.longitude else None
+        )
+        location_html = (
+            f'<a href="{maps_link}" style="color:#dc2626;font-weight:bold;"> View last known location &rarr;</a>'
+            if maps_link else "Location data was not available at the time of the alert."
+        )
+        subject = f"Emergency Alert - {full_name} needs help"
+        body = (
+            f"Dear {nok_name},\n\n{full_name} has triggered an emergency panic alert on "
+            f"MzansiServe. They may be in danger. Please try to contact them urgently.\n\n"
+            f"Their phone: {phone}\nLast location: {maps_link or 'Not available'}\n\n"
+            f"If you cannot reach them, call: Police 10111 | Emergency 112"
+        )
+        body_html = f"""
+<html><body style="font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;">
+<div style="max-width:600px;margin:auto;background:#fff;border-radius:8px;overflow:hidden;">
+  <div style="background:#dc2626;padding:24px;text-align:center;">
+    <h1 style="color:#fff;margin:0;font-size:22px;"> Emergency Alert</h1>
+  </div>
+  <div style="padding:28px;">
+    <p>Dear {nok_name},</p>
+    <p><strong>{full_name}</strong> has triggered an emergency panic alert on MzansiServe.
+    They may be in danger. Please try to contact them urgently.</p>
+    <div style="background:#fef2f2;border:2px solid #dc2626;border-radius:8px;padding:16px;margin:20px 0;">
+      <p style="margin:0 0 10px;"><strong>!! Last Known Location:</strong></p>
+      <p style="margin:0;">{location_html}</p>
+    </div>
+    <p><strong>Contact them on:</strong> {phone}</p>
+    <div style="margin-top:20px;padding:14px;background:#f9fafb;border-radius:8px;">
+      <p style="margin:0 0 6px;font-weight:bold;">If you cannot reach them, call:</p>
+      <p style="margin:0;font-size:16px;">Police: <strong>10111</strong> &nbsp;|&nbsp; Emergency: <strong>112</strong></p>
+    </div>
+  </div>
+</div>
+</body></html>"""
+        email = EmailService.queue_email(
+            recipient=nok_email, subject=subject, body=body, body_html=body_html,
+            metadata={"type": "panic_next_of_kin", "alert_id": str(alert.id), "user_id": str(alert.user_id)},
+        )
+        return EmailService.send_email(email_id=email.id)

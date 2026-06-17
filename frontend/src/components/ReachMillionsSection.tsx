@@ -60,7 +60,7 @@ const ReachMillionsSection = () => {
                     mt: 3
                   }}
                 >
-                  From verified transport to professional services, join the network that South Africa trusts.
+                  From verified drivers to professional services, join trusted and accredited platform.
                 </Typography>
               </Box>
 
@@ -151,10 +151,10 @@ const ReachMillionsSection = () => {
 
                 <Stack spacing={3} sx={{ textAlign: 'left' }}>
                   {[
-                    'Guest Identity Verification',
-                    'Reservation Screening',
-                    'R3M Damage Protection',
-                    '24-Hour Safety Line'
+                    'Ehailing of choice',
+                    'Verified & accredited Professionals',
+                    'Verified & accredited Service Providers',
+                    'Verified & accredited suppliers for our online shop'
                   ].map((text, i) => (
                     <Stack key={i} direction="row" spacing={2} alignItems="center">
                       <Box sx={{ color: 'hsl(var(--primary))', display: 'flex' }}>

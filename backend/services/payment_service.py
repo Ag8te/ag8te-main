@@ -166,8 +166,12 @@ class PaymentService:
             if newly_paid:
                 # Update inventory
                 try:
-                    from backend.services.inventory_service import update_inventory_on_order_payment
-                    update_inventory_on_order_payment(order)
+                    from backend.services.inventory_service import (
+                        update_inventory_on_order_payment,
+                        release_inventory_reservation
+                    )
+                    update_inventory_on_order_payment(order) # deduct actual stock
+                    release_inventory_reservation(order)     # clear the reservation
                 except Exception as e:
                     logger.error(f"Inventory update failed for order {order_id}: {e}")
 
