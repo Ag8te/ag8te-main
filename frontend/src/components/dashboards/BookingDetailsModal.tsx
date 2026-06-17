@@ -17,6 +17,7 @@ import {
     getTrackingSummary,
 } from "@/lib/shipping";
 import { formatUTCtoSAST, formatSASTDate, formatSASTTime } from "@/lib/dateUtils";
+import { PanicButton, shouldShowPanic } from "@/components/dashboards/PanicButton";
 
 interface BookingDetailsModalProps {
     isOpen: boolean;
@@ -329,31 +330,88 @@ export const BookingDetailsModal = ({ isOpen, onClose, data, type }: BookingDeta
                                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ordered Items ({data.items.length})</p>
                                     </div>
                                     <div className="space-y-3">
-                                        {data.items.map((item: any, idx: number) => (
-                                            <div key={idx} className="flex items-center gap-4 p-4 bg-white border border-slate-50 rounded-2xl group hover:border-primary/20 transition-all shadow-sm">
-                                                <div className="h-16 w-16 rounded-xl bg-slate-50 overflow-hidden shrink-0">
-                                                    {item.image_url ? (
-                                                        <img
-                                                            src={getImageUrl(item.image_url)}
-                                                            alt=""
-                                                            className="w-full h-full object-cover"
-                                                        />
-                                                    ) : (
-                                                        <div className="w-full h-full flex items-center justify-center text-slate-200 bg-slate-50">
-                                                            <Package size={24} />
+                                        {(() => {
+                                            const bundleMap: Record<string, any[]> = {};
+                                            const regularItems: any[] = [];
+                                            data.items.forEach((item: any) => {
+                                                if (item.bundle_name) {
+                                                    if (!bundleMap[item.bundle_name]) bundleMap[item.bundle_name] = [];
+                                                    bundleMap[item.bundle_name].push(item);
+                                                } else {
+                                                    regularItems.push(item);
+                                                }
+                                            });
+                                            return (
+                                                <>
+                                                    {Object.entries(bundleMap).map(([bundleName, bundleItems]) => (
+                                                        <div key={bundleName} className="rounded-2xl border border-primary/20 bg-primary/5 overflow-hidden">
+                                                            <div className="px-4 py-2 border-b border-primary/10 flex items-center gap-2">
+                                                                <span className="text-[10px] font-black uppercase tracking-widest text-primary">Bundle</span>
+                                                                <span className="text-sm font-bold text-slate-800 truncate">{bundleName}</span>
+                                                            </div>
+                                                            <div className="divide-y divide-primary/10">
+                                                                {bundleItems.map((item: any, idx: number) => (
+                                                                    <div key={idx} className="flex items-center gap-3 px-4 py-3">
+                                                                        <div className="h-12 w-12 rounded-xl overflow-hidden bg-slate-50 shrink-0">
+                                                                            {item.image_url ? (
+                                                                                <img src={item.image_url} alt={item.product_name} className="h-full w-full object-cover" />
+                                                                            ) : (
+                                                                                <div className="h-full w-full flex items-center justify-center">
+                                                                                    <Package className="h-5 w-5 text-slate-300" />
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                        <div className="flex-1 min-w-0">
+                                                                            <p className="font-bold text-[#222222] truncate text-sm">{item.product_name || "Product"}</p>
+                                                                            <p className="text-xs text-slate-400 mt-0.5">Qty: <span className="text-[#222222] font-bold">{item.quantity}</span></p>
+                                                                        </div>
+                                                                        <div className="text-right shrink-0">
+                                                                            <p className="font-black text-slate-900 text-sm">R{((item.price || 0) * item.quantity).toFixed(2)}</p>
+                                                                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">R{(item.price || 0).toFixed(2)} ea</p>
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                            <div className="px-4 py-2 border-t border-primary/10 flex justify-between items-center">
+                                                                <span className="text-[10px] font-black uppercase tracking-widest text-primary">Bundle total</span>
+                                                                <span className="text-sm font-black text-primary">
+                                                                    R{bundleItems.reduce((acc: number, i: any) => acc + (i.price || 0) * (i.quantity || 1), 0).toFixed(2)}
+                                                                </span>
+                                                            </div>
                                                         </div>
-                                                    )}
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="font-bold text-[#222222] truncate">{item.product_name || "Unnamed Product"}</p>
-                                                    <p className="text-xs text-slate-400 mt-1">Quantity: <span className="text-[#222222] font-bold">{item.quantity}</span></p>
-                                                </div>
-                                                <div className="text-right">
-                                                    <p className="font-black text-slate-900">R{((item.price || 0) * item.quantity).toFixed(2)}</p>
-                                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">R{(item.price || 0).toFixed(2)} ea</p>
-                                                </div>
+                                                    ))}
+                                                    {regularItems.map((item: any, idx: number) => (
+                                                        <div key={idx} className="flex items-center gap-4 p-4 bg-white border border-slate-50 rounded-2xl group hover:border-primary/20 transition-all shadow-sm">
+                                            <div className="h-14 w-14 rounded-2xl overflow-hidden bg-slate-50 shrink-0">
+                                                {(() => {
+                                                    const displayUrl = item.color_image_url || item.image_url;
+                                                    return displayUrl ? (
+                                                        <img src={getImageUrl(displayUrl)} alt={item.product_name} className="h-full w-full object-cover" />
+                                                    ) : (
+                                                        <div className="h-full w-full flex items-center justify-center">
+                                                            <Package className="h-6 w-6 text-slate-300" />
+                                                        </div>
+                                                    );
+                                                })()}
                                             </div>
-                                        ))}
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="font-bold text-[#222222] truncate">{item.product_name || "Unnamed Product"}</p>
+                                                                {item.variant_label && (
+                                                                    <p className="text-[10px] font-bold text-primary uppercase tracking-widest mt-0.5">
+                                                                        {item.variant_label}
+                                                                    </p>
+                                                                )}
+                                                                <p className="text-xs text-slate-400 mt-1">Quantity: <span className="text-[#222222] font-bold">{item.quantity}</span></p>
+                                                            </div>
+                                                            <div className="text-right">
+                                                                <p className="font-black text-slate-900">R{((item.price || 0) * item.quantity).toFixed(2)}</p>
+                                                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">R{(item.price || 0).toFixed(2)} ea</p>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </>
+                                            );
+                                        })()}
                                     </div>
                                 </div>
                             )}
@@ -392,7 +450,11 @@ export const BookingDetailsModal = ({ isOpen, onClose, data, type }: BookingDeta
                         </div>
 
                         {/* Footer Actions */}
-                        <div className="p-8 sm:p-10 bg-slate-50/50 flex gap-4">
+                        <div className="p-8 sm:p-10 bg-slate-50/50 space-y-3">
+                          {type === 'ride' && shouldShowPanic(data) && (
+                            <PanicButton bookingId={data.id} className="w-full" />
+                          )}
+                          <div className="flex gap-4">
                             <Button
                                 variant="outline"
                                 className="flex-1 h-14 rounded-2xl font-bold border-slate-200"
@@ -408,6 +470,7 @@ export const BookingDetailsModal = ({ isOpen, onClose, data, type }: BookingDeta
                                     Proceed to Payment
                                 </Button>
                             )}
+                          </div>
                         </div>
                     </motion.div>
                 </div>

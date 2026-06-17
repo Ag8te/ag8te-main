@@ -22,6 +22,7 @@ import {
     ReportProblem as ShieldAlert,
     Chat as MessageSquare,
     Image as ImageIcon,
+    ShoppingBag,
 } from "@mui/icons-material";
 import { useToast } from "@/hooks/use-toast";
 import { apiFetch } from "@/lib/api";
@@ -53,6 +54,7 @@ const GlobalChatsManagement = lazyNamed(() => import("@/components/admin/GlobalC
 const AffiliatesManagement = lazyNamed(() => import("@/components/admin/AffiliatesManagement"), "AffiliatesManagement");
 const PaymentSettings = lazyNamed(() => import("@/components/admin/PaymentSettings"), "PaymentSettings");
 const LandingPageManagement = lazy(() => import("@/components/admin/LandingPageManagement"));
+const PanicAlertsPanel = lazyNamed(() => import("@/components/admin/PanicAlertsPanel"), "PanicAlertsPanel");
 
 type TabKey =
     | "overview"
@@ -76,7 +78,8 @@ type TabKey =
     | "global-chats"
     | "affiliates"
     | "payment-settings"
-    | "landing";
+    | "landing"
+    | "safety";
 
 const NAV_STRUCTURE = [
     {
@@ -105,6 +108,7 @@ const NAV_STRUCTURE = [
             { id: "api-logs", label: "API Logs", icon: Activity },
             { id: "user-reports", label: "User Reports", icon: ShieldAlert },
             { id: "global-chats", label: "Global Chats", icon: MessageSquare },
+            { id: "safety", label: "Panic Alerts", icon: ShieldAlert },
         ]
     },
     {
@@ -123,6 +127,7 @@ const NAV_STRUCTURE = [
         children: [
             { id: "requests", label: "Request Management", icon: ClipboardList },
             { id: "services", label: "Services", icon: Briefcase },
+            { id: "sales", label: "Sales & Orders", icon: ShoppingBag },
             { id: "withdrawals", label: "Withdrawals", icon: CreditCard },
             { id: "agents", label: "Agents", icon: UserSquare2 },
             { id: "pending-updates", label: "Pending Updates", icon: Clock },
@@ -291,6 +296,8 @@ useEffect(() => {
                 return renderLazySection(ReportsManagement);
             case "global-chats":
                 return renderLazySection(GlobalChatsManagement);
+            case "safety":
+                return renderLazySection(PanicAlertsPanel);
             default:
                 return null;
         }

@@ -217,14 +217,13 @@ def create_order():
         
         # 2. Initialize payment checkout
         backend_url = get_public_backend_base_url()
-        return_path = get_request_frontend_return_path('/shopping-history')
         success_url = _payment_callback_url(
             backend_url,
             "/api/payments/order-callback",
             "success",
             order_id,
             provider,
-            return_path,
+            "/my-bookings?tab=orders",
         )
         cancel_url = _payment_callback_url(
             backend_url,
@@ -232,7 +231,7 @@ def create_order():
             "cancel",
             order_id,
             provider,
-            return_path,
+            "/my-bookings?tab=orders",
         )
         failure_url = _payment_callback_url(
             backend_url,
@@ -240,7 +239,7 @@ def create_order():
             "failure",
             order_id,
             provider,
-            return_path,
+            "/my-bookings?tab=orders",
         )
         
         current_app.logger.info(f"Creating checkout for order {order_id} via {provider} (amount: {amount_in_cents})")
@@ -281,7 +280,37 @@ def create_order():
         )
         db.session.add(new_order)
         db.session.commit()
-        
+
+        # Reserve stock immediately after order is created
+        from backend.services.inventory_service import reserve_inventory_for_order
+        reserved, reserve_message, unavailable_items = reserve_inventory_for_order(new_order)
+
+        if not reserved:
+            db.session.delete(new_order)
+            db.session.commit()
+            if unavailable_items:
+                lines = []
+                for item in unavailable_items:
+                    name = item.get('product_name', 'Unknown product')
+                    available = item.get('available', 0)
+                    requested = item.get('requested', 0)
+                    if available == 0:
+                        lines.append(f"{name} — out of stock")
+                    else:
+                        lines.append(
+                            f"{name} — only {available} left "
+                            f"(you requested {requested})"
+                        )
+                detail_message = " | ".join(lines)
+            else:
+                detail_message = "Some items are no longer available"
+            return error_response(
+                'INSUFFICIENT_INVENTORY',
+                detail_message,
+                {'unavailable_items': unavailable_items},
+                400
+            )
+
         return success_response({
             'order_id': order_id,
             'checkout_id': checkout_result['checkout_id'],
@@ -514,6 +543,17 @@ def order_payment_callback():
         )
         
         if callback_status == 'cancel':
+            try:
+                from backend.models.shop import Order
+                from backend.services.inventory_service import release_inventory_reservation
+                cancelled_order = Order.query.get(order_id)
+                if cancelled_order:
+                    release_inventory_reservation(cancelled_order)
+                    if cancelled_order.status == 'pending':
+                        cancelled_order.status = 'cancelled'
+                        db.session.commit()
+            except Exception as e:
+                current_app.logger.error(f"Failed to cancel order on payment cancel: {e}")
             return _redirect_html(cancelled_url)
 
         success, error = PaymentService.handle_order_payment(order_id, external_id, callback_status=callback_status)

@@ -84,8 +84,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       try {
           const res = await apiFetch('/api/notifications');
           if (res.success) {
-              setNotifications(res.data.notifications || []);
-              setUnreadCount(res.data.unread_count || 0);
+              const payload = res.message || res.data;
+              setNotifications(payload.notifications || []);
+              setUnreadCount(payload.unread_count || 0);
           }
       } catch (_err) {
           // fail silently — bell just won't update
