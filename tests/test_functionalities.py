@@ -13,13 +13,31 @@ def get_auth_header(client, email, password, role):
     login_data = {"email": email, "password": password}
     if role != 'admin':
         login_data["role"] = role
-        
-    response = client.post(endpoint,
-                            data=json.dumps(login_data),
-                            content_type='application/json')
+
+    if role == 'admin':
+        response = client.post(endpoint,
+                               data=json.dumps(login_data),
+                               content_type='application/json')
+    else:
+        with patch("backend.services.otp_service.OtpService.generate_code", return_value="123456"), \
+             patch("backend.services.email_service.EmailService.send_otp_email"):
+            response = client.post(endpoint,
+                                   data=json.dumps(login_data),
+                                   content_type='application/json')
+
     data = response.get_json()
     if 'data' not in data:
         raise ValueError(f"Login failed for {email} ({role}): {data}")
+    if data['data'].get('otp_required'):
+        response = client.post('/api/auth/verify-login-otp',
+                               data=json.dumps({
+                                   "challenge_id": data['data']['challenge_id'],
+                                   "code": "123456"
+                               }),
+                               content_type='application/json')
+        data = response.get_json()
+        if 'data' not in data:
+            raise ValueError(f"OTP verification failed for {email} ({role}): {data}")
     return {'Authorization': f"Bearer {data['data']['token']}"}
 
 def create_admin(db_session):

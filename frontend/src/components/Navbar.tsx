@@ -20,7 +20,6 @@ const navLinks = [
 ];
 
 const Navbar = () => {
-  const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -98,17 +97,10 @@ const Navbar = () => {
   const dynamicLinks = getNavLinks();
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", onScroll);
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
-  useEffect(() => {
     setMobileOpen(false);
   }, [location]);
 
-  const isHome = location.pathname === "/";
-  const isTransparent = isHome && !scrolled;
+  const isTransparent = false;
 
   const handleNavLinkClick = (
     e: React.MouseEvent,
@@ -181,10 +173,7 @@ const Navbar = () => {
   return (
     <header
       className={cn(
-        "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
-        scrolled || !isHome
-          ? "bg-white border-b border-slate-100 py-3 shadow-sm"
-          : "bg-slate-900/40 backdrop-blur-md py-4 border-b border-white/10",
+        "native-safe-top sticky top-0 left-0 right-0 z-50 border-b border-slate-100 bg-white py-[10px] shadow-sm transition-all duration-300 lg:fixed",
       )}
     >
       <nav className="container mx-auto flex items-center justify-between gap-4 px-6 lg:grid lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:items-center">
@@ -192,19 +181,13 @@ const Navbar = () => {
         {/* ── Logo ─────────────────────────────────────────────────────────── */}
         <button
           onClick={() => navigate("/")}
-          className="flex items-center gap-3 group shrink-0"
+          className="group flex shrink-0 items-center gap-2"
         >
-          <div className={cn(
-            "h-10 w-auto flex items-center justify-center overflow-hidden rounded-xl transition-all lg:h-11",
-            isTransparent ? "drop-shadow-sm" : "bg-primary/10 px-2"
-          )}>
+          <div className="flex h-12 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-white/80 bg-white shadow-md transition-all group-hover:shadow-lg lg:h-14 lg:w-16">
             <img
               src={logo}
               alt="MzansiServe"
-              className={cn(
-                "h-full w-auto object-contain",
-                isTransparent ? "brightness-0 invert" : "",
-              )}
+              className="h-full w-full scale-[1.85] object-cover"
             />
           </div>
           <span className={cn(

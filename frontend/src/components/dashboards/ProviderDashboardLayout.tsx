@@ -141,7 +141,7 @@ export const ProviderDashboardLayout = ({
             {/* Main Content */}
             <div className="flex flex-1 flex-col overflow-hidden min-w-0">
                 <header className={cn(
-                    "sticky top-0 z-30 flex h-[80px] w-full items-center justify-between px-8 transition-all duration-200",
+                    "native-safe-top sticky top-0 z-30 flex h-[80px] w-full items-center justify-between px-8 transition-all duration-200",
                     scrolled ? "bg-white/90 backdrop-blur-md border-b border-gray-100" : "bg-white border-b border-gray-50"
                 )}>
                     <div className="flex items-center gap-4">

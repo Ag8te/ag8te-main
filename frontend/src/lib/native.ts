@@ -149,7 +149,9 @@ export const configureNativeChrome = async () => {
   if (!isNativeApp) return;
 
   try {
-    await StatusBar.setStyle({ style: Style.Dark });
+    await StatusBar.show();
+    await StatusBar.setOverlaysWebView({ overlay: false });
+    await StatusBar.setStyle({ style: Style.Light });
     if (isAndroidApp) {
       await StatusBar.setBackgroundColor({ color: "#ffffff" });
     }

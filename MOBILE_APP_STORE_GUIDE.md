@@ -62,6 +62,25 @@ These commands:
 3. copy it into the native shell
 4. sync Capacitor plugins
 
+## Automated Testing Releases
+
+The repository includes a GitHub Actions workflow that builds and uploads the
+deployed `main` branch to:
+
+- Google Play internal testing
+- Huawei AppGallery open testing
+- Apple TestFlight
+
+It is triggered after a successful `./deploy.sh --branch main` deployment.
+Production rollout remains manual. Complete the one-time credential setup in
+[MOBILE_RELEASE_AUTOMATION.md](/Users/bingodedingo/Desktop/mzansiserve-main/MOBILE_RELEASE_AUTOMATION.md)
+before enabling the workflow.
+
+Mobile versions are tracked in
+[mobile-version.json](/Users/bingodedingo/Desktop/mzansiserve-main/mobile-version.json),
+with release history in
+[CHANGELOG.md](/Users/bingodedingo/Desktop/mzansiserve-main/CHANGELOG.md).
+
 ## App Assets
 
 Regenerate branded icons and splash assets any time the logo changes:

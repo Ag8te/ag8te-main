@@ -130,7 +130,7 @@ const ProviderDetails = () => {
 
     const bannerUrl = userDetails.banner_url
         ? (getImageUrl(userDetails.banner_url))
-        : "https://images.unsplash.com/photo-1541888081628-912235c4eb5e?q=80&w=1200&auto=format&fit=crop";
+        : "https://images.unsplash.com/photo-1541888081628-912235c4eb5e?q=80&w=1200&fm=jpg&fit=crop";
 
     // Detect if they offer any priced services
     const hasPricedServices = services.some((svc: any) => parseFloat(svc.hourly_rate) > 0);

@@ -31,7 +31,7 @@ const Index = () => {
       <Navbar />
       <HeroCarousel />
 
-      <div className="relative z-20 -mt-20 lg:-mt-24 mb-10 lg:mb-12 px-6">
+      <div className="relative z-20 mb-10 px-4 pt-6 sm:px-6 lg:-mt-24 lg:mb-12 lg:pt-0">
         <div className="container mx-auto max-w-7xl">
           <QuickActionGrid />
 
