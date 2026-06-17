@@ -223,13 +223,15 @@ const Checkout = () => {
       const response = await apiFetch("/api/shop/shipping/rates", {
         method: "POST",
         data: {
-          items: items.map((item) => ({
-            product_id: item.product.id,
-            product_name: item.product.name,
-            price: item.product.price,
-            shipping_profile: item.product.shipping_profile,
-            quantity: item.quantity,
-          })),
+          items: items
+            .filter((item) => !(item.product as any).isDiscount)
+            .map((item) => ({
+              product_id: item.product.id,
+              product_name: item.product.name,
+              price: item.product.price,
+              shipping_profile: item.product.shipping_profile,
+              quantity: item.quantity,
+            })),
           shipping: buildShippingPayload(),
           recipient: buildRecipientPayload(),
         },
@@ -297,14 +299,45 @@ const Checkout = () => {
       const response = await apiFetch("/api/payments/create-order", {
         method: "POST",
         data: {
-          items: items.map((item) => ({
-            product_id: item.product.id,
-            product_name: item.product.name,
-            price: item.product.price,
-            image_url: item.product.image,
-            shipping_profile: item.product.shipping_profile,
-            quantity: item.quantity,
-          })),
+          items: items
+            .filter((item) => !(item.product as any).isDiscount)
+            .map((item) => ({
+              product_id: item.product.id,
+              product_name: item.product.name,
+              price: item.product.price,
+              image_url: item.product.image,
+              shipping_profile: item.product.shipping_profile,
+              quantity: item.quantity,
+              ...((item.product as any).bundleName
+                ? { bundle_name: (item.product as any).bundleName }
+                : {}),
+              ...((item.product as any).variantLabel
+                ? { variant_label: (item.product as any).variantLabel }
+                : {}),
+              ...((item.product as any).sku
+                : {}),
+                ? { sku: (item.product as any).sku }
+              ...(() => {
+                const variantLabel = (item.product as any).variantLabel as string | undefined;
+                const attributes = (item.product as any).attributes as Array<{
+                  name: string;
+                  values: string[];
+                  images?: Record<string, string>;
+                }> | undefined;
+                if (!variantLabel || !attributes) return {};
+                const colorAttr = attributes.find(a =>
+                  ["color", "colour"].includes(a.name.toLowerCase())
+                );
+                if (!colorAttr?.images) return {};
+                const colorEntry = variantLabel
+                  .split(", ")
+                  .find(part => part.toLowerCase().startsWith("color:") || part.toLowerCase().startsWith("colour:"));
+                if (!colorEntry) return {};
+                const colorValue = colorEntry.split(": ")[1]?.trim();
+                if (!colorValue || !colorAttr.images[colorValue]) return {};
+                return { color_image_url: colorAttr.images[colorValue] };
+              })(),
+            })),
           recipient: buildRecipientPayload(),
           shipping: buildShippingPayload(),
           shipping_quote: selectedShippingQuote,
@@ -324,9 +357,12 @@ const Checkout = () => {
         variant: "destructive",
       });
     } catch (error: any) {
+      const message = error.message || "An unexpected error occurred during checkout.";
+      const isStockError = message.includes("out of stock") ||
+                           (message.includes("only") && message.includes("left"));
       toast({
-        title: "Payment error",
-        description: error.message || "An unexpected error occurred during checkout.",
+        title: isStockError ? "Not enough stock" : "Payment error",
+        description: message,
         variant: "destructive",
       });
     } finally {
@@ -600,26 +636,168 @@ const Checkout = () => {
                   {items.length === 0 ? (
                     <p className="text-base text-slate-400 text-center py-8">Your cart is empty</p>
                   ) : (
-                    items.map((item) => (
-                      <div key={item.product.id} className="flex items-center gap-4">
-                        <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-2xl border border-slate-50 bg-slate-50 shadow-inner">
-                          <img src={item.product.image} alt={item.product.name} className="h-full w-full object-cover" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-base font-bold text-[#222222] truncate">{item.product.name}</p>
-                          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-0.5">Qty: {item.quantity}</p>
-                        </div>
-                        <div className="text-base font-bold text-[#222222]">
-                          R{(item.product.price * item.quantity).toFixed(2)}
-                        </div>
-                      </div>
-                    ))
+                    (() => {
+                    const regularItems = items.filter(
+                      (item) => !(item.product as any).bundleId
+                    );
+                    const bundleMap: Record<string, typeof items> = {};
+                    items
+                      .filter((item) => (item.product as any).bundleId)
+                      .forEach((item) => {
+                        const bid = (item.product as any).bundleId;
+                        if (!bundleMap[bid]) bundleMap[bid] = [];
+                        bundleMap[bid].push(item);
+                      });
+                    const bundleGroups = Object.entries(bundleMap);
+
+                    return (
+                      <>
+                        {bundleGroups.map(([bundleId, bundleItems]) => {
+                          const discountItem = bundleItems.find(
+                            (i) => (i.product as any).isDiscount
+                          );
+                          const productItems = bundleItems.filter(
+                            (i) => !(i.product as any).isDiscount
+                          );
+                          const bundleName = discountItem
+                            ? (discountItem.product.name || "")
+                                .replace("Bundle Discount: ", "")
+                            : "Bundle";
+                          const discountAmount = discountItem
+                            ? Math.abs(discountItem.product.price)
+                            : 0;
+                          const bundleTotal = productItems.reduce(
+                            (acc, i) => acc + i.product.price * i.quantity,
+                            0
+                          ) - discountAmount;
+
+                          return (
+                            <div
+                              key={bundleId}
+                              className="rounded-2xl border border-primary/20 bg-primary/5 overflow-hidden"
+                            >
+                              <div className="px-4 py-2 border-b border-primary/10 flex items-center gap-2">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-primary">
+                                  Bundle
+                                </span>
+                                <span className="text-sm font-bold text-slate-800 truncate">
+                                  {bundleName}
+                                </span>
+                              </div>
+                              <div className="divide-y divide-primary/10">
+                                {productItems.map((item) => (
+                                  <div
+                                    key={item.product.id}
+                                    className="flex items-center gap-3 px-4 py-2"
+                                  >
+                                    <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-xl border border-slate-100 bg-white">
+                                      <img
+                                        src={(item.product as any).image_url || item.product.image || ""}
+                                        alt={item.product.name}
+                                        className="h-full w-full object-cover"
+                                        onError={(e) => {
+                                          (e.target as HTMLImageElement).style.display = "none";
+                                        }}
+                                      />
+                                    </div>
+                                    <p className="flex-1 text-sm font-bold text-slate-800 truncate">
+                                      {item.product.name}
+                                    </p>
+                                    <p className="text-sm font-bold text-slate-600">
+                                      R{item.product.price.toFixed(2)}
+                                    </p>
+                                  </div>
+                                ))}
+                              </div>
+                              <div className="px-4 py-2 border-t border-primary/10 space-y-1">
+                                {discountAmount > 0 && (
+                                  <div className="flex justify-between text-xs">
+                                    <span className="text-emerald-600 font-bold">
+                                      Bundle saving
+                                    </span>
+                                    <span className="text-emerald-600 font-black">
+                                      -R{discountAmount.toFixed(2)}
+                                    </span>
+                                  </div>
+                                )}
+                                <div className="flex justify-between text-sm font-black text-slate-800">
+                                  <span>Bundle price</span>
+                                  <span className="text-primary">
+                                    R{bundleTotal.toFixed(2)}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+
+                        {regularItems.map((item) => (
+                          <div key={item.product.id} className="flex items-center gap-4">
+                            <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-2xl border border-slate-50 bg-slate-50 shadow-inner">
+                              {(() => {
+                                let variantImageUrl: string | null = null;
+                                const variantLabel = (item.product as any).variantLabel as string | undefined;
+                                const attributes = (item.product as any).attributes as Array<{
+                                  name: string;
+                                  values: string[];
+                                  images?: Record<string, string>;
+                                }> | undefined;
+                                if (variantLabel && attributes) {
+                                  const colorAttr = attributes.find(a =>
+                                    ["color", "colour"].includes(a.name.toLowerCase())
+                                  );
+                                  if (colorAttr?.images) {
+                                    const colorEntry = variantLabel
+                                      .split(", ")
+                                      .find(part => part.toLowerCase().startsWith("color:") || part.toLowerCase().startsWith("colour:"));
+                                    if (colorEntry) {
+                                      const colorValue = colorEntry.split(": ")[1]?.trim();
+                                      if (colorValue && colorAttr.images[colorValue]) {
+                                        variantImageUrl = colorAttr.images[colorValue];
+                                      }
+                                    }
+                                  }
+                                }
+                                const finalImageUrl = variantImageUrl || (item.product as any).image_url || item.product.image || "";
+                                return (
+                                  <img
+                                    src={finalImageUrl.startsWith("http") ? finalImageUrl : `${window.location.origin}${finalImageUrl}`}
+                                    alt={item.product.name}
+                                    className="h-full w-full object-cover"
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).style.display = "none";
+                                    }}
+                                  />
+                                );
+                              })()}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-base font-bold text-[#222222] truncate">
+                                {item.product.name}
+                              </p>
+                              {(item.product as any).variantLabel && (
+                                <p className="text-[10px] font-bold text-primary uppercase tracking-widest mt-0.5">
+                                  {(item.product as any).variantLabel}
+                                </p>
+                              )}
+                              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                                Qty: {item.quantity}
+                              </p>
+                            </div>
+                            <div className="text-base font-bold text-[#222222]">
+                              R{(item.product.price * item.quantity).toFixed(2)}
+                            </div>
+                          </div>
+                        ))}
+                      </>
+                    );
+                  })()
                   )}
                 </div>
 
                 <div className="space-y-4 border-t border-slate-50 pt-6">
                   <div className="flex justify-between text-base font-medium text-slate-400">
-                    <span>Subtotal ({count} items)</span>
+                    <span>Subtotal ({items.filter(i => !(i.product as any).isDiscount).length} items)</span>
                     <span className="text-[#222222]">R{total.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-base font-medium text-slate-400">

@@ -67,7 +67,15 @@ def list_products():
                     product_dict['in_stock'] = False
                 else:
                     product_dict['in_stock'] = True
-            # If no inventory record, use product's in_stock field
+                product_dict['inventory'] = inventory.to_dict()
+            else:
+                product_dict['in_stock'] = False
+                product_dict['inventory'] = {
+                    'quantity': 0,
+                    'reserved_quantity': 0,
+                    'available_quantity': 0
+                }
+            
             products_list.append(product_dict)
         
         return success_response({
@@ -90,6 +98,14 @@ def get_product(product_id):
         if not product:
             return error_response('NOT_FOUND', 'Product not found', None, 404)
         
+        # If product is inactive, treat as out of stock regardless
+        # of actual inventory — admin has explicitly disabled it.
+        if product.status != 'active':
+            product_dict = product.to_dict()
+            product_dict['in_stock'] = False
+            product_dict['inventory'] = {'quantity': 0, 'reserved_quantity': 0, 'available_quantity': 0}
+            return success_response(product_dict)
+        
         # Sync product stock status with inventory
         from backend.services.inventory_service import sync_product_stock_status
         sync_product_stock_status(product_id)
@@ -107,6 +123,15 @@ def get_product(product_id):
                 product_dict['in_stock'] = False
             else:
                 product_dict['in_stock'] = True
+            product_dict['inventory'] = inventory.to_dict()
+        else:
+            # No inventory record — treat as out of stock
+            product_dict['in_stock'] = False
+            product_dict['inventory'] = {
+                'quantity': 0,
+                'reserved_quantity': 0,
+                'available_quantity': 0
+            }
         
         return success_response(product_dict)
         
@@ -249,14 +274,13 @@ def create_order():
                         'requested': quantity
                     })
                     continue
-            elif not product.in_stock:
-                # Product marked as out of stock but no inventory record
-                unavailable_items.append({
+            else:
+               unavailable_items.append({
                     'product_id': product_id,
                     'product_name': product.name,
                     'reason': 'Product is out of stock'
-                })
-                continue
+               })
+               continue
         
         # If any items are unavailable, return error
         if unavailable_items:

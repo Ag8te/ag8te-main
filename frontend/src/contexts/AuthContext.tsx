@@ -11,6 +11,7 @@ export interface User {
   is_paid?: boolean;
   is_approved?: boolean;
   registration_rejection_reason?: string | null;
+  registration_review_status?: string | null;
   email_verified?: boolean;
   profile_image_url?: string;
   tracking_number?: string;

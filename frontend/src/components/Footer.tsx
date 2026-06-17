@@ -58,7 +58,7 @@ const Footer = () => {
     Services: [
       { label: "Transport & Cabs", to: "/transport", isProtected: true },
       { label: "Professional Services", to: "/professionals", isProtected: true },
-      { label: "Home & Garden Services", to: "/services", isProtected: true },
+      { label: "Service Providers", to: "/services", isProtected: true },
       { label: "E-Commerce Shop", to: "/shop", isProtected: true },
       { label: "Classified Ads", to: "/ads" },
     ],
@@ -86,7 +86,7 @@ const Footer = () => {
             <div className="text-left space-y-2 max-w-md">
               <h3 className="text-2xl font-semibold text-[#222222]">Stay in the loop</h3>
               <p className="text-slate-600 text-[15px]">
-                Subscribe for the latest service updates and deals across South Africa.
+                Subscribe for the latest service updates and deals.
               </p>
             </div>
 
@@ -147,7 +147,7 @@ const Footer = () => {
                 </span>
               </Link>
               <p className="text-slate-600 text-[15px] leading-relaxed max-w-sm">
-                South Africa's comprehensive service ads. Book transport, hire professionals, request services, and shop — all in one trusted platform.
+                MzansiServe is born in South Africa as a comprehensive accessible online marketing platform.Book transport, hire professionals, request services, and shop — all in one trusted platform, no matter where you are!
               </p>
 
               {/* Social links */}

@@ -2,7 +2,7 @@ import { motion, useInView } from "framer-motion";
 import { useRef, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Car, Truck, Bike, Bus,
+  Car, Truck, Bike, Bus, Star, Users,
   Scale, Stethoscope, Calculator, HardHat,
   Home, Sparkles, UtensilsCrossed, Music,
   ShoppingBag, Shirt, Smartphone, Gift,
@@ -78,40 +78,60 @@ const SectionBlock = ({ section, index }: { section: ServiceSectionProps; index:
       className={`py-12 lg:py-16 ${index % 2 === 1 ? "bg-secondary/50" : ""}`}
     >
       <div className="container mx-auto px-4 lg:px-8">
-        <motion.div
-          className="mb-6 flex items-end justify-between"
-        >
+        <motion.div className="mb-6 flex items-end justify-between">
           <div className="max-w-2xl">
-            <span className={`mb-4 inline-block rounded-full px-4 py-1.5 text-xs font-semibold uppercase tracking-wider ${section.badgeClass}`}>
+            <span
+              className={`mb-4 inline-block rounded-full px-4 py-1.5 text-xs font-semibold uppercase tracking-wider ${section.badgeClass}`}
+            >
               {section.badge}
             </span>
-            <h2 className="mb-4 text-3xl font-bold lg:text-4xl">{section.title}</h2>
-            <p className="text-lg text-muted-foreground leading-relaxed">{section.subtitle}</p>
+            <h2 className="mb-4 text-3xl font-bold lg:text-4xl">
+              {section.title}
+            </h2>
+            <p className="text-lg text-muted-foreground leading-relaxed">
+              {section.subtitle}
+            </p>
           </div>
-          <Button variant="ghost" className="hidden lg:flex items-center gap-2 text-primary" onClick={() => navigate(section.link)}>
+          <Button
+            variant="ghost"
+            className="hidden lg:flex items-center gap-2 text-primary"
+            onClick={() => navigate(section.link)}
+          >
             View All <ArrowRight className="h-4 w-4" />
           </Button>
         </motion.div>
 
-        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+        <div
+          className={`grid gap-8 sm:grid-cols-2 ${section.id === "transport" || section.id === "shop" ? "lg:grid-cols-3" : "lg:grid-cols-4"}`}
+        >
           {section.cards.map((card, i) => (
             <motion.div
               key={card.title}
               className="group relative cursor-pointer overflow-hidden rounded-[2rem] border border-slate-50 bg-white p-8 shadow-sm shadow-slate-200/50 transition-all duration-500 hover:shadow-2xl hover:shadow-slate-200/80 hover:-translate-y-2"
               onClick={() => navigate(section.link)}
             >
-              <div className={`mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-50 transition-colors duration-500 group-hover:bg-white ${section.accentClass}`}>
+              <div
+                className={`mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-50 transition-colors duration-500 group-hover:bg-white ${section.accentClass}`}
+              >
                 <card.icon className="h-8 w-8 text-slate-400 transition-colors duration-500 group-hover:text-inherit" />
               </div>
-              <h3 className="mb-3 text-xl font-bold text-[#222222]">{card.title}</h3>
-              <p className="text-base text-slate-500 font-normal leading-relaxed">{card.description}</p>
+              <h3 className="mb-3 text-xl font-bold text-[#222222]">
+                {card.title}
+              </h3>
+              <p className="text-base text-slate-500 font-normal leading-relaxed">
+                {card.description}
+              </p>
             </motion.div>
           ))}
         </div>
 
         {/* Mobile View All */}
         <div className="mt-6 text-center lg:hidden">
-          <Button variant="outline" className="gap-2" onClick={() => navigate(section.link)}>
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() => navigate(section.link)}
+          >
             View All {section.badge} <ArrowRight className="h-4 w-4" />
           </Button>
         </div>
@@ -146,73 +166,183 @@ const ServiceSections = () => {
             id: "transport",
             badge: "Transport & Drivers",
             title: "Get Moving with Verified Drivers",
-            subtitle: "Choose from a range of vehicles and verified drivers across South Africa.",
+            subtitle:
+              "Choose from a range of vehicles and verified drivers across South Africa.",
             accentClass: "group-hover:text-primary",
             badgeClass: "bg-primary/10 text-primary",
             link: "/transport",
             cards: [
-              { icon: Car, title: "Sedan & Hatchback", description: "Affordable everyday rides with professional drivers." },
-              { icon: Truck, title: "Bakkie & LDV", description: "Moving goods? Book a bakkie for deliveries and removals." },
-              { icon: Bus, title: "Shuttle & Minibus", description: "Group transport for events, airports, and corporate trips." },
-              { icon: Bike, title: "Bike Delivery", description: "Fast document and parcel delivery via motorcycle couriers." },
+              {
+                icon: Car,
+                title: "Hatchback",
+                description:
+                  "Affordable compact rides for quick city trips. Fits up to 3 passengers.",
+              },
+              {
+                icon: Car,
+                title: "Sedan",
+                description:
+                  "Our most popular ride. Comfortable everyday travel for up to 4 passengers.",
+              },
+              {
+                icon: Star,
+                title: "Luxury / SUV",
+                description:
+                  "Travel in style with premium high-end vehicles for up to 4 passengers.",
+              },
+              {
+                icon: Truck,
+                title: "Bakkie",
+                description:
+                  "Versatile and practical. Great for transporting goods and cargo.",
+              },
+              {
+                icon: Users,
+                title: "Minibus",
+                description:
+                  "Best for small group travel. Comfortable 9-seater transport.",
+              },
+              {
+                icon: Users,
+                title: "Van",
+                description:
+                  "6-seater van with extra space. Perfect for passengers and luggage.",
+              },
             ],
           },
           {
             id: "professionals",
-            badge: "Professional Services",
+            badge: "Freelancers & Professional Services",
             title: "Hire Accredited Experts",
             subtitle: "All professionals are verified. Quality you can trust.",
             accentClass: "group-hover:text-sa-blue",
             badgeClass: "bg-sa-blue/10 text-sa-blue",
             link: "/professionals",
-            cards: profTypes.length > 0 ? profTypes.map((t: any) => ({
-              icon: getIcon(t.name, profIcons, Briefcase),
-              title: t.name,
-              description: t.description || `Expert ${t.name} services.`
-            })) : [
-              { icon: Scale, title: "Legal Experts", description: "Lawyers, conveyancers, and compliance consultants." },
-              { icon: Stethoscope, title: "Medical Professionals", description: "Doctors, nurses, psychologists, and therapists." },
-              { icon: Calculator, title: "Financial Services", description: "Accountants, actuaries, tax advisors, and auditors." },
-              { icon: HardHat, title: "Engineering & Construction", description: "Engineers, architects, project managers, and builders." }
-            ],
+            cards:
+              profTypes.length > 0
+                ? profTypes.map((t: any) => ({
+                    icon: getIcon(t.name, profIcons, Briefcase),
+                    title: t.name,
+                    description: t.description || `Expert ${t.name} services.`,
+                  }))
+                : [
+                    {
+                      icon: Scale,
+                      title: "Legal Experts",
+                      description:
+                        "Lawyers, conveyancers, and compliance consultants.",
+                    },
+                    {
+                      icon: Stethoscope,
+                      title: "Medical Professionals",
+                      description:
+                        "Doctors, nurses, psychologists, and therapists.",
+                    },
+                    {
+                      icon: Calculator,
+                      title: "Financial Services",
+                      description:
+                        "Accountants, actuaries, tax advisors, and auditors.",
+                    },
+                    {
+                      icon: HardHat,
+                      title: "Engineering & Construction",
+                      description:
+                        "Engineers, architects, project managers, and builders.",
+                    },
+                  ],
           },
           {
             id: "services",
             badge: "Home & Service Providers",
             title: "Services at Your Doorstep",
-            subtitle: "From home repairs to event planning, find trusted service providers for every need.",
+            subtitle:
+              "From home repairs to event planning, find trusted service providers for every need.",
             accentClass: "group-hover:text-accent",
             badgeClass: "bg-accent/15 text-accent-foreground",
             link: "/services",
-            cards: spTypes.length > 0 ? spTypes.map((t: any) => ({
-              icon: getIcon(t.name, serviceIcons, Wrench),
-              title: t.name,
-              description: t.description || `Trusted ${t.name} services.`
-            })) : [
-              { icon: Home, title: "Home & Garden", description: "Cleaning, plumbing, electrical, garden maintenance, and more." },
-              { icon: Sparkles, title: "Health & Beauty", description: "Salons, personal trainers, spa treatments, and wellness." },
-              { icon: UtensilsCrossed, title: "Catering & Chefs", description: "Private chefs, catering for events, and meal prep services." },
-              { icon: Music, title: "Events & Entertainment", description: "DJs, event managers, sound rental, and venue booking." }
-            ],
+            cards:
+              spTypes.length > 0
+                ? spTypes.map((t: any) => ({
+                    icon: getIcon(t.name, serviceIcons, Wrench),
+                    title: t.name,
+                    description: t.description || `Trusted ${t.name} services.`,
+                  }))
+                : [
+                    {
+                      icon: Home,
+                      title: "Home & Garden",
+                      description:
+                        "Cleaning, plumbing, electrical, garden maintenance, and more.",
+                    },
+                    {
+                      icon: Sparkles,
+                      title: "Health & Beauty",
+                      description:
+                        "Salons, personal trainers, spa treatments, and wellness.",
+                    },
+                    {
+                      icon: UtensilsCrossed,
+                      title: "Catering & Chefs",
+                      description:
+                        "Private chefs, catering for events, and meal prep services.",
+                    },
+                    {
+                      icon: Music,
+                      title: "Events & Entertainment",
+                      description:
+                        "DJs, event managers, sound rental, and venue booking.",
+                    },
+                  ],
           },
           {
             id: "shop",
             badge: "E-Commerce ads",
-            title: "Shop Local, Support Mzansi",
-            subtitle: "Browse thousands of products from verified local sellers.",
+            title: "Shop Online",
+            subtitle: "We deliver to your doorstep.",
             accentClass: "group-hover:text-sa-red",
             badgeClass: "bg-sa-red/10 text-sa-red",
             link: "/shop",
-            cards: shopCats.length > 0 ? shopCats.map((c: any) => ({
-              icon: getIcon(c.title, shopIcons, ShoppingBag),
-              title: c.title,
-              description: c.description || `Discover ${c.title} products.`
-            })) : [
-              { icon: ShoppingBag, title: "Fashion & Accessories", description: "Clothing, shoes, bags, and jewellery from local brands." },
-              { icon: Smartphone, title: "Electronics & Tech", description: "Gadgets, phones, laptops, and tech accessories." },
-              { icon: Gift, title: "Gifts & Handmade", description: "Unique handcrafted goods and personalised gifts." },
-              { icon: Shirt, title: "Home & Living", description: "Furniture, décor, kitchen essentials, and appliances." }
-            ],
+            cards:
+              shopCats.length > 0
+                ? shopCats.map((c: any) => ({
+                    icon: getIcon(c.title, shopIcons, ShoppingBag),
+                    title: c.title,
+                    description:
+                      c.description || `Discover ${c.title} products.`,
+                  }))
+                : [
+                    {
+                      icon: ShoppingBag,
+                      title: "Fashion & Accessories",
+                      description:
+                        "Clothing, shoes, bags, and jewellery from local brands.",
+                    },
+                    {
+                      icon: Smartphone,
+                      title: "Electronics & Tech",
+                      description:
+                        "Gadgets, phones, laptops, and tech accessories.",
+                    },
+                    {
+                      icon: Gift,
+                      title: "Gifts & Handmade",
+                      description:
+                        "Unique handcrafted goods and personalised gifts.",
+                    },
+                    {
+                      icon: Shirt,
+                      title: "Home & Living",
+                      description:
+                        "Furniture, décor, kitchen essentials, and appliances.",
+                    },
+                    {
+                      icon: UtensilsCrossed,
+                      title: "Groceries",
+                      description:
+                        "Fresh produce, pantry staples, and everyday essentials delivered to your door.",
+                    },
+                  ],
           },
         ];
 
