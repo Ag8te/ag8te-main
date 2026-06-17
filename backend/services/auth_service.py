@@ -55,16 +55,23 @@ class AuthService:
         return user, None
 
     @staticmethod
-    def login_user(email, password, role):
-        """Authenticate user by email, password and role."""
-        user = User.query.filter_by(email=email, role=role).first()
+    def login_user(email, password, role=None):
+        """Authenticate user by email/password, optionally scoped to a role."""
+        if role:
+            user = User.query.filter_by(email=email, role=role).first()
+        else:
+            role_order = ['client', 'driver', 'professional', 'service-provider', 'agent']
+            users = User.query.filter(User.email == email, User.role.in_(role_order)).all()
+            users.sort(key=lambda u: role_order.index(u.role) if u.role in role_order else len(role_order))
+            user = next((candidate for candidate in users if candidate.check_password(password)), None)
+
         if not user or not user.check_password(password):
             return None, "INVALID_CREDENTIALS"
         
         if not user.is_active:
             return None, "ACCOUNT_INACTIVE"
 
-        if role != 'client' and role != 'admin' and not user.is_paid:
+        if user.role != 'client' and user.role != 'admin' and not user.is_paid:
             return user, "PAYMENT_REQUIRED"
             
         return user, None

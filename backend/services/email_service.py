@@ -3,6 +3,7 @@ Email Service
 """
 import os
 import smtplib
+import requests
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.header import Header
@@ -134,6 +135,85 @@ class EmailService:
                 except:
                     db.session.rollback()
             return False
+
+    @staticmethod
+    def send_brevo_email(recipient, subject, body, body_html=None):
+        """Send a transactional email through Brevo's HTTP API."""
+        api_key = current_app.config.get('BREVO_API_KEY')
+        if not api_key:
+            return False
+
+        sender_email = current_app.config.get('BREVO_SENDER_EMAIL') or current_app.config.get('DEFAULT_FROM_EMAIL')
+        sender_name = current_app.config.get('BREVO_SENDER_NAME') or current_app.config.get('DEFAULT_FROM_NAME') or 'Mzansi Serve'
+        api_url = current_app.config.get('BREVO_API_URL') or 'https://api.brevo.com/v3'
+
+        response = requests.post(
+            f"{api_url.rstrip('/')}/smtp/email",
+            headers={
+                'accept': 'application/json',
+                'api-key': api_key,
+                'content-type': 'application/json',
+            },
+            json={
+                'sender': {'name': sender_name, 'email': sender_email},
+                'to': [{'email': recipient}],
+                'subject': subject,
+                'textContent': body,
+                'htmlContent': body_html or body.replace('\n', '<br>'),
+            },
+            timeout=15,
+        )
+        response.raise_for_status()
+        return True
+
+    @staticmethod
+    def send_otp_email(user, code, purpose='login'):
+        """Send an email OTP, preferring Brevo and falling back to the local mail queue."""
+        first_name = _first_name(user)
+        purpose_label = {
+            'login': 'login',
+            'payment_verification': 'payment verification',
+            'password_reset': 'password reset',
+            'payout': 'payout confirmation',
+        }.get(purpose, 'verification')
+        subject = f"Your MzansiServe verification code: {code}"
+        body = f"""Hi {first_name},
+
+Your MzansiServe {purpose_label} code is: {code}
+
+This code expires shortly. If you did not request it, you can ignore this email.
+
+Regards,
+MzansiServe Team"""
+        body_html = f"""<html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+<p>Hi {first_name},</p>
+<p>Your MzansiServe {purpose_label} code is:</p>
+<p style="font-size: 28px; font-weight: 700; letter-spacing: 4px;">{code}</p>
+<p>This code expires shortly. If you did not request it, you can ignore this email.</p>
+<p>Regards,<br>MzansiServe Team</p>
+</body></html>"""
+
+        email = EmailService.queue_email(
+            recipient=user.email,
+            subject=subject,
+            body=body,
+            body_html=body_html,
+            metadata={'type': 'otp', 'purpose': purpose, 'user_id': str(user.id)}
+        )
+
+        try:
+            sent = EmailService.send_brevo_email(user.email, subject, body, body_html=body_html)
+            if sent:
+                email.status = 'sent'
+                email.sent_at = datetime.utcnow()
+                db.session.commit()
+                return email
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning("Brevo OTP email failed, falling back to SMTP queue: %s", e)
+
+        EmailService.send_email(email_id=email.id)
+        return email
     
     @staticmethod
     def send_verification_email(user, token):

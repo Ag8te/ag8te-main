@@ -101,6 +101,11 @@ def general_findings() -> list[Finding]:
         "iOS project": FRONTEND_DIR / "ios",
         "App icon master": FRONTEND_DIR / "src/assets/mobile/app-icon-master.png",
         "Splash master": FRONTEND_DIR / "src/assets/mobile/splash-master.png",
+        "Tracked mobile version": ROOT_DIR / "mobile-version.json",
+        "Mobile changelog": ROOT_DIR / "CHANGELOG.md",
+        "Mobile store workflow": ROOT_DIR / ".github/workflows/mobile-store-release.yml",
+        "Mobile version release workflow": ROOT_DIR / ".github/workflows/mobile-version-release.yml",
+        "Deploy mobile release trigger": ROOT_DIR / "scripts/trigger_mobile_release.sh",
     }
 
     for label, path in checks.items():
@@ -223,7 +228,7 @@ def android_findings() -> list[Finding]:
             resolved_store_file = (
                 store_file
                 if store_file.is_absolute()
-                else (FRONTEND_DIR / "android" / store_file).resolve()
+                else (FRONTEND_DIR / "android/app" / store_file).resolve()
             )
             if resolved_store_file.exists():
                 findings.append(

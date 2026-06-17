@@ -1,0 +1,94 @@
+default_platform(:android)
+
+def required_env(name)
+  value = ENV[name]
+  UI.user_error!("Missing required environment variable: #{name}") if value.to_s.empty?
+  value
+end
+
+def release_notes
+  ENV.fetch(
+    "RELEASE_NOTES",
+    "Mobile experience, performance, and stability improvements."
+  )
+end
+
+def requested_build_number
+  Integer(required_env("APP_VERSION_CODE"))
+end
+
+platform :android do
+  desc "Upload the signed AAB to Google Play internal testing"
+  lane :google_internal do
+    existing_codes = %w[internal alpha beta production].flat_map do |track|
+      google_play_track_version_codes(
+        package_name: "co.za.mzansiserve.app",
+        json_key_data: required_env("GOOGLE_PLAY_SERVICE_ACCOUNT_JSON"),
+        track: track
+      )
+    rescue StandardError
+      []
+    end
+    highest_code = existing_codes.map(&:to_i).max || 0
+    UI.user_error!(
+      "Version code #{requested_build_number} has already been used. Highest Google Play code is #{highest_code}."
+    ) if requested_build_number <= highest_code
+
+    upload_to_play_store(
+      package_name: "co.za.mzansiserve.app",
+      json_key_data: required_env("GOOGLE_PLAY_SERVICE_ACCOUNT_JSON"),
+      aab: required_env("ANDROID_AAB_PATH"),
+      track: ENV.fetch("GOOGLE_PLAY_TRACK", "internal"),
+      release_status: "completed",
+      skip_upload_apk: true,
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+      skip_upload_changelogs: true
+    )
+  end
+
+  desc "Upload the signed AAB to Huawei AppGallery Connect"
+  lane :huawei_testing do
+    huawei_appgallery_connect(
+      client_id: required_env("HUAWEI_CLIENT_ID"),
+      client_secret: required_env("HUAWEI_CLIENT_SECRET"),
+      app_id: required_env("HUAWEI_APP_ID"),
+      apk_path: required_env("ANDROID_AAB_PATH"),
+      is_aab: true,
+      submit_for_review: ENV.fetch("HUAWEI_SUBMIT_FOR_REVIEW", "true") == "true",
+      use_testing_version: true,
+      skip_manual_review: true,
+      feedback_email: required_env("HUAWEI_FEEDBACK_EMAIL")
+    )
+  end
+end
+
+platform :ios do
+  desc "Upload the signed IPA to Apple TestFlight"
+  lane :testflight do
+    api_key = app_store_connect_api_key(
+      key_id: required_env("APPLE_API_KEY_ID"),
+      issuer_id: required_env("APPLE_API_ISSUER_ID"),
+      key_content: required_env("APPLE_API_KEY_BASE64"),
+      is_key_content_base64: true
+    )
+
+    latest_build = latest_testflight_build_number(
+      api_key: api_key,
+      app_identifier: "co.za.mzansiserve.app",
+      version: required_env("APP_VERSION_NAME"),
+      initial_build_number: 0
+    ).to_i
+    UI.user_error!(
+      "Build #{requested_build_number} has already been used for iOS version #{ENV['APP_VERSION_NAME']}."
+    ) if requested_build_number <= latest_build
+
+    upload_to_testflight(
+      api_key: api_key,
+      ipa: required_env("IOS_IPA_PATH"),
+      changelog: release_notes,
+      skip_waiting_for_build_processing: true
+    )
+  end
+end

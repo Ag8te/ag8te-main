@@ -1,7 +1,7 @@
 """
 Database Models
 """
-from backend.models.user import User, PasswordResetToken, EmailVerificationToken, Wallet, WalletTransaction
+from backend.models.user import User, PasswordResetToken, EmailVerificationToken, OtpChallenge, Wallet, WalletTransaction
 from backend.models.service_request import ServiceRequest
 from backend.models.panic_alert import PanicAlert
 from backend.models.subscription import Subscription, SubscriptionPlan
@@ -41,6 +41,7 @@ __all__ = [
     'User',
     'PasswordResetToken',
     'EmailVerificationToken',
+    'OtpChallenge',
     'Wallet',
     'WalletTransaction',
     'ServiceRequest',
@@ -83,4 +84,3 @@ __all__ = [
     'MarketplaceCategory',
     'MarketplaceAd',
 ]
-

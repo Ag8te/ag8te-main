@@ -164,7 +164,7 @@ const MarketplaceAdDetails = () => {
                                         initial={{ opacity: 0 }}
                                         animate={{ opacity: 1 }}
                                         exit={{ opacity: 0 }}
-                                        src={ad.images[activeImageIndex] || "https://images.unsplash.com/photo-1549421263-5ec394a5ad4c?q=80&w=1200&auto=format&fit=crop"}
+                                        src={ad.images[activeImageIndex] || "https://images.unsplash.com/photo-1549421263-5ec394a5ad4c?q=80&w=1200&fm=jpg&fit=crop"}
                                         className="w-full h-full object-cover"
                                     />
                                 </AnimatePresence>

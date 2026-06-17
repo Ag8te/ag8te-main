@@ -165,7 +165,7 @@ export const MobileAppPromo = () => {
                                             <div className="relative h-32 bg-[#0F172A] overflow-hidden">
                                                 <div className="absolute inset-0 bg-gradient-to-r from-[#0F172A] to-transparent z-10" />
                                                 <img
-                                                    src="https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=400&q=80"
+                                                    src="https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=400&q=80&fm=jpg"
                                                     alt="Hero"
                                                     className="absolute inset-0 w-full h-full object-cover opacity-50"
                                                 />
@@ -199,8 +199,8 @@ export const MobileAppPromo = () => {
                                                 <div className="font-bold text-[#222222] text-[9px] mb-2">Top Rated Experts</div>
                                                 <div className="flex gap-2">
                                                     {[
-                                                        { name: "Dr. Thabo", role: "Specialist", img: "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=100" },
-                                                        { name: "Lindiwe", role: "Legal", img: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100" },
+                                                        { name: "Dr. Thabo", role: "Specialist", img: "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=100&fm=jpg" },
+                                                        { name: "Lindiwe", role: "Legal", img: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100&fm=jpg" },
                                                     ].map((p, i) => (
                                                         <div key={i} className="flex-1 bg-white border border-gray-100 rounded-lg p-1.5 flex flex-col items-center text-center shadow-sm">
                                                             <img src={p.img} alt={p.name} className="w-8 h-8 rounded-full mb-1 object-cover" />

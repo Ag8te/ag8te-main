@@ -29,10 +29,10 @@ const Professionals = () => {
       const fullName = `${data.full_name || ""} ${data.surname || ""}`.trim();
       const firstService = p.services?.length > 0 ? p.services[0] : null;
       const mockBanners = [
-        "https://images.unsplash.com/photo-1541888081628-912235c4eb5e?q=80&w=800&auto=format&fit=crop",
-        "https://images.unsplash.com/photo-1581578731548-c64695cc6952?q=80&w=800&auto=format&fit=crop",
-        "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?q=80&w=800&auto=format&fit=crop",
-        "https://images.unsplash.com/photo-1507679799987-c73779587ccf?q=80&w=800&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1541888081628-912235c4eb5e?q=80&w=800&fm=jpg&fit=crop",
+        "https://images.unsplash.com/photo-1581578731548-c64695cc6952?q=80&w=800&fm=jpg&fit=crop",
+        "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?q=80&w=800&fm=jpg&fit=crop",
+        "https://images.unsplash.com/photo-1507679799987-c73779587ccf?q=80&w=800&fm=jpg&fit=crop",
       ];
       return {
         id: user.id,
