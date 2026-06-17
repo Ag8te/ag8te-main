@@ -3,7 +3,9 @@ User Models
 """
 import uuid
 import bcrypt
-from datetime import datetime, timedelta, timezone
+import hashlib
+import hmac
+from datetime import datetime, timezone
 from flask_login import UserMixin
 from sqlalchemy.dialects.postgresql import UUID, JSONB, CITEXT
 from backend.extensions import db
@@ -165,6 +167,52 @@ class EmailVerificationToken(db.Model):
         return not self.used and now < self.expires_at
 
 
+class OtpChallenge(db.Model):
+    """One-time password challenge for login and sensitive action verification."""
+    __tablename__ = 'otp_challenges'
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id', ondelete='CASCADE'), nullable=True)
+    purpose = db.Column(db.Text, nullable=False)
+    channel = db.Column(db.Text, nullable=False)
+    identifier = db.Column(db.Text, nullable=False)
+    code_hash = db.Column(db.Text, nullable=True)
+    firebase_uid = db.Column(db.Text, nullable=True)
+    attempts = db.Column(db.Integer, nullable=False, default=0)
+    max_attempts = db.Column(db.Integer, nullable=False, default=5)
+    used = db.Column(db.Boolean, default=False)
+    expires_at = db.Column(db.DateTime(timezone=True), nullable=False)
+    verified_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    created_at = db.Column(db.DateTime(timezone=True), default=datetime.utcnow)
+    meta_data = db.Column('metadata', JSONB, default={})
+
+    user = db.relationship('User', backref='otp_challenges')
+
+    __table_args__ = (
+        db.CheckConstraint("purpose IN ('login', 'payout', 'password_reset', 'payment_verification')", name='check_otp_purpose'),
+        db.CheckConstraint("channel IN ('email', 'sms')", name='check_otp_channel'),
+    )
+
+    @staticmethod
+    def hash_code(code, secret):
+        normalized_code = str(code or '').strip()
+        return hmac.new(
+            str(secret).encode('utf-8'),
+            normalized_code.encode('utf-8'),
+            hashlib.sha256
+        ).hexdigest()
+
+    def is_valid(self):
+        now = datetime.now(timezone.utc) if self.expires_at.tzinfo else datetime.utcnow()
+        return not self.used and self.attempts < self.max_attempts and now < self.expires_at
+
+    def verify_code(self, code, secret):
+        if not self.is_valid() or not self.code_hash:
+            return False
+        submitted_hash = self.hash_code(code, secret)
+        return hmac.compare_digest(self.code_hash, submitted_hash)
+
+
 class Wallet(db.Model):
     """User wallet model"""
     __tablename__ = 'wallets'
@@ -231,4 +279,3 @@ class WalletTransaction(db.Model):
             'metadata': self.meta_data,
             'created_at': self.created_at.isoformat() if self.created_at else None,
         }
-

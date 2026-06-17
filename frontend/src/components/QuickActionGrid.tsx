@@ -45,19 +45,19 @@ export const QuickActionGrid = () => {
     const navigate = useNavigate();
 
     return (
-        <section className="relative -mt-16 z-20 pb-12">
-            <div className="container mx-auto px-6">
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 lg:gap-6">
+        <section className="relative z-20 pb-8 lg:-mt-16 lg:pb-12">
+            <div className="w-full">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-5 lg:gap-6">
                     {actions.map((action, index) => (
                         <motion.div
                             key={action.title}
                             onClick={() => navigate(action.href)}
                             className="group cursor-pointer"
                         >
-                            <div className="h-full bg-white rounded-2xl p-6 shadow-lg hover:shadow-2xl border border-gray-100 flex flex-col items-start text-left transition-all duration-300 hover:-translate-y-1">
+                            <div className="h-full min-h-[180px] bg-white rounded-lg p-5 shadow-md hover:shadow-xl border border-gray-100 flex flex-col items-start text-left transition-all duration-300 sm:p-6 lg:rounded-2xl lg:hover:-translate-y-1">
                                 {/* Icon */}
                                 <div className={cn(
-                                    "w-16 h-16 rounded-xl flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform duration-300",
+                                    "w-14 h-14 rounded-lg flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300 sm:w-16 sm:h-16 sm:mb-6 sm:rounded-xl",
                                     action.iconBg
                                 )}>
                                     <action.icon className="h-8 w-8 text-white" />

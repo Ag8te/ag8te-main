@@ -62,7 +62,7 @@ const AdsInvitation = () => {
                         <div className="flex-1 relative w-full lg:w-auto h-[400px] lg:h-[500px]">
                             <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#1a1a1a]/80 z-10" />
                             <img
-                                src="https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&q=80&w=1000"
+                                src="https://images.unsplash.com/photo-1557804506-669a67965ba0?fm=jpg&fit=crop&q=80&w=1000"
                                 alt="Advertising on MzansiServe"
                                 className="w-full h-full object-cover rounded-3xl opacity-60"
                             />

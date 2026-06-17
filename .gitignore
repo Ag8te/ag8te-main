@@ -32,3 +32,10 @@ frontend/android/*.jks
 frontend/android/app/*.keystore
 frontend/android/app/*.jks
 frontend/store-builds/
+releases/
+
+# Automated mobile release credentials and generated files
+frontend/ios/App/ExportOptions.plist
+frontend/ios/App/*.mobileprovision
+AuthKey_*.p8
+release-notes.md

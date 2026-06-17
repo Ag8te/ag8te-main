@@ -20,6 +20,7 @@ import {
 
 const Index = lazy(() => import("./pages/Index"));
 const Login = lazy(() => import("./pages/Login"));
+const LoginOtp = lazy(() => import("./pages/LoginOtp"));
 const Register = lazy(() => import("./pages/Register"));
 const Services = lazy(() => import("./pages/Services"));
 const Transport = lazy(() => import("./pages/Transport"));
@@ -141,6 +142,7 @@ const App = () => (
                   {/* ── Public routes ─────────────────────────────── */}
                   <Route path="/" element={<Index />} />
                   <Route path="/login" element={<Login />} />
+                  <Route path="/login/otp" element={<LoginOtp />} />
                   <Route path="/register" element={<Register />} />
                   <Route path="/shop" element={<Shop />} />
                   <Route path="/shop/product/:id" element={<ProductDetails />} />

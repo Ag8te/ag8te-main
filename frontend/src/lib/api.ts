@@ -13,6 +13,21 @@ export const API_BASE_URL =
     import.meta.env.VITE_API_URL ||
     (isNativeApp ? defaultMobileApiBaseUrl : "http://localhost:5006");
 
+function normalizeExternalImageUrl(path: string): string {
+    try {
+        const url = new URL(path);
+
+        if (url.hostname === "images.unsplash.com") {
+            url.searchParams.delete("auto");
+            url.searchParams.set("fm", "jpg");
+        }
+
+        return url.toString();
+    } catch {
+        return path;
+    }
+}
+
 /**
  * Returns a fully-qualified URL for an image path.
  * For relative paths (e.g. /uploads/...) it uses window.location.origin so the
@@ -21,7 +36,7 @@ export const API_BASE_URL =
  */
 export function getImageUrl(path: string | null | undefined): string {
     if (!path) return "";
-    if (path.startsWith("http")) return path;
+    if (path.startsWith("http")) return normalizeExternalImageUrl(path);
     const baseUrl = isNativeApp ? API_BASE_URL : window.location.origin;
     return `${baseUrl}${path}`;
 }

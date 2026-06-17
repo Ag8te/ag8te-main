@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # MzansiServe Deployment Script (Git-based)
-# Usage: ./deploy.sh [--env-only | --restart-only | --logs | --setup]
+# Usage: ./deploy.sh [--env-only | --restart-only | --logs | --setup | --skip-mobile-release]
 # =============================================================================
 set -e
 
@@ -14,6 +14,7 @@ LOCAL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DOMAIN="mzansiserve.co.za"
 REPO_URL="git@github.com:MzansiServe/mzansiserve-main.git"
 BRANCH="${DEPLOY_BRANCH:-$(git -C "$LOCAL_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || echo 'main')}"
+MOBILE_RELEASE_ON_DEPLOY="${MOBILE_RELEASE_ON_DEPLOY:-1}"
 
 # Colours
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'; NC='\033[0m'
@@ -37,13 +38,18 @@ remote() {
 
 # ─── Parse flags ─────────────────────────────────────────────────────────────
 ACTION="deploy"
-case "${1:-}" in
-  --env-only)     ACTION="env"     ;;
-  --restart-only) ACTION="restart" ;;
-  --logs)         ACTION="logs"    ;;
-  --setup)        ACTION="setup"   ;;
-  --branch)       BRANCH="${2:?'--branch requires a branch name'}"; shift ;;
-  --help|-h)
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --env-only)            ACTION="env" ;;
+    --restart-only)        ACTION="restart" ;;
+    --logs)                ACTION="logs" ;;
+    --setup)               ACTION="setup" ;;
+    --skip-mobile-release) MOBILE_RELEASE_ON_DEPLOY="0" ;;
+    --branch)
+      BRANCH="${2:?'--branch requires a branch name'}"
+      shift
+      ;;
+    --help|-h)
     echo "Usage: $0 [OPTIONS]"
     echo ""
     echo "Options:"
@@ -53,12 +59,18 @@ case "${1:-}" in
     echo "  --restart-only  Restart containers without syncing code"
     echo "  --logs          Stream live logs from the VM"
     echo "  --branch NAME   Deploy a specific branch (default: current branch)"
+    echo "  --skip-mobile-release  Do not trigger mobile store testing after a main deploy"
     echo ""
     echo "Environment:"
     echo "  DEPLOY_BRANCH   Override the branch to deploy"
+    echo "  MOBILE_RELEASE_ON_DEPLOY=0  Disable mobile store testing trigger"
+    echo "  GH_TOKEN        GitHub token with Actions: write permission when gh CLI is unavailable"
     exit 0
     ;;
-esac
+    *) error "Unknown option: $1" ;;
+  esac
+  shift
+done
 
 # ─── Validate gcloud is installed ────────────────────────────────────────────
 command -v gcloud &>/dev/null || error "gcloud CLI not found. Install it: https://cloud.google.com/sdk/docs/install"
@@ -349,6 +361,23 @@ echo -e "  Branch   : ${CYAN}$BRANCH${NC}"
 echo -e "  Commit   : ${CYAN}$COMMIT${NC}"
 echo -e "  Site     : ${CYAN}https://$DOMAIN${NC}"
 echo -e "  Seeded   : ${CYAN}$RUN_SEEDERS${NC}"
+echo ""
+
+if [[ "$BRANCH" == "main" && "$MOBILE_RELEASE_ON_DEPLOY" == "1" ]]; then
+  info "Starting Google Play, Huawei, and TestFlight testing builds from main…"
+  RELEASE_NOTES="Automated mobile testing build after deploying ${COMMIT}."
+  if "$LOCAL_DIR/scripts/trigger_mobile_release.sh" main "$RELEASE_NOTES"; then
+    success "Mobile store testing workflow started."
+  else
+    warn "Deployment succeeded, but the mobile store testing workflow could not be started."
+    warn "Authenticate GitHub CLI or export GH_TOKEN, then rerun the trigger."
+  fi
+elif [[ "$BRANCH" != "main" ]]; then
+  info "Mobile store testing skipped because the deployed branch is '$BRANCH', not 'main'."
+else
+  info "Mobile store testing trigger was disabled for this deployment."
+fi
+
 echo ""
 echo -e "  ${YELLOW}Commands:${NC}"
 echo -e "    ./deploy.sh              Full deploy (git pull + rebuild)"
