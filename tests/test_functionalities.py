@@ -247,8 +247,8 @@ def test_15_16_shop_purchases(client, app, db_session):
         
     client_headers = get_auth_header(client, client_email, client_pass, "client")
     
-    # Mock PaymentService.create_checkout
-    with patch('backend.services.payment_service.PaymentService.create_checkout') as mock_checkout:
+    # Mock the route-level PaymentService reference used by create_order.
+    with patch('backend.routes.payments.PaymentService.create_checkout') as mock_checkout:
         mock_checkout.return_value = {
             'checkout_id': 'test_checkout_id',
             'redirect_url': 'https://example.com/checkout',
