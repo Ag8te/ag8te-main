@@ -3,7 +3,16 @@ import json
 import uuid
 from datetime import datetime, timedelta
 from unittest.mock import patch
-from backend.models import User, Wallet, ServiceRequest, WithdrawalRequest, Order, Payment
+from backend.models import (
+    Inventory,
+    Order,
+    Payment,
+    ServiceRequest,
+    ShopProduct,
+    User,
+    Wallet,
+    WithdrawalRequest,
+)
 from backend.extensions import db
 from backend.services.auth_service import AuthService
 from backend.services.payment_service import PaymentService
@@ -168,7 +177,7 @@ def test_4_5_6_request_flows(client, app, db_session):
             db_session.session.commit()
             
     client_headers = get_auth_header(client, client_email, client_pass, "client")
-    
+
     # 6. Cab Quote
     quote_data = {
         "type": "cab",
@@ -246,6 +255,24 @@ def test_15_16_shop_purchases(client, app, db_session):
         db_session.session.commit()
         
     client_headers = get_auth_header(client, client_email, client_pass, "client")
+
+    with app.app_context():
+        product = ShopProduct(
+            id="item1",
+            name="Tool",
+            price=100.0,
+            status="active",
+            product_type="simple",
+            in_stock=True,
+        )
+        inventory = Inventory(
+            id="INV-ITEM1",
+            product_id=product.id,
+            quantity=1,
+            reserved_quantity=0,
+        )
+        db_session.session.add_all([product, inventory])
+        db_session.session.commit()
     
     # Mock the route-level PaymentService reference used by create_order.
     with patch('backend.routes.payments.PaymentService.create_checkout') as mock_checkout:
@@ -268,6 +295,10 @@ def test_15_16_shop_purchases(client, app, db_session):
         assert res_order.status_code == 200
         assert res_order.get_json()['data']['order_id'].startswith('ORD-')
         order_id = res_order.get_json()['data']['order_id']
+
+        with app.app_context():
+            inventory = Inventory.query.filter_by(product_id="item1").one()
+            assert inventory.reserved_quantity == 1
 
         # 18. Issue Invoice
         inv_res = client.get(f'/api/shop/orders/{order_id}/invoice', headers=client_headers)
