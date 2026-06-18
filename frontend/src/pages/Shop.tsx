@@ -719,7 +719,6 @@ export default function Shop() {
                       item.image ||
                       "https://images.unsplash.com/photo-1549421263-5ec394a5ad4c?q=80&w=800&auto=format&fit=crop"
                     }
-                    src={item.image || "https://images.unsplash.com/photo-1549421263-5ec394a5ad4c?q=80&w=800&fm=jpg&fit=crop"}
                     alt={item.title}
                     className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-110 bg-slate-100"
                     onError={(e) => {
