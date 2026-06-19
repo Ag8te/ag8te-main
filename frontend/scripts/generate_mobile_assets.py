@@ -12,8 +12,12 @@ from PIL import Image
 ROOT = Path(__file__).resolve().parents[1]
 LOGO_PATH = ROOT / "src/assets/logo.jpeg"
 MOBILE_ASSET_DIR = ROOT / "src/assets/mobile"
+ICON_SOURCE_PATH = MOBILE_ASSET_DIR / "app-icon-source.png"
 ANDROID_RES_DIR = ROOT / "android/app/src/main/res"
 IOS_ASSETS_DIR = ROOT / "ios/App/App/Assets.xcassets"
+EXPO_ASSET_DIR = ROOT.parent / "apps/mobile/assets"
+PUBLIC_DIR = ROOT / "public"
+WEB_MARK_PATH = ROOT / "src/assets/brand-mark.png"
 
 WHITE = (255, 255, 255, 255)
 
@@ -93,8 +97,11 @@ def centered_canvas(
 def load_logo_variants() -> tuple[Image.Image, Image.Image]:
     source = Image.open(LOGO_PATH).convert("RGBA")
     full_logo = trim_whitespace(source)
-    split_row = split_mark_and_wordmark(full_logo)
-    emblem = trim_whitespace(full_logo.crop((0, 0, full_logo.width, split_row)))
+    if ICON_SOURCE_PATH.exists():
+        emblem = trim_whitespace(Image.open(ICON_SOURCE_PATH).convert("RGBA"))
+    else:
+        split_row = split_mark_and_wordmark(full_logo)
+        emblem = trim_whitespace(full_logo.crop((0, 0, full_logo.width, split_row)))
     return full_logo, emblem
 
 
@@ -123,6 +130,61 @@ def render_icon_masters(full_logo: Image.Image, emblem: Image.Image) -> None:
     write_png(icon_master, MOBILE_ASSET_DIR / "app-icon-master.png")
     write_png(foreground_master, MOBILE_ASSET_DIR / "app-icon-foreground-master.png")
     write_png(splash_master, MOBILE_ASSET_DIR / "splash-master.png")
+
+
+def monochrome_icon(emblem: Image.Image, size: int) -> Image.Image:
+    fitted = resize_to_fit(emblem.convert("RGBA"), int(size * 0.82), int(size * 0.82))
+    result = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    left = (size - fitted.width) // 2
+    top = (size - fitted.height) // 2
+    pixels = fitted.load()
+    silhouette = Image.new("RGBA", fitted.size, (0, 0, 0, 0))
+    target = silhouette.load()
+    for y in range(fitted.height):
+        for x in range(fitted.width):
+            r, g, b, a = pixels[x, y]
+            if a > 0 and (r < 245 or g < 245 or b < 245):
+                target[x, y] = (0, 0, 0, a)
+    result.alpha_composite(silhouette, (left, top))
+    return result
+
+
+def generate_shared_assets() -> None:
+    full_logo, emblem = load_logo_variants()
+    icon_master = centered_canvas(
+        resize_to_fit(emblem, 760, 760),
+        (1024, 1024),
+    )
+    splash_icon = centered_canvas(
+        resize_to_fit(full_logo, 900, 760),
+        (1024, 1024),
+    )
+
+    write_png(icon_master.convert("RGB"), EXPO_ASSET_DIR / "icon.png")
+    write_png(splash_icon, EXPO_ASSET_DIR / "splash-icon.png")
+    write_png(icon_master.resize((192, 192), Image.Resampling.LANCZOS), EXPO_ASSET_DIR / "favicon.png")
+    write_png(Image.new("RGBA", (512, 512), WHITE), EXPO_ASSET_DIR / "android-icon-background.png")
+    write_png(
+        centered_canvas(
+            resize_to_fit(emblem, 820, 820),
+            (1024, 1024),
+            background=(255, 255, 255, 0),
+        ),
+        EXPO_ASSET_DIR / "android-icon-foreground.png",
+    )
+    write_png(monochrome_icon(emblem, 432), EXPO_ASSET_DIR / "android-icon-monochrome.png")
+
+    PUBLIC_DIR.mkdir(parents=True, exist_ok=True)
+    icon_master.resize((256, 256), Image.Resampling.LANCZOS).save(
+        WEB_MARK_PATH,
+        format="PNG",
+        optimize=True,
+    )
+    icon_master.resize((256, 256), Image.Resampling.LANCZOS).save(
+        PUBLIC_DIR / "favicon.ico",
+        format="ICO",
+        sizes=[(16, 16), (32, 32), (48, 48), (128, 128), (256, 256)],
+    )
 
 
 def generate_android_assets() -> None:
@@ -168,7 +230,7 @@ def generate_ios_assets() -> None:
         resize_to_fit(emblem, 760, 760),
         (1024, 1024),
     )
-    write_png(icon, app_icon_path)
+    write_png(icon.convert("RGB"), app_icon_path)
 
     for splash_path in (IOS_ASSETS_DIR / "Splash.imageset").glob("*.png"):
         with Image.open(splash_path) as existing:
@@ -191,16 +253,20 @@ def main() -> None:
 
     generate_android_assets()
     generate_ios_assets()
+    generate_shared_assets()
 
     generated_paths: Iterable[Path] = (
         MOBILE_ASSET_DIR / "app-icon-master.png",
         MOBILE_ASSET_DIR / "app-icon-foreground-master.png",
         MOBILE_ASSET_DIR / "splash-master.png",
         IOS_ASSETS_DIR / "AppIcon.appiconset" / "AppIcon-512@2x.png",
+        EXPO_ASSET_DIR / "icon.png",
+        WEB_MARK_PATH,
+        PUBLIC_DIR / "favicon.ico",
     )
     print("Generated branded mobile assets:")
     for path in generated_paths:
-        print(f" - {path.relative_to(ROOT)}")
+        print(f" - {path.relative_to(ROOT.parent)}")
 
 
 if __name__ == "__main__":
