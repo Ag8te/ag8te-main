@@ -125,7 +125,7 @@ const Footer = () => {
             </form>
           </div>
         </div>
-      </div>  */}
+      </div>
 
       {/* ── Main content ──────────────────────────────────────────────────── */}
       <div className="py-16 md:py-24 bg-[hsl(var(--sa-black))]">
