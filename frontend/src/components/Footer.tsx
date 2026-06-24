@@ -100,7 +100,7 @@ const Footer = () => {
                     placeholder="Enter your email"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-3.5 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-sm transition-all"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-3.5 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50"
                   />
                 </div>
                 <button
@@ -147,7 +147,7 @@ const Footer = () => {
                 </span>
               </Link>
               <p className="text-slate-400 text-[15px] leading-relaxed max-w-sm">
-                MzansiServe is born in South Africa as a comprehensive accessible online marketing platform.Book transport, hire professionals, request services, and shop — all in one trusted platform, no matter where you are!
+                MzansiServe is born in South Africa as a comprehensive accessible online marketing platform.Book transport, hire professionals, request services, and shop — all in one trusted p[...]
               </p>
 
               {/* Social links */}
