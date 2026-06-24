@@ -45,12 +45,15 @@ services:
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL:-noreply@mzansiserve.co.za}
       # External services
-      FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
-      BACKEND_URL: ${BACKEND_URL:-http://localhost:5006}
+      FRONTEND_URL: ${FRONTEND_URL:-https://mzansiserve.co.za}
+      BACKEND_URL: ${BACKEND_URL:-https://mzansiserve.co.za}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-${VITE_GOOGLE_CLIENT_ID:-}}
       PAYPAL_CLIENT_ID: ${PAYPAL_CLIENT_ID:-}
-      PAYPAL_SECRET: ${PAYPAL_SECRET:-}
-      PAYPAL_BASE_URL: ${PAYPAL_BASE_URL:-https://api-m.sandbox.paypal.com}
+      PAYPAL_CLIENT_SECRET: ${PAYPAL_CLIENT_SECRET:-${PAYPAL_SECRET:-}}
+      PAYPAL_MODE: ${PAYPAL_MODE:-live}
+      PAYPAL_API_URL: ${PAYPAL_API_URL:-https://api-m.paypal.com}
+      PAYPAL_SECRET: ${PAYPAL_SECRET:-${PAYPAL_CLIENT_SECRET:-}}
+      PAYPAL_BASE_URL: ${PAYPAL_BASE_URL:-${PAYPAL_API_URL:-https://api-m.paypal.com}}
       YOCO_SECRET_KEY: ${YOCO_SECRET_KEY:-}
       SHIPLOGIC_ENABLED: ${SHIPLOGIC_ENABLED:-0}
       SHIPLOGIC_API_KEY: ${SHIPLOGIC_API_KEY:-}
@@ -89,13 +92,13 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        VITE_API_URL: ${VITE_API_URL:-http://${HOST:-${PUBLIC_IP:-localhost}}:5006}
+        VITE_API_URL: ${VITE_API_URL:-https://mzansiserve.co.za}
         VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-${GOOGLE_CLIENT_ID:-}}
     expose:
       - "8080"          # Internal only — nginx proxies this
     environment:
       # We now route /api/ through Nginx on port 80, so no port is needed.
-      - VITE_API_URL=${VITE_API_URL:-http://${HOST:-${PUBLIC_IP:-localhost}}:5006}
+      - VITE_API_URL=${VITE_API_URL:-https://mzansiserve.co.za}
       - VITE_GOOGLE_CLIENT_ID=${VITE_GOOGLE_CLIENT_ID:-${GOOGLE_CLIENT_ID:-}}
     depends_on:
       - app

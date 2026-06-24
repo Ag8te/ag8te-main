@@ -19,6 +19,11 @@ const localStorageMock = (() => {
 })();
 Object.defineProperty(window, "localStorage", { value: localStorageMock });
 
+Object.defineProperty(window, "scrollTo", {
+  writable: true,
+  value: vi.fn(),
+});
+
 Object.defineProperty(window, "matchMedia", {
   writable: true,
   value: (query: string) => ({

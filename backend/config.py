@@ -47,8 +47,8 @@ class Config:
     # Payments
     PAYPAL_CLIENT_ID = os.environ.get('PAYPAL_CLIENT_ID')
     PAYPAL_CLIENT_SECRET = os.environ.get('PAYPAL_CLIENT_SECRET')
-    PAYPAL_API_URL = os.environ.get('PAYPAL_API_URL') or 'https://api-m.sandbox.paypal.com'
-    PAYPAL_MODE = os.environ.get('PAYPAL_MODE') or 'sandbox'
+    PAYPAL_MODE = os.environ.get('PAYPAL_MODE') or ('live' if os.environ.get('FLASK_ENV') == 'production' else 'sandbox')
+    PAYPAL_API_URL = os.environ.get('PAYPAL_API_URL') or ('https://api-m.paypal.com' if PAYPAL_MODE == 'live' else 'https://api-m.sandbox.paypal.com')
     YOCO_SECRET_KEY = os.environ.get('YOCO_SECRET_KEY')
     YOCO_API_URL = os.environ.get('YOCO_API_URL') or 'https://payments.yoco.com'
     SHIPLOGIC_ENABLED = (os.environ.get('SHIPLOGIC_ENABLED') or '').lower() in ('1', 'true', 'yes', 'on')
