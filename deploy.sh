@@ -336,18 +336,43 @@ remote "
   # Clean up dangling images
   docker image prune -f 2>/dev/null || true
 "
-success "Containers are up."
+success "Container startup requested."
 
 info "Step 4/5 — Health check…"
 sleep 5
-remote "
-  cd $REMOTE_DIR
-  echo '--- Running containers ---'
-  docker compose -f docker-compose.yml ps
-  echo ''
-  echo '--- Last 15 log lines ---'
-  docker compose -f docker-compose.yml --env-file .env logs --tail=15
-"
+HEALTH_CHECK_OK="0"
+for attempt in 1 2 3; do
+  if remote "
+    cd $REMOTE_DIR
+    echo '--- Running containers ---'
+    docker compose -f docker-compose.yml ps
+    echo ''
+    echo '--- Last 15 log lines ---'
+    docker compose -f docker-compose.yml --env-file .env logs --tail=15
+    echo ''
+    echo '--- Backend status ---'
+    docker compose -f docker-compose.yml --env-file .env ps --status running --services | grep -qx app
+  "; then
+    HEALTH_CHECK_OK="1"
+    break
+  fi
+
+  warn "Remote health check attempt $attempt/3 failed. Retrying in 5 seconds…"
+  sleep 5
+done
+
+if [[ "$HEALTH_CHECK_OK" != "1" ]]; then
+  warn "Could not inspect containers over SSH. Checking the public API instead…"
+fi
+
+if curl --fail --silent --show-error --connect-timeout 10 --max-time 30 \
+  "https://$DOMAIN/api/health" >/dev/null; then
+  success "Public API health check passed."
+elif [[ "$HEALTH_CHECK_OK" == "1" ]]; then
+  warn "Containers are running, but the public API health check did not pass yet."
+else
+  error "Health checks failed over both SSH and the public API."
+fi
 
 info "Step 5/5 — Deployment summary"
 COMMIT=$(remote "cd $REMOTE_DIR && git log --oneline -1" 2>/dev/null || echo "unknown")

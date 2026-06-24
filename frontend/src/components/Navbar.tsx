@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 import { apiFetch, API_BASE_URL, getImageUrl } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import logo from "@/assets/logo.jpeg";
+import logo from "@/assets/brand-mark.png";
 import LoginRequiredModal from "./LoginRequiredModal";
 import CartDrawer from "./CartDrawer";
 
@@ -116,8 +116,9 @@ const Navbar = () => {
     try {
       const res = await apiFetch("/api/notifications");
       if (res.success) {
-        setNotifications(res.data.notifications || []);
-        setUnreadCount(res.data.unread_count || 0);
+        const payload = res.message || res.data;
+        setNotifications(payload.notifications || []);
+        setUnreadCount(payload.unread_count || 0);
       }
     } catch (_err) {
       /* fail silently */
@@ -187,7 +188,7 @@ const Navbar = () => {
             <img
               src={logo}
               alt="MzansiServe"
-              className="h-full w-full scale-[1.85] object-cover"
+              className="h-full w-full object-cover"
             />
           </div>
           <span className={cn(

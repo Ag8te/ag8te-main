@@ -231,7 +231,15 @@ class ShiplogicService:
     @staticmethod
     def _format_estimate_label(eta_days: Optional[Any], estimated_delivery_date: Optional[str]) -> str:
         if estimated_delivery_date:
-            return f"Estimated by {estimated_delivery_date}"
+            try:
+                from datetime import datetime
+                if isinstance(estimated_delivery_date, str):
+                    dt = datetime.fromisoformat(estimated_delivery_date)
+                    day_name = dt.strftime("%a")
+                    formatted = dt.strftime("%-d %b %Y")
+                    return f"Est. delivery by {day_name} {formatted}"
+            except Exception:
+                pass
         try:
             eta_number = int(eta_days) if eta_days is not None else None
         except (TypeError, ValueError):

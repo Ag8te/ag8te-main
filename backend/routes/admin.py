@@ -15,6 +15,7 @@ from backend.extensions import db
 from backend.models import (
     AppSetting,
     FAQ,
+    Payment,
     ServiceRequest,
     User,
     ProductImage,
@@ -1345,6 +1346,34 @@ def deactivate_product(product_id):
         )
 
 
+@bp.route("/products/upload-variant-image", methods=["POST"])
+@require_admin
+def upload_variant_image():
+    """Upload a single variant image and return its URL.
+    Used by the admin form to upload colour variant images before product save.
+    Expects multipart/form-data with a single file field named 'image'.
+    Returns: { url: '/uploads/filename.ext' }
+    """
+    try:
+        image_file = request.files.get("image")
+        if not image_file or not image_file.filename:
+            return error_response("MISSING_FILE", "No image file provided", None, 400)
+        if not _allowed_image_file(image_file.filename):
+            return error_response("INVALID_FILE", "File type not allowed", None, 400)
+        upload_folder = current_app.config.get("UPLOAD_FOLDER")
+        if upload_folder and not os.path.exists(upload_folder):
+            os.makedirs(upload_folder)
+        ext = image_file.filename.rsplit(".", 1)[1].lower()
+        unique_filename = f"variant_{uuid.uuid4().hex[:12]}.{ext}"
+        filepath = os.path.join(upload_folder, unique_filename)
+        image_file.save(filepath)
+        url = f"/uploads/{unique_filename}"
+        return success_response({"url": url}, "Image uploaded successfully")
+    except Exception as e:
+        current_app.logger.error(f"Upload variant image error: {str(e)}")
+        return error_response("INTERNAL_ERROR", "Failed to upload image", None, 500)
+
+
 @bp.route("/products/<product_id>/inventory", methods=["PATCH"])
 @require_admin
 def update_inventory(product_id):
@@ -1682,6 +1711,142 @@ def list_orders():
     except Exception as e:
         current_app.logger.error(f"List orders error: {str(e)}")
         return error_response("INTERNAL_ERROR", "Failed to list orders", None, 500)
+
+
+@bp.route("/orders/<order_id>/ship", methods=["PATCH"])
+@require_admin
+def ship_order(order_id):
+    """Mark a paid order as shipped."""
+    try:
+        from backend.models.shop import Order
+        data = request.get_json(silent=True) or {}
+        tracking_number = (data.get('tracking_number') or '').strip()
+
+        order = Order.query.get(order_id)
+        if not order:
+            return error_response('NOT_FOUND', 'Order not found', None, 404)
+
+        if order.status != 'paid':
+            return error_response(
+                'INVALID_STATUS',
+                f'Cannot ship an order with status "{order.status}". '
+                f'Only paid orders can be marked as shipped.',
+                None, 400
+            )
+
+        order.status = 'shipped'
+
+        if tracking_number:
+            shipping = dict(order.shipping or {})
+            shipping['tracking_reference'] = tracking_number
+            shipping['shipment_status'] = 'dispatched'
+            order.shipping = shipping
+
+        db.session.commit()
+
+        current_app.logger.info(
+            f"Admin marked order {order_id} as shipped "
+            f"(tracking: {tracking_number or 'not provided'})"
+        )
+        return success_response(order.to_dict(), 'Order marked as shipped')
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Ship order error: {str(e)}")
+        return error_response('INTERNAL_ERROR', 'Failed to update order', None, 500)
+
+
+@bp.route("/orders/<order_id>/deliver", methods=["PATCH"])
+@require_admin
+def deliver_order(order_id):
+    """Mark a shipped order as delivered."""
+    try:
+        from backend.models.shop import Order
+        order = Order.query.get(order_id)
+        if not order:
+            return error_response('NOT_FOUND', 'Order not found', None, 404)
+
+        if order.status != 'shipped':
+            return error_response(
+                'INVALID_STATUS',
+                f'Cannot mark as delivered — order status is "{order.status}". '
+                f'Only shipped orders can be marked as delivered.',
+                None, 400
+            )
+
+        order.status = 'delivered'
+
+        shipping = dict(order.shipping or {})
+        shipping['shipment_status'] = 'delivered'
+        order.shipping = shipping
+
+        db.session.commit()
+
+        current_app.logger.info(f"Admin marked order {order_id} as delivered")
+        return success_response(order.to_dict(), 'Order marked as delivered')
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Deliver order error: {str(e)}")
+        return error_response('INTERNAL_ERROR', 'Failed to update order', None, 500)
+
+
+@bp.route("/orders/<order_id>/cancel", methods=["PATCH"])
+@require_admin
+def cancel_order(order_id):
+    """Cancel a pending or paid order."""
+    try:
+        from backend.models.shop import Order
+        from backend.services.inventory_service import (
+            release_inventory_reservation,
+            restore_inventory_on_order_cancel,
+        )
+        data = request.get_json(silent=True) or {}
+        reason = (data.get('reason') or '').strip()
+
+        order = Order.query.get(order_id)
+        if not order:
+            return error_response('NOT_FOUND', 'Order not found', None, 404)
+
+        if order.status in ('shipped', 'delivered'):
+            return error_response(
+                'INVALID_STATUS',
+                f'Cannot cancel an order that has already been {order.status}. '
+                f'Contact the customer to arrange a return instead.',
+                None, 400
+            )
+
+        if order.status == 'cancelled':
+            return error_response(
+                'INVALID_STATUS',
+                'This order is already cancelled.',
+                None, 400
+            )
+
+        if order.status == 'pending':
+            release_inventory_reservation(order)
+        elif order.status == 'paid':
+            restore_inventory_on_order_cancel(order)
+
+        order.status = 'cancelled'
+
+        if reason:
+            shipping = dict(order.shipping or {})
+            shipping['cancellation_reason'] = reason
+            order.shipping = shipping
+
+        db.session.commit()
+
+        current_app.logger.info(
+            f"Admin cancelled order {order_id} "
+            f"(reason: {reason or 'not provided'})"
+        )
+        return success_response(order.to_dict(), 'Order cancelled successfully')
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Cancel order error: {str(e)}")
+        return error_response('INTERNAL_ERROR', 'Failed to cancel order', None, 500)
 
 
 @bp.route("/payments", methods=["GET"])
