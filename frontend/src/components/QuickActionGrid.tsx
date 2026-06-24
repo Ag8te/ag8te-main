@@ -23,7 +23,7 @@ const actions = [
     href: "/professionals",
   },
   {
-    title: "Services",
+    title: "Service Provider",
     icon: Wrench,
     iconBg: "bg-gradient-to-br from-primary to-primary/80",
     href: "/services",
