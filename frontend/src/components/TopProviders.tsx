@@ -50,7 +50,7 @@ export const TopProviders = () => {
 
     if (loading && providers.length === 0) {
         return (
-            <section className="py-12 bg-slate-50">
+            <section className="py-4 sm:py-12 bg-slate-50">
                 <div className="container mx-auto px-6 text-center">
                     <div className="animate-pulse flex flex-col items-center gap-4">
                         <div className="h-6 w-48 bg-gray-200 rounded" />
@@ -64,10 +64,16 @@ export const TopProviders = () => {
     if (providers.length === 0) return null;
 
     return (
-        <section className="py-12 bg-slate-50">
+        <section className="py-4 sm:py-12 bg-slate-50">
             <div className="container mx-auto px-6">
                 {/* Header */}
-                <div className="flex flex-col md:flex-row md:items-end justify-between mb-6 gap-6">
+                <div className="mb-3 sm:hidden">
+                    <h2 className="text-base font-bold text-[#222222]">
+                        Mzansi's <span className="text-primary">Top Rated</span>
+                    </h2>
+                </div>
+
+                <div className="hidden sm:flex flex-col md:flex-row md:items-end justify-between mb-6 gap-6">
                     <div className="max-w-2xl">
                         <h2 className="text-3xl md:text-4xl font-semibold text-[#222222] mb-3">
                             Mzansi's <span className="text-primary">Top Rated</span>
@@ -87,7 +93,42 @@ export const TopProviders = () => {
                 </div>
 
                 {/* Cards */}
-                <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+                <div className="flex gap-3 overflow-x-auto pb-1 no-scrollbar sm:hidden -mx-6 px-6">
+                    {providers.map((provider, index) => {
+                        const fullName = provider.data?.full_name || provider.name || "Service Provider";
+                        const imageUrl = provider.profile_image_url ? getImageUrl(provider.profile_image_url) : null;
+                        return (
+                            <div
+                                key={provider.id || index}
+                                className="min-w-[140px] shrink-0 bg-white rounded-xl p-3 border border-gray-100 active:scale-95 transition-transform"
+                                onClick={() => navigate(`/provider/${provider.role || 'professional'}/${provider.id}`)}
+                            >
+                                <div className="relative mb-2 inline-block">
+                                    {imageUrl ? (
+                                        <img src={imageUrl} alt={fullName} className="w-12 h-12 rounded-lg object-cover" />
+                                    ) : (
+                                        <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                                            <UserIcon size={20} />
+                                        </div>
+                                    )}
+                                    {provider.is_approved && (
+                                        <div className="absolute -bottom-1 -right-1 bg-primary text-white p-0.5 rounded-md border border-white">
+                                            <ShieldCheck size={10} />
+                                        </div>
+                                    )}
+                                </div>
+                                <h3 className="text-xs font-semibold text-[#222222] leading-tight line-clamp-1">{fullName}</h3>
+                                <p className="text-[10px] text-primary font-medium mt-0.5">{provider.role_display}</p>
+                                <div className="flex items-center gap-0.5 mt-1">
+                                    <Star size={10} className="text-yellow-400 fill-yellow-400" />
+                                    <span className="text-[10px] font-bold text-[#222222]">{provider.avg_rating.toFixed(1)}</span>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+
+                <div className="hidden sm:grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
                     {providers.map((provider, index) => {
                         const fullName = provider.data?.full_name || provider.name || "Service Provider";
                         const imageUrl = provider.profile_image_url
@@ -149,6 +190,17 @@ export const TopProviders = () => {
                             </motion.div>
                         );
                     })}
+                </div>
+
+                <div className="mt-3 text-center sm:hidden">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-2"
+                        onClick={() => navigate("/professionals")}
+                    >
+                        Browse All Experts <ChevronRight className="h-3.5 w-3.5" />
+                    </Button>
                 </div>
             </div>
         </section>
