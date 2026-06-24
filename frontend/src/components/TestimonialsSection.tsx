@@ -54,14 +54,20 @@ const TestimonialsSection = () => {
     const displayed = testimonials.length > 0 ? testimonials : FALLBACK;
 
     return (
-        <section ref={ref} className="py-12 bg-white relative">
+        <section ref={ref} className="py-4 sm:py-12 bg-white relative">
             {/* Subtle dot background */}
             <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width=\'6\' height=\'6\' viewBox=\'0 0 6 6\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'%23E5E7EB\' fill-opacity=\'0.4\'%3E%3Cpath d=\'M5 0h1L0 6V5zM6 5v1H5z\'/%3E%3C/g%3E%3C/svg%3E')] opacity-50" />
 
             <div className="container mx-auto px-6 relative z-10">
                 {/* Header */}
+                <div className="mb-3 sm:hidden">
+                    <h2 className="text-base font-bold text-[#222222]">
+                        What <span className="text-primary">South Africans</span> Say
+                    </h2>
+                </div>
+
                 <motion.div
-                    className="text-center mb-10"
+                    className="hidden sm:block text-center mb-10"
                 >
                     <h2 className="text-4xl md:text-5xl font-semibold text-[#222222] mb-4">
                         What <span className="text-primary">South Africans</span> Say
@@ -72,7 +78,28 @@ const TestimonialsSection = () => {
                 </motion.div>
 
                 {/* Cards */}
-                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 max-w-6xl mx-auto">
+                <div className="flex gap-3 overflow-x-auto pb-1 no-scrollbar sm:hidden">
+                    {displayed.map((t, i) => (
+                        <div
+                            key={t.id}
+                            className="min-w-[200px] max-w-[200px] shrink-0 bg-white rounded-xl border border-gray-100 p-3 shadow-sm overflow-hidden"
+                        >
+                            <StarRating rating={t.rating} />
+                            <p className="mt-2 text-xs text-slate-600 leading-relaxed line-clamp-3">
+                                "{t.text}"
+                            </p>
+                            <div className="flex items-center gap-2 mt-3">
+                                <Avatar name={t.name} url={t.avatar_url} />
+                                <div>
+                                    <p className="font-semibold text-xs text-[#222222]">{t.name}</p>
+                                    {t.role && <p className="text-[10px] text-slate-400">{t.role}</p>}
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                <div className="hidden sm:grid gap-6 sm:grid-cols-2 lg:grid-cols-4 max-w-6xl mx-auto">
                     {displayed.map((t, i) => (
                         <motion.div
                             key={t.id}
