@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { MapPin, Phone, Mail, Heart, Facebook, Twitter, Instagram, Linkedin } from "lucide-react";
-import logo from "@/assets/logo.jpeg";
+import logo from "@/assets/brand-mark.png";
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";

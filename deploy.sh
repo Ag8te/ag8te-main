@@ -336,7 +336,7 @@ remote "
   # Clean up dangling images
   docker image prune -f 2>/dev/null || true
 "
-success "Containers are up."
+success "Container startup requested."
 
 info "Step 4/5 — Health check…"
 sleep 5
@@ -349,6 +349,9 @@ for attempt in 1 2 3; do
     echo ''
     echo '--- Last 15 log lines ---'
     docker compose -f docker-compose.yml --env-file .env logs --tail=15
+    echo ''
+    echo '--- Backend status ---'
+    docker compose -f docker-compose.yml --env-file .env ps --status running --services | grep -qx app
   "; then
     HEALTH_CHECK_OK="1"
     break
