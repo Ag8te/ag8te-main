@@ -36,10 +36,17 @@ const FeaturedProducts = () => {
     if (!loading && products.length === 0) return null;
 
     return (
-        <section ref={ref} className="py-12 lg:py-16">
+        <section ref={ref} className="py-4 sm:py-12 lg:py-16">
             <div className="container mx-auto px-4 lg:px-8">
+                <div className="mb-3 sm:hidden">
+                    <span className="mb-1.5 inline-block rounded-full bg-sa-red/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-sa-red">
+                        Shop
+                    </span>
+                    <h2 className="text-base font-bold text-[#222222]">Featured Products</h2>
+                </div>
+
                 <motion.div
-                    className="mb-6 flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4"
+                    className="mb-6 hidden sm:flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4"
                 >
                     <div>
                         <span className="mb-2 inline-block rounded-full bg-sa-red/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-sa-red">
@@ -56,13 +63,52 @@ const FeaturedProducts = () => {
                 </motion.div>
 
                 {loading ? (
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                        {Array.from({ length: 8 }).map((_, i) => (
-                            <div key={i} className="rounded-2xl border border-border bg-muted/40 h-64 animate-pulse" />
-                        ))}
-                    </div>
+                    <>
+                        <div className="flex gap-3 overflow-x-auto pb-1 no-scrollbar sm:hidden">
+                            {Array.from({ length: 4 }).map((_, i) => (
+                                <div key={i} className="min-w-[140px] shrink-0 rounded-xl border border-border bg-muted/40 h-44 animate-pulse" />
+                            ))}
+                        </div>
+                        <div className="hidden sm:grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                            {Array.from({ length: 8 }).map((_, i) => (
+                                <div key={i} className="rounded-2xl border border-border bg-muted/40 h-64 animate-pulse" />
+                            ))}
+                        </div>
+                    </>
                 ) : (
-                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                    <>
+                    <div className="flex gap-3 overflow-x-auto pb-1 no-scrollbar sm:hidden">
+                        {products.map((product) => {
+                            const imgSrc = product.image_url ? getImageUrl(product.image_url) : null;
+                            const price = typeof product.price === "string" ? parseFloat(product.price) : product.price;
+                            return (
+                                <div
+                                    key={product.id}
+                                    className="min-w-[140px] shrink-0 rounded-xl border border-slate-100 bg-white overflow-hidden active:scale-95 transition-transform"
+                                    onClick={() => navigate(`/shop/product/${product.id}`)}
+                                >
+                                    <div className="relative h-24 bg-slate-50">
+                                        {imgSrc ? (
+                                            <img src={imgSrc} alt={product.name} className="h-full w-full object-cover" />
+                                        ) : (
+                                            <div className="h-full w-full flex items-center justify-center">
+                                                <ShoppingBag className="h-6 w-6 text-slate-200" />
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="p-2">
+                                        <h3 className="text-xs font-semibold text-[#222222] leading-tight line-clamp-1">
+                                            {product.name}
+                                        </h3>
+                                        <p className="mt-1 text-xs font-bold text-primary">
+                                            R{!isNaN(price) ? price.toLocaleString() : "—"}
+                                        </p>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                    <div className="hidden sm:grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
                         {products.map((product, i) => {
                             const imgSrc = product.image_url
                                 ? (getImageUrl(product.image_url))
@@ -129,6 +175,12 @@ const FeaturedProducts = () => {
                             );
                         })}
                     </div>
+                    <div className="mt-3 text-center sm:hidden">
+                        <Button variant="outline" size="sm" className="gap-2" onClick={() => navigate("/shop")}>
+                            View All Products <ArrowRight className="h-3.5 w-3.5" />
+                        </Button>
+                    </div>
+                    </>
                 )}
             </div>
         </section>

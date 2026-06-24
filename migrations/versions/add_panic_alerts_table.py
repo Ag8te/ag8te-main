@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import UUID
 
 revision = "add_panic_alerts_table"
-down_revision = "add_registration_review_status"
+down_revision = "add_otp_challenges"
 branch_labels = None
 depends_on = None
 

@@ -30,8 +30,8 @@ const ReachMillionsSection = () => {
         borderColor: alpha('#000', 0.05)
       }}
     >
-      <Container maxWidth="lg">
-        <Grid container spacing={8} alignItems="center">
+      <Container maxWidth="lg" sx={{ px: { xs: 1, md: 3 }, overflow: 'hidden' }}>
+        <Grid container spacing={{ xs: 2, md: 8 }} alignItems="center">
           <Grid size={{ xs: 12, md: 7 }}>
             <motion.div
             >
@@ -115,14 +115,16 @@ const ReachMillionsSection = () => {
             >
               <Box
                 sx={{
-                  p: 6,
+                  p: { xs: 3, md: 6 },
                   borderRadius: 4,
                   bgcolor: 'white',
                   boxShadow: '0 12px 40px rgba(0,0,0,0.12)',
                   border: '1px solid',
                   borderColor: alpha('#000', 0.08),
                   textAlign: 'center',
-                  position: 'relative'
+                  position: 'relative',
+                  overflow: 'hidden',
+                  maxWidth: '100%',
                 }}
               >
                 <Typography
@@ -131,7 +133,10 @@ const ReachMillionsSection = () => {
                     fontWeight: 900,
                     color: 'hsl(var(--primary))',
                     mb: 1,
-                    letterSpacing: '-0.04em'
+                    letterSpacing: '-0.04em',
+                    fontSize: { xs: '1.8rem', md: '3rem' },
+                    wordBreak: 'break-word',
+                    overflowWrap: 'break-word',
                   }}
                 >
                   mzansi<Box component="span" sx={{ color: '#222222' }}>cover</Box>
