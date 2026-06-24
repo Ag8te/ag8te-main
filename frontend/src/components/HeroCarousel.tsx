@@ -80,14 +80,14 @@ const HeroCarousel = () => {
   }, [next, slides.length]);
 
   if (slides.length === 0) {
-    return <div className="h-[640px] w-full bg-slate-900 animate-pulse sm:h-[700px] lg:h-[850px]" />;
+    return ( <div className="h-[280px] w-full bg-slate-900 animate-pulse sm:h-[380px] lg:h-[550px]" /> );
   }
 
   const slide = slides[current];
   const IconComponent = iconMap[slide.badge || "Shop"] || ShoppingBag;
 
   return (
-    <section id="home" className="relative h-[720px] w-full overflow-hidden sm:h-[760px] lg:h-[850px]">
+   <section id="home"  className="relative h-[270px] w-full overflow-hidden sm:h-[350px] lg:h-[500px]">
       {/* Background images */}
       <AnimatePresence mode="wait">
         <motion.div
@@ -108,7 +108,7 @@ const HeroCarousel = () => {
       </AnimatePresence>
 
       {/* Content */}
-      <div className="relative z-10 flex h-full items-center pb-24 pt-6 sm:pb-28 lg:pb-40 lg:pt-0">
+      <div className="relative z-10 flex h-full items-center py-4 sm:py-8 lg:py-12">
         <div className="container mx-auto px-6 sm:px-8 lg:px-12">
           <AnimatePresence mode="wait">
             <motion.div
@@ -121,19 +121,19 @@ const HeroCarousel = () => {
               <motion.div
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.3, duration: 0.5 }}
-                className="mb-4 inline-flex items-center gap-3 rounded-full bg-white/10 px-4 py-2 backdrop-blur-xl border border-white/10 shadow-2xl sm:mb-8 sm:px-5"
+                className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 backdrop-blur-xl border border-white/10"
               >
-                <div className="h-6 w-6 rounded-full bg-white/20 flex items-center justify-center">
-                  <IconComponent className="h-3.5 w-3.5 text-white" />
+                <div className="h-4 w-4 rounded-full bg-white/20 flex items-center justify-center">
+                  <IconComponent className="h-3 w-3 text-white" />
                 </div>
                 <span className="text-[10px] font-black tracking-[0.2em] uppercase text-white">{slide.badge}</span>
               </motion.div>
 
-              <h1 className="mb-4 text-4xl font-bold leading-[1.08] text-white sm:mb-8 sm:text-6xl lg:text-7xl tracking-tighter whitespace-pre-line drop-shadow-sm">
+              <div className="mb-2 text-xl font-bold leading-tight text-white sm:text-3xl lg:text-5xl tracking-tight whitespace-pre-line" >
                 {slide.title}
-              </h1>
+              </div>
 
-              <p className="mb-6 max-w-lg text-base text-white/90 font-medium leading-relaxed drop-shadow-sm sm:mb-12 sm:text-xl">
+              <p className="mb-3 max-w-md text-xs text-white/90 leading-relaxed sm:mb-6 sm:text-base">
                 {slide.subtitle}
               </p>
 
@@ -142,8 +142,8 @@ const HeroCarousel = () => {
                   <Button
                     size="lg"
                     className={cn(
-                      "h-12 w-full px-6 rounded-lg text-white font-bold text-base shadow-2xl transition-all active:scale-95 border-none sm:h-16 sm:w-auto sm:rounded-2xl sm:px-10 sm:text-lg sm:hover:-translate-y-1",
-                      slide.ctaColor || "bg-primary"
+                      "h-9 w-full px-4 rounded-lg text-white font-semibold text-xs sm:h-12 sm:w-auto sm:px-8 sm:text-sm",
+                        slide.ctaColor || "bg-primary"
                     )}
                     onClick={() => navigate(slide.cta_link || '/')}
                   >
@@ -154,7 +154,9 @@ const HeroCarousel = () => {
                   <Button
                     size="lg"
                     variant="outline"
-                    className="h-12 w-full border-white/30 text-white bg-white/5 hover:bg-white/10 px-6 rounded-lg backdrop-blur-md transition-all font-bold text-base border-2 sm:h-16 sm:w-auto sm:rounded-2xl sm:px-10 sm:text-lg"
+                    className="h-9 w-full border-white/30 text-white
+                    bg-white/5 px-4 rounded-lg backdrop-blur-md
+                    text-xs sm:h-12 sm:w-auto sm:px-8 sm:text-sm"
                     onClick={() => navigate(slide.learnMore || '/')}
                   >
                     Explore Details
@@ -169,7 +171,7 @@ const HeroCarousel = () => {
       {slides.length > 1 && (
         <>
           {/* Navigation controls - Refined Minimal Style */}
-          <div className="absolute bottom-6 left-6 right-6 z-20 flex items-center justify-between gap-4 sm:bottom-10 sm:left-auto sm:right-8 lg:bottom-32 lg:right-12">
+          <div className="absolute bottom-3 left-4 right-4 z-20 flex items-center justify-between gap-4 sm:bottom-4 sm:left-auto sm:right-6 lg:bottom-6 lg:right-8">
             <div className="flex gap-2 sm:mr-4">
               {slides.map((_, idx) => (
                 <button
@@ -189,17 +191,17 @@ const HeroCarousel = () => {
             <div className="flex shrink-0 gap-2">
               <button
                 onClick={prev}
-                className="group flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black/20 text-white backdrop-blur-xl transition-all hover:bg-black/30 active:scale-95 sm:h-12 sm:w-12 sm:hover:scale-105"
+                className="group flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full border border-white/20 bg-black/20 text-white backdrop-blur-xl transition-all hover:bg-black/30 active:scale-95 sm:h-12 sm:w-12 sm:hover:scale-105"
                 aria-label="Previous slide"
               >
-                <ChevronLeft size={20} className="group-hover:-translate-x-0.5 transition-transform" />
+                <ChevronLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
               </button>
               <button
                 onClick={next}
-                className="group flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black/20 text-white backdrop-blur-xl transition-all hover:bg-black/30 active:scale-95 sm:h-12 sm:w-12 sm:hover:scale-105"
+                className="group flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full border border-white/20 bg-black/20 text-white backdrop-blur-xl transition-all hover:bg-black/30 active:scale-95 sm:h-12 sm:w-12 sm:hover:scale-105"
                 aria-label="Next slide"
               >
-                <ChevronRight size={20} className="group-hover:translate-x-0.5 transition-transform" />
+                <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
               </button>
             </div>
           </div>

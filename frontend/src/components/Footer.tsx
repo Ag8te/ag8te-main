@@ -80,7 +80,7 @@ const Footer = () => {
     <footer className="w-full font-sans bg-white border-t border-slate-100">
 
       {/* ── Newsletter strip ─────────────────────────────────────────────── */}
-      <div className="py-16 bg-slate-50/50">
+      {/*<div className="py-16 bg-slate-50/50">
         <div className="container mx-auto px-6">
           <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8 md:gap-12">
             <div className="text-left space-y-2 max-w-md">
@@ -125,7 +125,7 @@ const Footer = () => {
             </form>
           </div>
         </div>
-      </div>
+      </div>  */}
 
       {/* ── Main content ──────────────────────────────────────────────────── */}
       <div className="py-16 md:py-24">
