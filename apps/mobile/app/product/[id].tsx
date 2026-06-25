@@ -4,12 +4,22 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import apiClient, { getImageUrl } from '../../api/client';
 import { useCart } from '../../contexts/CartContext';
-import { ArrowLeft, ShoppingBag, Star, Share2, Heart, Plus, Minus, Check, Truck, ShieldCheck, RotateCcw } from 'lucide-react-native';
+import { ArrowLeft, ShoppingBag, Star, Share2, Heart, Plus, Minus, Check, Truck, ShieldCheck, RotateCcw, MapPin } from 'lucide-react-native';
 import { COLORS, SPACING, SIZES, SHADOWS } from '../../constants/Theme';
 import { Typography } from '../../components/UI/Typography';
 import { Button } from '../../components/UI/Button';
 
 const { width } = Dimensions.get('window');
+
+const normalizeProductLocations = (value: unknown): string[] => {
+    if (Array.isArray(value)) {
+        return value.map((item) => String(item || '').trim()).filter(Boolean);
+    }
+    if (typeof value === 'string') {
+        return value.split(',').map((item) => item.trim()).filter(Boolean);
+    }
+    return [];
+};
 
 export default function ProductDetails() {
     const { id } = useLocalSearchParams<{ id: string }>();
@@ -62,6 +72,7 @@ export default function ProductDetails() {
 
     const inStock = product.in_stock !== false;
     const price = typeof product.price === 'string' ? parseFloat(product.price) : product.price;
+    const productLocations = normalizeProductLocations(product.locations);
 
     return (
         <View style={styles.container}>
@@ -113,6 +124,14 @@ export default function ProductDetails() {
                                 {inStock ? 'IN STOCK' : 'OUT OF STOCK'}
                             </Typography>
                         </View>
+                        {productLocations.map((location) => (
+                            <View key={location} style={styles.locationBadge}>
+                                <MapPin size={12} color={COLORS.primary} />
+                                <Typography variant="caption" color={COLORS.gray[600]} weight="bold">
+                                    {location.toUpperCase()}
+                                </Typography>
+                            </View>
+                        ))}
                     </View>
 
                     <Typography variant="h1" weight="bold" style={styles.title}>
@@ -278,6 +297,8 @@ const styles = StyleSheet.create({
     },
     categoryRow: {
         flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
         marginBottom: SPACING.md,
     },
     categoryBadge: {
@@ -289,6 +310,15 @@ const styles = StyleSheet.create({
     },
     stockBadge: {
         paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: SIZES.radius.full,
+    },
+    locationBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: COLORS.gray[100],
+        paddingHorizontal: 10,
         paddingVertical: 6,
         borderRadius: SIZES.radius.full,
     },

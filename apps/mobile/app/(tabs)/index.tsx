@@ -3,7 +3,7 @@ import { View, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, Imag
 import { useAuth } from '../../contexts/AuthContext';
 import { Link, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Search, Bell, TrendingUp, Star, MapPin, ChevronRight, ShoppingBag, Briefcase, Zap, Car, Users } from 'lucide-react-native';
+import { Bell, Star, MapPin, ChevronRight, ShoppingBag, Briefcase, Car, Wrench, Tag } from 'lucide-react-native';
 import { useQuery } from '@tanstack/react-query';
 import apiClient, { getImageUrl } from '../../api/client';
 import { COLORS, SPACING, SIZES } from '../../constants/Theme';
@@ -165,18 +165,18 @@ export default function Home() {
 
       <View style={styles.categoryGrid}>
         {[
-          { icon: <Car />, label: 'Book a Ride', color: '#F0FDF4', iconColor: '#16A34A', href: '/book/ride' },
+          { icon: <Car />, label: 'Cab Rides', color: '#F0FDF4', iconColor: '#16A34A', href: '/book/ride' },
+          { icon: <Wrench />, label: 'Service Providers', color: '#EEF2FF', iconColor: COLORS.primary, href: '/(tabs)/services' },
+          { icon: <Briefcase />, label: 'Professionals', color: '#FFFBEB', iconColor: '#D97706', href: '/(tabs)/professionals' },
           { icon: <ShoppingBag />, label: 'Shop', color: '#ECFDF5', iconColor: COLORS.secondary, href: '/(tabs)/shop' },
-          { icon: <Briefcase />, label: 'Services', color: '#EEF2FF', iconColor: COLORS.primary, href: '/(tabs)/services' },
-          { icon: <Users />, label: 'Professionals', color: '#FFFBEB', iconColor: '#D97706', href: '/(tabs)/professionals' },
-          { icon: <TrendingUp />, label: 'Trending', color: '#FEF2F2', iconColor: COLORS.error, href: '/(tabs)/shop?filter=trending' },
+          { icon: <Tag />, label: 'Advertisements', color: '#FEF2F2', iconColor: COLORS.error, href: '/(tabs)/shop?filter=ads' },
         ].map((item, index) => (
           <Link key={index} href={item.href as any} asChild>
             <TouchableOpacity style={styles.categoryCard}>
               <View style={[styles.categoryIcon, { backgroundColor: item.color }]}>
                 {React.cloneElement(item.icon, { color: item.iconColor, size: 24 })}
               </View>
-              <Typography variant="label" align="center" style={{ marginTop: 8 }}>
+              <Typography variant="label" align="center" numberOfLines={2} style={styles.categoryLabel}>
                 {item.label}
               </Typography>
             </TouchableOpacity>
@@ -382,21 +382,25 @@ const styles = StyleSheet.create({
   },
   categoryGrid: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     paddingHorizontal: SPACING.md,
     justifyContent: 'space-between',
   },
   categoryCard: {
-    width: (width - SPACING.lg * 2 - SPACING.md * 4) / 4,
+    width: (width - SPACING.md * 2 - SPACING.xs * 10) / 5,
     alignItems: 'center',
     marginHorizontal: SPACING.xs,
   },
   categoryIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: SIZES.radius.md,
+    width: 52,
+    height: 52,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  categoryLabel: {
+    marginTop: 8,
+    maxWidth: 72,
+    lineHeight: 14,
   },
   horizontalScroll: {
     paddingLeft: SPACING.lg,

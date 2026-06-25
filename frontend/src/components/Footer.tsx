@@ -77,15 +77,15 @@ const Footer = () => {
   };
 
   return (
-    <footer className="w-full font-sans bg-[hsl(var(--sa-black))] border-t border-white/5">
+    <footer className="w-full font-sans bg-white border-t border-slate-100">
 
       {/* ── Newsletter strip ─────────────────────────────────────────────── */}
-      <div className="py-16 bg-white/[0.03]">
+      <div className="py-16 bg-slate-50/50">
         <div className="container mx-auto px-6">
           <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8 md:gap-12">
             <div className="text-left space-y-2 max-w-md">
-              <h3 className="text-2xl font-semibold text-white">Stay in the loop</h3>
-              <p className="text-slate-400 text-[15px]">
+              <h3 className="text-2xl font-semibold text-[#222222]">Stay in the loop</h3>
+              <p className="text-slate-600 text-[15px]">
                 Subscribe for the latest service updates and deals.
               </p>
             </div>
@@ -93,14 +93,14 @@ const Footer = () => {
             <form onSubmit={handleSubscribe} className="w-full max-w-md">
               <div className="flex flex-col sm:flex-row gap-3">
                 <div className="relative flex-1 group">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-primary transition-colors" size={18} />
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors" size={18} />
                   <input
                     id="footer-newsletter-input"
                     type="email"
                     placeholder="Enter your email"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-3.5 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50"
+                    className="w-full bg-white border border-slate-200 rounded-xl pl-12 pr-4 py-3.5 text-[#222222] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm transition-all"
                   />
                 </div>
                 <button
@@ -128,26 +128,26 @@ const Footer = () => {
       </div>
 
       {/* ── Main content ──────────────────────────────────────────────────── */}
-      <div className="py-16 md:py-24 bg-[hsl(var(--sa-black))]">
+      <div className="py-16 md:py-24">
         <div className="container mx-auto px-6">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 mb-16">
 
             {/* Brand */}
             <div className="lg:col-span-4 space-y-8">
               <Link to="/" onClick={scrollTop} className="inline-flex items-center gap-2 group">
-                <div className="flex h-9 w-auto items-center justify-center overflow-hidden rounded-lg bg-primary/20 px-2">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-primary/10 p-2.5 shadow-sm transition-all group-hover:shadow-md">
                   <img
                     src={logo}
                     alt={contactInfo.company_name}
-                    className="h-7 w-auto object-contain"
+                    className="h-full w-full object-contain"
                   />
                 </div>
-                <span className="text-xl font-semibold text-white tracking-tight">
+                <span className="text-xl font-semibold text-[#222222] tracking-tight">
                   {contactInfo.company_name}
                 </span>
               </Link>
-              <p className="text-slate-400 text-[15px] leading-relaxed max-w-sm">
-                MzansiServe is born in South Africa as a comprehensive accessible online marketing platform.Book transport, hire professionals, request services, and shop — all in one trusted p[...]
+              <p className="text-slate-600 text-[15px] leading-relaxed max-w-sm">
+                MzansiServe is born in South Africa as a comprehensive accessible online marketing platform. Book transport, hire professionals, request services, and shop — all in one trusted platform, no matter where you are!
               </p>
 
               {/* Social links */}
@@ -162,7 +162,7 @@ const Footer = () => {
                     key={label}
                     href={href}
                     aria-label={label}
-                    className="w-10 h-10 rounded-full flex items-center justify-center text-slate-400 hover:text-primary hover:bg-primary/10 transition-all duration-300 border border-white/10"
+                    className="flex h-10 w-10 items-center justify-center rounded-full border border-primary/10 bg-gradient-to-br from-primary to-primary/80 text-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md hover:shadow-primary/20"
                   >
                     <Icon size={17} />
                   </a>
@@ -174,7 +174,7 @@ const Footer = () => {
             <div className="lg:col-span-8 grid grid-cols-2 md:grid-cols-3 gap-8">
               {Object.entries(currentNav).map(([heading, links]) => (
                 <div key={heading} className="space-y-5">
-                  <h4 className="text-primary font-semibold text-sm uppercase tracking-wider">
+                  <h4 className="text-[#222222] font-semibold text-sm uppercase tracking-wider">
                     {heading}
                   </h4>
                   <ul className="space-y-3">
@@ -183,7 +183,7 @@ const Footer = () => {
                         <Link
                           to={link.isProtected && !isAuthenticated ? `/login?from=${link.to}` : link.to}
                           onClick={scrollTop}
-                          className="text-slate-400 hover:text-white transition-colors text-sm font-normal"
+                          className="text-slate-600 hover:text-slate-900 transition-colors text-sm font-normal"
                         >
                           {link.label}
                         </Link>
@@ -195,21 +195,21 @@ const Footer = () => {
 
               {/* Contact column */}
               <div className="space-y-5">
-                <h4 className="text-primary font-semibold text-sm uppercase tracking-wider">Contact</h4>
+                <h4 className="text-[#222222] font-semibold text-sm uppercase tracking-wider">Contact</h4>
                 <div className="space-y-4 text-sm">
-                  <div className="flex items-center gap-3 text-slate-400 group">
-                    <MapPin size={14} className="text-slate-500 group-hover:text-primary transition-colors shrink-0" />
-                    <span className="group-hover:text-white transition-colors">{contactInfo.address}</span>
+                  <div className="flex items-center gap-3 text-slate-600 group">
+                    <MapPin size={14} className="text-slate-400 group-hover:text-primary transition-colors shrink-0" />
+                    <span className="group-hover:text-slate-900 transition-colors">{contactInfo.address}</span>
                   </div>
-                  <div className="flex items-center gap-3 text-slate-400 group">
-                    <Phone size={14} className="text-slate-500 group-hover:text-primary transition-colors shrink-0" />
-                    <span className="group-hover:text-white transition-colors">{contactInfo.phone}</span>
+                  <div className="flex items-center gap-3 text-slate-600 group">
+                    <Phone size={14} className="text-slate-400 group-hover:text-primary transition-colors shrink-0" />
+                    <span className="group-hover:text-slate-900 transition-colors">{contactInfo.phone}</span>
                   </div>
-                  <div className="flex items-center gap-3 text-slate-400 group">
-                    <Mail size={14} className="text-slate-500 group-hover:text-primary transition-colors shrink-0" />
+                  <div className="flex items-center gap-3 text-slate-600 group">
+                    <Mail size={14} className="text-slate-400 group-hover:text-primary transition-colors shrink-0" />
                     <a
                       href={`mailto:${contactInfo.email}`}
-                      className="hover:text-white transition-colors"
+                      className="hover:text-slate-900 transition-colors"
                     >
                       {contactInfo.email}
                     </a>
@@ -220,10 +220,10 @@ const Footer = () => {
           </div>
 
           {/* ── Bottom bar ─────────────────────────────────────────────────── */}
-          <div className="pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="pt-8 border-t border-slate-100 flex flex-col md:flex-row justify-between items-center gap-6">
             <div className="flex flex-col md:flex-row items-center gap-4 text-slate-500 text-[13px] font-normal">
               <span>© {new Date().getFullYear()} {contactInfo.company_name} (Pty) Ltd. All rights reserved.</span>
-              <div className="hidden md:block w-px h-4 bg-white/10" />
+              <div className="hidden md:block w-px h-4 bg-slate-200" />
               <div className="flex items-center gap-2">
                 <span>Made in South Africa</span>
                 <Heart size={12} className="text-rose-500 fill-rose-500" />
@@ -236,7 +236,7 @@ const Footer = () => {
                   key={t}
                   to={`/${t.toLowerCase()}`}
                   onClick={scrollTop}
-                  className="text-slate-500 hover:text-white transition-colors text-[13px] font-medium"
+                  className="text-slate-500 hover:text-slate-900 transition-colors text-[13px] font-medium"
                 >
                   {t}
                 </Link>

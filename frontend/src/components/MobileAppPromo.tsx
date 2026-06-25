@@ -4,7 +4,7 @@ import { ExternalLink, Smartphone, Store } from "lucide-react";
 export const MobileAppPromo = () => {
     const storeLinks = {
         apple: import.meta.env.VITE_APPLE_APP_STORE_URL || "",
-        google: import.meta.env.VITE_GOOGLE_PLAY_URL || "",
+        google: import.meta.env.VITE_GOOGLE_PLAY_URL || "/mzansiserve.apk",
         huawei: import.meta.env.VITE_HUAWEI_APPGALLERY_URL || "",
     };
 
@@ -22,6 +22,7 @@ export const MobileAppPromo = () => {
         children: React.ReactNode;
     }) => {
         const isEnabled = Boolean(href);
+        const isDirectDownload = Boolean(href?.endsWith(".apk"));
         const baseClasses =
             variant === "primary"
                 ? "bg-primary text-white hover:bg-primary/90"
@@ -30,19 +31,20 @@ export const MobileAppPromo = () => {
         return (
             <a
                 href={isEnabled ? href : undefined}
-                target={isEnabled ? "_blank" : undefined}
+                target={isEnabled && !isDirectDownload ? "_blank" : undefined}
                 rel={isEnabled ? "noreferrer" : undefined}
+                download={isDirectDownload ? true : undefined}
                 aria-disabled={!isEnabled}
-                className={`flex items-center gap-3 rounded-xl px-5 py-3 shadow-lg transition-all ${isEnabled ? `${baseClasses} hover:scale-105` : "cursor-not-allowed bg-slate-200 text-slate-500"
+                className={`flex min-w-0 items-center gap-2 rounded-xl px-3 py-3 shadow-lg transition-all sm:gap-3 sm:px-5 ${isEnabled ? `${baseClasses} hover:scale-105` : "cursor-not-allowed bg-slate-200 text-slate-500"
                     }`}
             >
                 {children}
-                <div className="text-left">
+                <div className="min-w-0 text-left">
                     <div className={`text-[10px] uppercase font-semibold leading-none ${isEnabled ? "text-white/60" : "text-slate-500"}`}>
                         {sublabel}
                     </div>
-                    <div className="text-lg font-bold leading-tight flex items-center gap-1">
-                        <span>{label}</span>
+                    <div className="flex items-center gap-1 text-base font-bold leading-tight sm:text-lg">
+                        <span className="truncate">{label}</span>
                         {isEnabled ? <ExternalLink className="w-4 h-4" /> : null}
                     </div>
                     {!isEnabled ? <div className="text-[10px] mt-1 uppercase tracking-wide">Coming soon</div> : null}
@@ -226,7 +228,7 @@ export const MobileAppPromo = () => {
                         </ul>
 
                         {/* App store buttons */}
-                        <div className="flex flex-wrap gap-4">
+                        <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:gap-4">
                             <StoreButton
                                 href={storeLinks.apple}
                                 label="App Store"

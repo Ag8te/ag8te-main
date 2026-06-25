@@ -11,7 +11,11 @@ import {
 
 export const API_BASE_URL =
     import.meta.env.VITE_API_URL ||
-    (isNativeApp ? defaultMobileApiBaseUrl : "http://localhost:5006");
+    (isNativeApp
+        ? defaultMobileApiBaseUrl
+        : typeof window !== "undefined" && window.location?.origin
+            ? window.location.origin
+            : "https://mzansiserve.co.za");
 
 function normalizeExternalImageUrl(path: string): string {
     try {

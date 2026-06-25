@@ -445,7 +445,7 @@ class AdminService:
                 'enabled': False,
                 'client_id': '',
                 'client_secret': '',
-                'mode': 'sandbox'
+                'mode': current_app.config.get('PAYPAL_MODE', 'live')
             },
             'yoco': yoco.value if yoco else {
                 'enabled': False,

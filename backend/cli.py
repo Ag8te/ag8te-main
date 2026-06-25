@@ -7,6 +7,7 @@ from backend.models import User, ShopCategory, ShopSubcategory, ShopProduct, Ord
 from backend.extensions import db
 from backend.services.wallet_service import WalletService
 from backend.utils.auth import generate_tracking_number
+from sqlalchemy import MetaData
 import secrets
 import json
 
@@ -118,6 +119,64 @@ def delete_user(email, id, force):
     db.session.commit()
     
     click.echo(f'User {user.email} deleted successfully')
+
+
+@cli.command('clear-database')
+@click.option('--admin-email', default='admin@mzansiserve.co.za', show_default=True, help='Admin account to keep')
+@click.option('--keep-settings/--clear-settings', default=True, show_default=True, help='Keep app_settings such as payment and shipping config')
+@click.option('--force', is_flag=True, help='Run without confirmation')
+@with_appcontext
+def clear_database(admin_email, keep_settings, force):
+    """Clear application data while preserving one administrator account."""
+    admin = User.query.filter_by(email=admin_email, role='admin').first()
+    if not admin:
+        click.echo(f'Error: admin user not found: {admin_email}')
+        return
+
+    if not force:
+        click.confirm(
+            f'This will delete application data and all users except {admin_email}. Continue?',
+            abort=True,
+        )
+
+    metadata = MetaData()
+    metadata.reflect(bind=db.engine)
+
+    keep_tables = {'users', 'alembic_version'}
+    if keep_settings:
+        keep_tables.add('app_settings')
+
+    deleted_tables = []
+    try:
+        User.query.update({User.agent_id: None}, synchronize_session=False)
+        db.session.flush()
+
+        for table in reversed(metadata.sorted_tables):
+            if table.name in keep_tables:
+                continue
+            result = db.session.execute(table.delete())
+            deleted_tables.append((table.name, result.rowcount))
+
+        User.query.filter(User.id != admin.id).delete(synchronize_session=False)
+        admin.role = 'admin'
+        admin.is_admin = True
+        admin.is_paid = True
+        admin.is_approved = True
+        admin.is_active = True
+        admin.email_verified = True
+        admin.agent_id = None
+        WalletService.get_or_create_wallet(admin.id)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        raise
+
+    click.echo(f'Kept administrator: {admin.email}')
+    if keep_settings:
+        click.echo('Kept app_settings.')
+    click.echo('Cleared tables:')
+    for table_name, rowcount in deleted_tables:
+        click.echo(f'  {table_name}: {rowcount if rowcount is not None else "unknown"}')
 
 
 @cli.command('change-password')
