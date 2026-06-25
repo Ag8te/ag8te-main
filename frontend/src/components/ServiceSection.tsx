@@ -75,20 +75,20 @@ const SectionBlock = ({ section, index }: { section: ServiceSectionProps; index:
   return (
     <section
       ref={ref}
-      className={`py-2 lg:py-4 ${index % 2 === 1 ? "bg-secondary/30" : ""}`}
+      className={`mobile-app-service-section py-12 lg:py-16 ${index % 2 === 1 ? "bg-secondary/50" : ""}`}
     >
-      <div className="container mx-auto px-3 lg:px-6">
-        <motion.div className="mb-3 flex items-end justify-between">
+      <div className="container mx-auto px-4 lg:px-8">
+        <motion.div className="mobile-app-section-heading mb-6 flex items-end justify-between">
           <div className="max-w-2xl">
             <span
-              className={`mb-1 inline-block rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wide ${section.badgeClass}`}
+              className={`mb-4 inline-block rounded-full px-4 py-1.5 text-xs font-semibold uppercase tracking-wider ${section.badgeClass}`}
             >
               {section.badge}
             </span>
-            <h2 className="mb-1 text-xl font-bold lg:text-2xl">
+            <h2 className="mb-4 text-3xl font-bold lg:text-4xl">
               {section.title}
             </h2>
-            <p className="text-sm text-muted-foreground leading-relaxed">
+            <p className="text-lg text-muted-foreground leading-relaxed">
               {section.subtitle}
             </p>
           </div>
@@ -102,29 +102,31 @@ const SectionBlock = ({ section, index }: { section: ServiceSectionProps; index:
         </motion.div>
 
         <div
-          className={`grid grid-cols-3 gap-2 ${section.id === "transport" || section.id === "shop" ? "lg:grid-cols-3" : "lg:grid-cols-4"}`}
+          className={`grid grid-cols-3 gap-3 md:grid-cols-2 md:gap-8 ${section.id === "transport" || section.id === "shop" ? "lg:grid-cols-3" : "lg:grid-cols-4"}`}
         >
           {section.cards.map((card, i) => (
             <motion.div
               key={card.title}
-            className="group relative cursor-pointer overflow-hidden rounded-xl border border-slate-100 bg-white p-2 shadow-sm transition-all duration-300 active:scale-95 text-center"
+              className="group relative flex min-h-[96px] cursor-pointer flex-col items-center justify-center overflow-hidden rounded-2xl border border-slate-50 bg-white p-3 text-center shadow-sm shadow-slate-200/50 transition-all duration-500 hover:shadow-md md:min-h-0 md:items-start md:justify-start md:rounded-[2rem] md:p-8 md:text-left md:hover:-translate-y-2 md:hover:shadow-2xl md:hover:shadow-slate-200/80"
               onClick={() => navigate(section.link)}
             >
               <div
-              className="mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 border border-blue-200 mx-auto"
+                className={`mb-2 flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/80 shadow-sm transition-transform duration-300 group-hover:scale-105 md:mb-6 md:h-16 md:w-16 md:rounded-xl md:shadow-lg md:group-hover:scale-110`}
               >
-               <card.icon className="h-6 w-6 text-blue-600" />
+                <card.icon className="h-5 w-5 text-white md:h-8 md:w-8" />
               </div>
-              <h3 className="text-sm font-semibold text-[#222222] leading-tight">
+              <h3 className="text-[11px] font-bold leading-tight text-[#222222] md:mb-3 md:text-xl">
                 {card.title}
               </h3>
-
+              <p className="hidden text-base text-slate-500 font-normal leading-relaxed md:block">
+                {card.description}
+              </p>
             </motion.div>
           ))}
         </div>
 
         {/* Mobile View All */}
-       <div className="mt-3 text-center lg:hidden">
+        <div className="mt-6 text-center lg:hidden">
           <Button
             variant="outline"
             className="gap-2"

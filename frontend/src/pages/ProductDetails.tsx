@@ -20,7 +20,8 @@ import {
   Share2,
   Heart,
   Loader2,
-  ExternalLink
+  ExternalLink,
+  MapPin
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/contexts/CartContext";
@@ -63,7 +64,18 @@ interface ApiProduct {
   grouped_products?: any;
   external_url?: string;
   button_text?: string;
+  locations?: string[];
 }
+
+const normalizeProductLocations = (value: unknown): string[] => {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item || "").trim()).filter(Boolean);
+  }
+  if (typeof value === "string") {
+    return value.split(",").map((item) => item.trim()).filter(Boolean);
+  }
+  return [];
+};
 
 const ProductDetails = () => {
   const { id } = useParams();
@@ -327,6 +339,7 @@ const ProductDetails = () => {
           : product.inventory
             ? product.inventory.available_quantity > 0
             : product.in_stock !== false);
+  const productLocations = normalizeProductLocations(product.locations);
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -445,7 +458,7 @@ const ProductDetails = () => {
             {/* Product Info */}
             <div className="lg:col-span-5 flex flex-col">
               <div className="mb-10">
-                <div className="flex items-center gap-3 mb-6">
+                <div className="mb-6 flex flex-wrap items-center gap-3">
                   <span className="px-3 py-1 rounded-full bg-primary/5 text-primary text-[10px] font-black uppercase tracking-wider border border-primary/10">
                     {product.category?.title || (product.product_type === "external" ? "External Product" : "New Arrival")}
                   </span>
@@ -486,6 +499,15 @@ const ProductDetails = () => {
                       </div>
                     );
                   })()}
+                  {productLocations.map((location) => (
+                    <span
+                      key={location}
+                      className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-slate-600"
+                    >
+                      <MapPin className="h-3 w-3 text-primary" />
+                      {location}
+                    </span>
+                  ))}
                 </div>
 
                 <h1 className="text-4xl md:text-5xl font-bold text-[#222222] leading-[1.1] mb-6 tracking-tight">

@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '../../api/client';
 import { useCart } from '../../contexts/CartContext';
-import { Search, ShoppingBag, Plus, Filter, Heart } from 'lucide-react-native';
+import { Search, ShoppingBag, Plus, Filter, Heart, MapPin } from 'lucide-react-native';
 import { COLORS, SPACING, SIZES, SHADOWS } from '../../constants/Theme';
 import { Typography } from '../../components/UI/Typography';
 import { Card } from '../../components/UI/Card';
@@ -14,6 +14,16 @@ import { Button } from '../../components/UI/Button';
 const { width } = Dimensions.get('window');
 const COLUMN_WIDTH = (width - SPACING.lg * 2 - SPACING.md) / 2;
 const CATEGORIES = ['All', 'Electronics', 'Home', 'Fashion', 'Health', 'Sports', 'Other'];
+
+const normalizeProductLocations = (value: unknown): string[] => {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item || '').trim()).filter(Boolean);
+  }
+  if (typeof value === 'string') {
+    return value.split(',').map((item) => item.trim()).filter(Boolean);
+  }
+  return [];
+};
 
 export default function Shop() {
   const router = useRouter();
@@ -109,6 +119,18 @@ export default function Shop() {
           <Typography variant="subtitle" weight="bold" numberOfLines={1} style={{ marginTop: 2 }}>
             {item.name}
           </Typography>
+          {normalizeProductLocations(item.locations).length > 0 && (
+            <View style={styles.locationChips}>
+              <MapPin size={12} color={COLORS.primary} />
+              {normalizeProductLocations(item.locations).slice(0, 2).map((location) => (
+                <View key={location} style={styles.locationChip}>
+                  <Typography variant="caption" color={COLORS.gray[600]} weight="bold" style={{ fontSize: 9 }}>
+                    {location.toUpperCase()}
+                  </Typography>
+                </View>
+              ))}
+            </View>
+          )}
 
           <View style={styles.priceRow}>
             <Typography variant="h3" weight="bold" color={COLORS.primary}>
@@ -245,6 +267,19 @@ const styles = StyleSheet.create({
   },
   cardContent: {
     padding: SPACING.md,
+  },
+  locationChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 6,
+  },
+  locationChip: {
+    backgroundColor: COLORS.gray[100],
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
   },
   priceRow: {
     flexDirection: 'row',

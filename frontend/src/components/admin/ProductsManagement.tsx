@@ -50,6 +50,7 @@ interface Product {
     grouped_products?: any;
     external_url?: string;
     button_text?: string;
+    locations?: string[];
     shipping_profile?: {
         description?: string | null;
         weight_kg?: number | null;
@@ -235,6 +236,7 @@ export const ProductsManagement = () => {
         product_type: "simple",
         external_url: "",
         button_text: "Buy Product",
+        locations: "",
         attributes: "[]",
         variations: "[]",
         grouped_products: "[]",
@@ -397,6 +399,7 @@ export const ProductsManagement = () => {
                 product_type: product.product_type || "simple",
                 external_url: product.external_url || "",
                 button_text: product.button_text || "Buy Product",
+                locations: Array.isArray(product.locations) ? product.locations.join(", ") : "",
                 attributes: product.attributes ? JSON.stringify(product.attributes) : "[]",
                 variations: product.variations ? JSON.stringify(product.variations) : "[]",
                 grouped_products: product.grouped_products ? JSON.stringify(product.grouped_products) : "[]",
@@ -434,6 +437,7 @@ export const ProductsManagement = () => {
                 product_type: "simple",
                 external_url: "",
                 button_text: "Buy Product",
+                locations: "",
                 attributes: "[]",
                 variations: "[]",
                 grouped_products: "[]",
@@ -532,6 +536,7 @@ export const ProductsManagement = () => {
             formDataPayload.append("product_type", formData.product_type);
             formDataPayload.append("external_url", formData.external_url);
             formDataPayload.append("button_text", formData.button_text);
+            formDataPayload.append("locations", formData.locations);
             formDataPayload.append("attributes", formData.attributes);
             formDataPayload.append("variations", formData.variations);
             formDataPayload.append("grouped_products", formData.grouped_products);
@@ -769,6 +774,23 @@ export const ProductsManagement = () => {
                           <span className="text-[10px] font-mono text-slate-400">
                             ID: {product.id.substring(0, 8)}
                           </span>
+                          {Array.isArray(product.locations) && product.locations.length > 0 && (
+                            <div className="mt-2 flex max-w-[220px] flex-wrap gap-1">
+                              {product.locations.slice(0, 4).map((location) => (
+                                <span
+                                  key={location}
+                                  className="rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-primary"
+                                >
+                                  {location}
+                                </span>
+                              ))}
+                              {product.locations.length > 4 && (
+                                <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-black text-slate-500">
+                                  +{product.locations.length - 4}
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -998,6 +1020,23 @@ export const ProductsManagement = () => {
                       setFormData({ ...formData, description: e.target.value })
                     }
                   />
+                </div>
+
+                <div className="col-span-2 space-y-2">
+                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                    Product Locations
+                  </label>
+                  <Input
+                    placeholder="e.g. CPT, DBN, Johannesburg"
+                    className="font-bold"
+                    value={formData.locations}
+                    onChange={(e) =>
+                      setFormData({ ...formData, locations: e.target.value })
+                    }
+                  />
+                  <p className="ml-1 text-xs font-medium text-slate-400">
+                    Separate multiple locations with commas. These show as chips in the eShop.
+                  </p>
                 </div>
 
                 <div className="space-y-2">
