@@ -118,6 +118,8 @@
 
   .native-app {
     --native-safe-top: calc(env(safe-area-inset-top, 0px) + 10px);
+    --mobile-app-header-height: 70px;
+    background: #ffffff;
   }
 
   .native-app #root {
@@ -125,9 +127,117 @@
     padding-top: var(--native-safe-top);
   }
 
+  .native-app::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: var(--native-safe-top);
+    background: #ffffff;
+    z-index: 110;
+    pointer-events: none;
+  }
+
   .native-app .native-safe-top,
   .native-app .MuiAppBar-positionSticky {
     top: 0;
+  }
+
+  .native-app .mobile-app-header {
+    position: fixed;
+    top: var(--native-safe-top);
+    left: 0;
+    right: 0;
+    z-index: 100;
+  }
+
+  .native-app main {
+    padding-top: var(--mobile-app-header-height);
+  }
+
+  .native-app .mobile-app-hero {
+    height: 620px;
+  }
+
+  .native-app .mobile-app-hero-loading {
+    height: 540px;
+  }
+
+  .native-app .mobile-app-hero-content {
+    padding-top: 16px;
+    padding-bottom: 72px;
+  }
+
+  .native-app .mobile-app-hero-controls {
+    bottom: 20px;
+  }
+
+  .native-app .mobile-app-quick-actions {
+    padding-bottom: 18px;
+  }
+
+  .native-app .mobile-app-how-section {
+    padding-top: 28px;
+    padding-bottom: 32px;
+  }
+
+  .native-app .mobile-app-how-copy {
+    margin-bottom: 24px;
+  }
+
+  .native-app .mobile-app-how-grid {
+    row-gap: 28px;
+  }
+
+  .native-app .mobile-app-why-section {
+    padding-top: 34px;
+    padding-bottom: 34px;
+  }
+
+  .native-app .mobile-app-service-section {
+    padding-top: 36px;
+    padding-bottom: 36px;
+  }
+
+  .native-app .mobile-app-section-heading {
+    margin-bottom: 22px;
+  }
+
+  @media (min-width: 640px) {
+    .native-app .mobile-app-hero {
+      height: 660px;
+    }
+
+    .native-app .mobile-app-hero-loading {
+      height: 600px;
+    }
+
+    .native-app .mobile-app-hero-content {
+      padding-bottom: 88px;
+    }
+
+    .native-app .mobile-app-hero-controls {
+      bottom: 32px;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .native-app .mobile-app-hero {
+      height: 750px;
+    }
+
+    .native-app .mobile-app-hero-loading {
+      height: 750px;
+    }
+
+    .native-app .mobile-app-hero-content {
+      padding-bottom: 128px;
+    }
+
+    .native-app .mobile-app-hero-controls {
+      bottom: 96px;
+    }
   }
 
   /* Poppins weight ladder:

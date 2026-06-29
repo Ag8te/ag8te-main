@@ -318,6 +318,7 @@ const Checkout = () => {
                 ? { sku: (item.product as any).sku }
                 : {}),
               ...(() => {
+
                 const variantLabel = (item.product as any).variantLabel as string | undefined;
                 const attributes = (item.product as any).attributes as Array<{
                   name: string;

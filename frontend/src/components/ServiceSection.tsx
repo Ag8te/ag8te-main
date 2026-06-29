@@ -75,10 +75,10 @@ const SectionBlock = ({ section, index }: { section: ServiceSectionProps; index:
   return (
     <section
       ref={ref}
-      className={`py-12 lg:py-16 ${index % 2 === 1 ? "bg-secondary/50" : ""}`}
+      className={`mobile-app-service-section py-12 lg:py-16 ${index % 2 === 1 ? "bg-secondary/50" : ""}`}
     >
       <div className="container mx-auto px-4 lg:px-8">
-        <motion.div className="mb-6 flex items-end justify-between">
+        <motion.div className="mobile-app-section-heading mb-6 flex items-end justify-between">
           <div className="max-w-2xl">
             <span
               className={`mb-4 inline-block rounded-full px-4 py-1.5 text-xs font-semibold uppercase tracking-wider ${section.badgeClass}`}
@@ -102,23 +102,23 @@ const SectionBlock = ({ section, index }: { section: ServiceSectionProps; index:
         </motion.div>
 
         <div
-          className={`grid gap-8 sm:grid-cols-2 ${section.id === "transport" || section.id === "shop" ? "lg:grid-cols-3" : "lg:grid-cols-4"}`}
+          className={`grid grid-cols-3 gap-3 md:grid-cols-2 md:gap-8 ${section.id === "transport" || section.id === "shop" ? "lg:grid-cols-3" : "lg:grid-cols-4"}`}
         >
           {section.cards.map((card, i) => (
             <motion.div
               key={card.title}
-              className="group relative cursor-pointer overflow-hidden rounded-[2rem] border border-slate-50 bg-white p-8 shadow-sm shadow-slate-200/50 transition-all duration-500 hover:shadow-2xl hover:shadow-slate-200/80 hover:-translate-y-2"
+              className="group relative flex min-h-[96px] cursor-pointer flex-col items-center justify-center overflow-hidden rounded-2xl border border-slate-50 bg-white p-3 text-center shadow-sm shadow-slate-200/50 transition-all duration-500 hover:shadow-md md:min-h-0 md:items-start md:justify-start md:rounded-[2rem] md:p-8 md:text-left md:hover:-translate-y-2 md:hover:shadow-2xl md:hover:shadow-slate-200/80"
               onClick={() => navigate(section.link)}
             >
               <div
-                className={`mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-50 transition-colors duration-500 group-hover:bg-white ${section.accentClass}`}
+                className={`mb-2 flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/80 shadow-sm transition-transform duration-300 group-hover:scale-105 md:mb-6 md:h-16 md:w-16 md:rounded-xl md:shadow-lg md:group-hover:scale-110`}
               >
-                <card.icon className="h-8 w-8 text-slate-400 transition-colors duration-500 group-hover:text-inherit" />
+                <card.icon className="h-5 w-5 text-white md:h-8 md:w-8" />
               </div>
-              <h3 className="mb-3 text-xl font-bold text-[#222222]">
+              <h3 className="text-[11px] font-bold leading-tight text-[#222222] md:mb-3 md:text-xl">
                 {card.title}
               </h3>
-              <p className="text-base text-slate-500 font-normal leading-relaxed">
+              <p className="hidden text-base text-slate-500 font-normal leading-relaxed md:block">
                 {card.description}
               </p>
             </motion.div>

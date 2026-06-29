@@ -12,6 +12,7 @@ import { CartProvider } from "@/contexts/CartContext";
 import PrivateRoute from "@/components/PrivateRoute";
 import PaymentGate from "@/components/PaymentGate";
 import ScrollToTop from "@/components/ScrollToTop";
+import SeoManager from "@/components/SeoManager";
 import {
   configureNativeChrome,
   isNativeApp,
@@ -134,6 +135,7 @@ const App = () => (
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <NativeAppLinkHandler />
           <ScrollToTop />
+          <SeoManager />
           <AuthProvider>
             <CartProvider>
               <Suspense fallback={<RouteFallback />}>

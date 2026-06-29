@@ -58,6 +58,16 @@ const iconMap: Record<string, any> = {
   'Tag': Tag
 };
 
+const normalizeProductLocations = (value: unknown): string[] => {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item || "").trim()).filter(Boolean);
+  }
+  if (typeof value === "string") {
+    return value.split(",").map((item) => item.trim()).filter(Boolean);
+  }
+  return [];
+};
+
 const getCategoryIcon = (categoryName: string, iconKey?: string) => {
   if (iconKey && iconMap[iconKey]) {
     return iconMap[iconKey];
@@ -210,7 +220,8 @@ export default function Shop() {
         category: p.category?.title || "Shop Product",
         category_id: p.category?.id || p.category_id,
         seller: p.seller_name || "MzansiServe",
-        location: "Mzansi",
+        locations: normalizeProductLocations(p.locations),
+        location: normalizeProductLocations(p.locations).join(", ") || "Mzansi",
         date: p.created_at,
         raw: p,
       });
@@ -280,6 +291,7 @@ export default function Shop() {
           (i.title || "").toLowerCase().includes(q) ||
           (i.seller || "").toLowerCase().includes(q) ||
           (i.category || "").toLowerCase().includes(q) ||
+          (i.location || "").toLowerCase().includes(q) ||
           (i.raw?.description || "").toLowerCase().includes(q),
       );
     }
@@ -289,7 +301,6 @@ export default function Shop() {
       result = result.filter(
         (i) =>
           (i.location || "").toLowerCase().includes(c) ||
-          i.item_type === "shop" ||
           i.item_type === "banner_ad",
       );
     }
@@ -862,8 +873,8 @@ export default function Shop() {
                     </div>
                   )}
                   <div className="flex items-center gap-3 text-slate-400 text-xs mb-4">
-                    {item.location !== "-" && (
-                      <div className="flex items-center gap-1 shrink-0">
+                    {item.location !== "-" && item.item_type !== "shop" && (
+                      <div className="flex shrink-0 items-center gap-1">
                         <MapPin className="w-3 h-3" />{" "}
                         <span className="truncate max-w-[100px]">
                           {item.location}
@@ -877,6 +888,19 @@ export default function Shop() {
                       </span>
                     </div>
                   </div>
+                  {item.item_type === "shop" && item.locations?.length > 0 && (
+                    <div className="mb-4 flex flex-wrap items-center gap-1.5">
+                      <MapPin className="h-3.5 w-3.5 text-primary" />
+                      {item.locations.slice(0, 4).map((location: string) => (
+                        <span
+                          key={location}
+                          className="rounded-md bg-slate-100 px-2 py-1 text-[10px] font-black uppercase tracking-wide text-slate-600"
+                        >
+                          {location}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   {item.item_type === "shop" && (
                     <div className={`mb-4 flex items-start gap-3 rounded-2xl border px-3.5 py-3 ${
                       item.raw?.product_type === "external"

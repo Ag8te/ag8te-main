@@ -80,14 +80,14 @@ const HeroCarousel = () => {
   }, [next, slides.length]);
 
   if (slides.length === 0) {
-    return <div className="h-[640px] w-full bg-slate-900 animate-pulse sm:h-[700px] lg:h-[850px]" />;
+    return <div className="mobile-app-hero-loading h-[640px] w-full bg-slate-900 animate-pulse sm:h-[700px] lg:h-[850px]" />;
   }
 
   const slide = slides[current];
   const IconComponent = iconMap[slide.badge || "Shop"] || ShoppingBag;
 
   return (
-    <section id="home" className="relative h-[720px] w-full overflow-hidden sm:h-[760px] lg:h-[850px]">
+    <section id="home" className="mobile-app-hero relative h-[720px] w-full overflow-hidden sm:h-[760px] lg:h-[850px]">
       {/* Background images */}
       <AnimatePresence mode="wait">
         <motion.div
@@ -108,7 +108,7 @@ const HeroCarousel = () => {
       </AnimatePresence>
 
       {/* Content */}
-      <div className="relative z-10 flex h-full items-center pb-24 pt-6 sm:pb-28 lg:pb-40 lg:pt-0">
+      <div className="mobile-app-hero-content relative z-10 flex h-full items-center pb-24 pt-6 sm:pb-28 lg:pb-40 lg:pt-0">
         <div className="container mx-auto px-6 sm:px-8 lg:px-12">
           <AnimatePresence mode="wait">
             <motion.div
@@ -169,7 +169,7 @@ const HeroCarousel = () => {
       {slides.length > 1 && (
         <>
           {/* Navigation controls - Refined Minimal Style */}
-          <div className="absolute bottom-6 left-6 right-6 z-20 flex items-center justify-between gap-4 sm:bottom-10 sm:left-auto sm:right-8 lg:bottom-32 lg:right-12">
+          <div className="mobile-app-hero-controls absolute bottom-6 left-6 right-6 z-20 flex items-center justify-between gap-4 sm:bottom-10 sm:left-auto sm:right-8 lg:bottom-32 lg:right-12">
             <div className="flex gap-2 sm:mr-4">
               {slides.map((_, idx) => (
                 <button

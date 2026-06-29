@@ -174,7 +174,7 @@ const Navbar = () => {
   return (
     <header
       className={cn(
-        "native-safe-top sticky top-0 left-0 right-0 z-50 border-b border-slate-100 bg-white py-[10px] shadow-sm transition-all duration-300 lg:fixed",
+        "native-safe-top mobile-app-header sticky top-0 left-0 right-0 z-50 border-b border-slate-100 bg-white py-[10px] shadow-sm transition-all duration-300 lg:fixed",
       )}
     >
       <nav className="container mx-auto flex items-center justify-between gap-4 px-6 lg:grid lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:items-center">

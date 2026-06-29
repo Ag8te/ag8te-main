@@ -61,7 +61,7 @@ const defaultSettings: SettingsState = {
     enabled: false,
     client_id: "",
     client_secret: "",
-    mode: "sandbox",
+    mode: "live",
   },
   yoco: {
     enabled: false,
