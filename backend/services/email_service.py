@@ -211,7 +211,9 @@ MzansiServe Team"""
             import logging
             logging.getLogger(__name__).warning("Brevo OTP email failed, falling back to SMTP queue: %s", e)
 
-        EmailService.send_email(email_id=email.id)
+        sent = EmailService.send_email(email_id=email.id)
+        if not sent:
+            raise RuntimeError("OTP email delivery failed")
         return email
     
     @staticmethod
