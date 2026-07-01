@@ -152,10 +152,12 @@ def test_1_2_3_registration_approval_login(client, app, db_session):
             assert app_res.status_code == 200, f"Approval failed for {role}: {app_res.get_json()}"
             
         # 3. Login
-        login_res = client.post('/api/auth/login', 
-                                data=json.dumps({"email": email, "password": password, "role": role}),
-                                content_type='application/json')
+        with patch('backend.services.email_service.EmailService.send_otp_email'):
+            login_res = client.post('/api/auth/login',
+                                    data=json.dumps({"email": email, "password": password, "role": role}),
+                                    content_type='application/json')
         assert login_res.status_code == 200
+        assert login_res.get_json()['data']['otp_required'] is True
 
 def test_4_5_6_request_flows(client, app, db_session):
     admin = create_admin(db_session)
