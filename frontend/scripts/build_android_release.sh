@@ -11,8 +11,6 @@ APP_VERSION_CODE="${APP_VERSION_CODE:-1}"
 STORE_CHANNEL="${STORE_CHANNEL:-google-play}"
 STRICT_SIGNING="${STRICT_SIGNING:-1}"
 KEYSTORE_PROPERTIES="${ANDROID_DIR}/keystore.properties"
-OUTPUT_AAB="${ANDROID_DIR}/app/build/outputs/bundle/release/app-release.aab"
-OUTPUT_APK="${ANDROID_DIR}/app/build/outputs/apk/release/app-release.apk"
 STORE_OUTPUT_DIR="${FRONTEND_DIR}/store-builds/${STORE_CHANNEL}"
 
 case "${TASK}" in
@@ -35,9 +33,22 @@ echo "Preparing native web assets..."
 cd "${FRONTEND_DIR}"
 npm run cap:android
 
-echo "Building Android ${TASK} for ${STORE_CHANNEL} (version ${APP_VERSION_NAME} / code ${APP_VERSION_CODE})..."
+if [[ "${STORE_CHANNEL}" == "huawei" ]]; then
+  GRADLE_FLAVOR="Huawei"
+  OUTPUT_FLAVOR="huawei"
+else
+  GRADLE_FLAVOR="Google"
+  OUTPUT_FLAVOR="google"
+fi
+
+GRADLE_TASK="${TASK/Release/${GRADLE_FLAVOR}Release}"
+OUTPUT_VARIANT="${OUTPUT_FLAVOR}Release"
+OUTPUT_AAB="${ANDROID_DIR}/app/build/outputs/bundle/${OUTPUT_VARIANT}/app-${OUTPUT_FLAVOR}-release.aab"
+OUTPUT_APK="${ANDROID_DIR}/app/build/outputs/apk/${OUTPUT_FLAVOR}/release/app-${OUTPUT_FLAVOR}-release.apk"
+
+echo "Building Android ${GRADLE_TASK} for ${STORE_CHANNEL} (version ${APP_VERSION_NAME} / code ${APP_VERSION_CODE})..."
 cd "${ANDROID_DIR}"
-./gradlew "${TASK}" \
+./gradlew "${GRADLE_TASK}" \
   -PappVersionName="${APP_VERSION_NAME}" \
   -PappVersionCode="${APP_VERSION_CODE}"
 

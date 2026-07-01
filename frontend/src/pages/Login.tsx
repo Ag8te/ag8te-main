@@ -67,6 +67,20 @@ const Login = () => {
         data: { token: credentialResponse.credential, role: role || "client" },
       });
       if (result.success) {
+        if (result.data?.otp_required) {
+          sessionStorage.setItem("pendingLoginOtp", JSON.stringify({
+            challengeId: result.data.challenge_id,
+            email: result.data.user?.email,
+            from: redirectTo,
+            expiresAt: result.data.expires_at || null,
+          }));
+          toast({ title: "Verification code sent", description: "Check your email for the 6-digit code." });
+          const params = new URLSearchParams();
+          if (redirectTo) params.set("from", redirectTo);
+          navigate(`/login/otp${params.toString() ? `?${params.toString()}` : ""}`);
+          return;
+        }
+
         localStorage.setItem("token", result.data.token);
         localStorage.setItem("user", JSON.stringify(result.data.user));
         if (setUser) setUser(result.data.user);
@@ -343,7 +357,7 @@ const Login = () => {
                     <GoogleLogin
                       onSuccess={handleGoogleSuccess}
                       onError={() => setError("Google sign-in was unsuccessful. Please try again.")}
-                      width="100%"
+                      width="400"
                       theme="outline"
                     />
                   </div>
