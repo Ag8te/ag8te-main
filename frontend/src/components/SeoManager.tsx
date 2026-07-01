@@ -48,6 +48,22 @@ const PUBLIC_ROUTES: Record<string, SeoConfig> = {
     title: "Cookie Policy | MzansiServe",
     description: "Learn how MzansiServe uses cookies and how you can manage your preferences.",
   },
+  "/login": {
+    title: "Log In | MzansiServe",
+    description: "Log in securely to your MzansiServe account.",
+  },
+  "/register": {
+    title: "Create an Account | MzansiServe",
+    description: "Create your MzansiServe account.",
+  },
+  "/admin": {
+    title: "Administrator",
+    description: "MzansiServe administrator console.",
+  },
+  "/admin/login": {
+    title: "Administrator",
+    description: "Secure access to the MzansiServe administrator console.",
+  },
 };
 
 const NOINDEX_PATHS = [

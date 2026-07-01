@@ -81,6 +81,7 @@ class LoginSchema(Schema):
     email = fields.Email(required=True)
     password = fields.Str(required=True)
     role = fields.Str(validate=validate.OneOf(['client', 'driver', 'professional', 'service-provider', 'agent']))
+    # Accepted for compatibility with older clients, but intentionally ignored.
     trusted_device_token = fields.Str()
 
 class ForgotPasswordSchema(Schema):
@@ -172,14 +173,6 @@ def login():
                 'payment_required': True,
                 'message': 'Registration payment is still pending. Redirecting to Yoco.'
             }, 'Registration payment required.', 200)
-        trusted_device_token = (request.json or {}).get('trusted_device_token')
-        if OtpService.is_trusted_login_device(user, trusted_device_token):
-            access_token = create_access_token(identity=str(user.id))
-            return success_response({
-                'user': user.to_dict(),
-                'token': access_token,
-                'otp_skipped': True
-            }, 'Login successful')
         challenge = OtpService.create_email_login_challenge(user)
         return success_response({
             'user': user.to_dict(),
@@ -215,9 +208,7 @@ def verify_login_otp():
         access_token = create_access_token(identity=str(user.id))
         return success_response({
             'user': user.to_dict(),
-            'token': access_token,
-            'trusted_device_token': OtpService.create_trusted_login_device_token(user),
-            'trusted_device_expires_days': current_app.config.get('OTP_TRUSTED_DEVICE_DAYS', 7)
+            'token': access_token
         }, 'Login successful')
     except ValidationError as e:
         return error_response('VALIDATION_ERROR', 'Invalid input data', e.messages, 400)
@@ -372,14 +363,16 @@ def google_login():
                 # Create wallet
                 WalletService.get_or_create_wallet(user.id)
             
-            # Login successful
-            access_token = create_access_token(identity=str(user.id))
-            logger.info("google_login: success user_id=%s", user.id)
-            
+            challenge = OtpService.create_email_login_challenge(user)
+            logger.info("google_login: OTP challenge created user_id=%s", user.id)
+
             return success_response({
                 'user': user.to_dict(),
-                'token': access_token
-            }, 'Google login successful')
+                'otp_required': True,
+                'challenge_id': str(challenge.id),
+                'channel': 'email',
+                'expires_at': challenge.expires_at.isoformat() if challenge.expires_at else None
+            }, 'Login OTP sent')
 
         except ValueError:
             # Invalid token

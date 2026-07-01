@@ -30,8 +30,6 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
-const LOGIN_TRUSTED_DEVICE_KEY = "loginTrustedDeviceToken";
-
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUserState] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -72,9 +70,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               localStorage.removeItem("adminToken");
             }
           }
-        } catch (error) {
-          console.error("Auth check failed:", error);
-          // Don't immediately clear on network errors, but clear on 401/403 (handled in apiFetch)
+        } catch {
+          // apiFetch handles invalid credentials. A failed background session check
+          // should leave the visitor signed out without surfacing a console error.
+          syncUserState(null);
         }
       }
       setIsLoading(false);
@@ -85,13 +84,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = useCallback(async (email: string, password: string, role?: string) => {
     try {
-      const trustedDeviceToken = localStorage.getItem(LOGIN_TRUSTED_DEVICE_KEY);
       const result = await apiFetch("/api/auth/login", {
         data: {
           email,
           password,
           ...(role ? { role } : {}),
-          ...(trustedDeviceToken ? { trusted_device_token: trustedDeviceToken } : {}),
         }
       });
 
@@ -107,9 +104,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
 
         localStorage.setItem("token", result.data.token);
-        if (result.data?.trusted_device_token) {
-          localStorage.setItem(LOGIN_TRUSTED_DEVICE_KEY, result.data.trusted_device_token);
-        }
         syncUserState(result.data.user);
         return { success: true, data: result.data };
       }

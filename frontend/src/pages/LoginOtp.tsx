@@ -9,7 +9,6 @@ import { apiFetch } from "@/lib/api";
 import { buildRegistrationPaymentUrl, requiresRegistrationPayment } from "@/lib/registration-payment";
 
 const PENDING_OTP_KEY = "pendingLoginOtp";
-const LOGIN_TRUSTED_DEVICE_KEY = "loginTrustedDeviceToken";
 
 interface PendingLoginOtp {
   challengeId: string;
@@ -92,9 +91,6 @@ const LoginOtp = () => {
       if (result.success) {
         localStorage.setItem("token", result.data.token);
         localStorage.setItem("user", JSON.stringify(result.data.user));
-        if (result.data?.trusted_device_token) {
-          localStorage.setItem(LOGIN_TRUSTED_DEVICE_KEY, result.data.trusted_device_token);
-        }
         setUser(result.data.user);
         toast({ title: "Welcome back!", description: "You've been logged in successfully." });
         navigateByRole(result.data.user);

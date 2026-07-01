@@ -1,7 +1,8 @@
 import pytest
 from unittest.mock import patch, MagicMock
 from backend.services.auth_service import AuthService
-from backend.models import User
+from backend.services.email_service import EmailService
+from backend.models import EmailQueue, User
 
 def test_register_user_success(db_session):
     email = "test@example.com"
@@ -21,6 +22,25 @@ def test_register_user_success(db_session):
         assert user.role == role
         assert user.check_password(password)
         assert user.data['full_name'] == full_name
+
+
+def test_non_client_registration_sends_next_steps_email(db_session):
+    with patch('backend.services.auth_service.WalletService.get_or_create_wallet'), \
+         patch('backend.services.auth_service.EmailService.send_registration_confirmation') as send_confirmation:
+        user, error = AuthService.register_user(
+            "driver-registration@example.com", "password123", "driver", "Test Driver"
+        )
+
+    assert error is None
+    send_confirmation.assert_called_once_with(user)
+
+    with patch('backend.services.email_service.EmailService.send_email'):
+        EmailService.send_registration_confirmation(user)
+
+    queued_email = EmailQueue.query.filter_by(recipient=user.email).order_by(EmailQueue.created_at.desc()).first()
+    assert queued_email.subject == "Registration Received - Next Steps for MzansiServe"
+    assert "not active yet" in queued_email.body
+    assert "complete the registration payment" in queued_email.body
 
 def test_register_user_exists(db_session):
     email = "existing@example.com"

@@ -12,10 +12,11 @@ export const isAndroidApp = nativePlatform === "android";
 export const canUseGoogleOAuth = () => !isNativeApp;
 export const googleOAuthClientId =
   import.meta.env.VITE_GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com";
+export const isValidGoogleOAuthClientId = (clientId: string) =>
+  /^\d+-[a-z0-9_-]+\.apps\.googleusercontent\.com$/i.test(clientId.trim());
 export const isGoogleOAuthConfigured = () =>
   canUseGoogleOAuth() &&
-  !!googleOAuthClientId &&
-  !googleOAuthClientId.startsWith("YOUR_GOOGLE_CLIENT_ID");
+  isValidGoogleOAuthClientId(googleOAuthClientId);
 
 export const defaultMobileApiBaseUrl = "https://mzansiserve.co.za";
 export const publicWebBaseUrl =

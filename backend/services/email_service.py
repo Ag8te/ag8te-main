@@ -16,7 +16,6 @@ from datetime import datetime
 def _first_name(user):
     """Get first name from user data for email salutation."""
     full = (user.data or {}).get('full_name') or 'User'
-    print(f"_first_name - full: {full}")
     return (full.strip().split(None, 1)[0] if full.strip() else 'User')
 
 
@@ -285,12 +284,16 @@ www.mzansiserve.co.za"""
   
     @staticmethod
     def send_registration_confirmation(user):
-        """Send email informing user they have successfully registered."""
+        """Confirm registration with accurate next steps for the account role."""
         first_name = _first_name(user)
         frontend_url = get_public_frontend_base_url()
         login_url = f"{frontend_url}/login"
-        subject = "Registration Successful - Welcome to MzansiServe!"
-        body = f"""Hi {first_name},
+        is_client = user.role == 'client'
+        account_type = (user.role or 'user').replace('-', ' ')
+
+        if is_client:
+            subject = "Registration Successful - Welcome to MzansiServe!"
+            body = f"""Hi {first_name},
 
 Great news! Your registration on MzansiServe was successful 
 
@@ -306,7 +309,7 @@ Thank you for choosing MzansiServe - made for Mzansi, built for you
 
 Kind regards,
 MzansiServe Team"""
-        body_html = f"""<html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333 text-align: left;">
+            body_html = f"""<html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; text-align: left;">
 <p>Hi {first_name},</p>
 <p>Great news! Your registration on MzansiServe was successful</p>
 <p>Your account is now active, and you can start exploring:</p>
@@ -318,6 +321,25 @@ MzansiServe Team"""
 </ul>
 <p>Login anytime here: <a href="{login_url}">{login_url}</a> or directly from the mzansiserve mobile app, <a href="https://www.MzansiServe.com">www.MzansiServe.com</a> or <a href="https://www.MzansiServe.co.za">www.MzansiServe.co.za</a></p>
 <p>Thank you for choosing MzansiServe - made for Mzansi, built for you</p>
+<p>Kind regards,<br>MzansiServe Team</p>
+</body></html>"""
+        else:
+            subject = "Registration Received - Next Steps for MzansiServe"
+            body = f"""Hi {first_name},
+
+We have received your MzansiServe {account_type} registration.
+
+Your account is not active yet. Please complete the registration payment, after which our administrator will review your application. You will receive another email when the review is complete.
+
+To continue, log in here: {login_url}
+
+Kind regards,
+MzansiServe Team"""
+            body_html = f"""<html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; text-align: left;">
+<p>Hi {first_name},</p>
+<p>We have received your MzansiServe <strong>{account_type}</strong> registration.</p>
+<p>Your account is not active yet. Please complete the registration payment, after which our administrator will review your application. You will receive another email when the review is complete.</p>
+<p><a href="{login_url}" style="display:inline-block;background:#2563eb;color:#fff;padding:10px 20px;text-decoration:none;border-radius:6px;">Continue Registration</a></p>
 <p>Kind regards,<br>MzansiServe Team</p>
 </body></html>"""
         email = EmailService.queue_email(

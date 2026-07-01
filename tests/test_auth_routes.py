@@ -96,9 +96,9 @@ def test_verify_login_otp_issues_token(client, db_session, app):
     res_data = response.get_json()
     assert res_data['success'] is True
     assert 'token' in res_data['data']
-    assert 'trusted_device_token' in res_data['data']
+    assert 'trusted_device_token' not in res_data['data']
 
-def test_login_skips_otp_for_trusted_device(client, db_session, app):
+def test_login_requires_otp_even_with_legacy_trusted_device_token(client, db_session, app):
     email = "trusted-login@example.com"
     password = "password123"
     role = "client"
@@ -118,7 +118,7 @@ def test_login_skips_otp_for_trusted_device(client, db_session, app):
     verify_response = client.post('/api/auth/verify-login-otp',
                                   data=json.dumps({"challenge_id": challenge_id, "code": "123456"}),
                                   content_type='application/json')
-    trusted_device_token = verify_response.get_json()['data']['trusted_device_token']
+    assert verify_response.get_json()['data']['token']
 
     with patch("backend.services.email_service.EmailService.send_otp_email") as mock_send_otp:
         response = client.post('/api/auth/login',
@@ -126,15 +126,41 @@ def test_login_skips_otp_for_trusted_device(client, db_session, app):
                                    "email": email,
                                    "password": password,
                                    "role": role,
-                                   "trusted_device_token": trusted_device_token,
+                                   "trusted_device_token": "legacy-token-that-must-not-bypass-otp",
                                }),
                                content_type='application/json')
 
     assert response.status_code == 200
     res_data = response.get_json()
     assert res_data['success'] is True
-    assert res_data['data']['otp_skipped'] is True
+    assert res_data['data']['otp_required'] is True
+    assert 'token' not in res_data['data']
+    mock_send_otp.assert_called_once()
+
+def test_admin_login_remains_password_only(client, db_session):
+    user = User(
+        email="admin-otp-exempt@example.com",
+        role="admin",
+        is_admin=True,
+        is_active=True,
+        email_verified=True,
+    )
+    user.set_password("password123")
+    db_session.session.add(user)
+    db_session.session.commit()
+
+    with patch("backend.services.email_service.EmailService.send_otp_email") as mock_send_otp:
+        response = client.post(
+            '/api/auth/admin-login',
+            data=json.dumps({"email": user.email, "password": "password123"}),
+            content_type='application/json',
+        )
+
+    assert response.status_code == 200
+    res_data = response.get_json()
+    assert res_data['success'] is True
     assert 'token' in res_data['data']
+    assert 'otp_required' not in res_data['data']
     mock_send_otp.assert_not_called()
 
 def test_login_route_unpaid_non_client_redirects_to_payment(client, db_session):

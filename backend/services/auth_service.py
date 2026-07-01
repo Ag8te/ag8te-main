@@ -46,11 +46,10 @@ class AuthService:
         # Initialize dependencies
         WalletService.get_or_create_wallet(user.id)
 
-        if is_client:
-            try:
-                EmailService.send_registration_confirmation(user)
-            except Exception as e:
-                logger.warning(f"Failed to send registration confirmation email for user {user.id}: {e}")
+        try:
+            EmailService.send_registration_confirmation(user)
+        except Exception as e:
+            logger.warning(f"Failed to send registration confirmation email for user {user.id}: {e}")
             
         return user, None
 
@@ -299,12 +298,11 @@ class AuthService:
         db.session.commit()
         logger.info(f"User {user.id} committed to DB in register_with_payment_logic")
         
-        if is_client:
-            try:
-                EmailService.send_registration_confirmation(user)
-                logger.info("Registration confirmation email sent for client %s", user.id)
-            except Exception as e:
-                logger.error("Failed to send registration confirmation email for client %s: %s", user.id, e)
+        try:
+            EmailService.send_registration_confirmation(user)
+            logger.info("Registration confirmation email sent for user %s", user.id)
+        except Exception as e:
+            logger.error("Failed to send registration confirmation email for user %s: %s", user.id, e)
             
         return user, None
 

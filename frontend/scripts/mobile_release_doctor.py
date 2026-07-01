@@ -303,6 +303,8 @@ def huawei_findings() -> list[Finding]:
     package_json = (FRONTEND_DIR / "package.json").read_text(encoding="utf-8")
     build_script = (FRONTEND_DIR / "scripts/build_android_release.sh").read_text(encoding="utf-8")
     native_helper = (FRONTEND_DIR / "src/lib/native.ts").read_text(encoding="utf-8")
+    android_gradle = (FRONTEND_DIR / "android/app/build.gradle").read_text(encoding="utf-8")
+    huawei_plugin = FRONTEND_DIR / "android/app/src/huawei/java/co/za/mzansiserve/app/HuaweiGeolocationPlugin.java"
 
     if "huawei:bundle:release" in package_json and "huawei:assemble:release" in package_json:
         findings.append(Finding("OK", "Huawei release commands", "Huawei AppGallery build commands are available."))
@@ -313,6 +315,31 @@ def huawei_findings() -> list[Finding]:
         findings.append(Finding("OK", "Store-labelled Android artifacts", "Release artifacts are copied into frontend/store-builds/<store>."))
     else:
         findings.append(Finding("FAIL", "Store-labelled Android artifacts", "Android release script does not label store output artifacts."))
+
+    has_flavor_split = all(
+        marker in android_gradle
+        for marker in [
+            'flavorDimensions "store"',
+            'googleImplementation project(\':capacitor-geolocation\')',
+            "huaweiImplementation 'com.huawei.hms:location:",
+        ]
+    )
+    if has_flavor_split and huawei_plugin.exists():
+        findings.append(
+            Finding(
+                "OK",
+                "Huawei Location Kit flavor",
+                "Huawei builds use the HMS Location bridge while Google builds retain Capacitor Geolocation.",
+            )
+        )
+    else:
+        findings.append(
+            Finding(
+                "FAIL",
+                "Huawei Location Kit flavor",
+                "The store-specific Huawei/Google geolocation split is incomplete.",
+            )
+        )
 
     if "canUseGoogleOAuth = () => !isNativeApp" in native_helper:
         findings.append(Finding("OK", "Huawei Google sign-in risk", "Native app builds hide web Google OAuth."))
