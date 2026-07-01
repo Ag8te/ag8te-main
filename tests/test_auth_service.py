@@ -42,6 +42,18 @@ def test_non_client_registration_sends_next_steps_email(db_session):
     assert "not active yet" in queued_email.body
     assert "complete the registration payment" in queued_email.body
 
+
+def test_otp_email_raises_when_delivery_fails(db_session):
+    user = User(email="otp-delivery@example.com", role="client", data={"full_name": "OTP User"})
+    user.set_password("password123")
+    db_session.session.add(user)
+    db_session.session.commit()
+
+    with patch('backend.services.email_service.EmailService.send_brevo_email', return_value=False), \
+         patch('backend.services.email_service.EmailService.send_email', return_value=False), \
+         pytest.raises(RuntimeError, match="OTP email delivery failed"):
+        EmailService.send_otp_email(user, "123456")
+
 def test_register_user_exists(db_session):
     email = "existing@example.com"
     role = "client"
