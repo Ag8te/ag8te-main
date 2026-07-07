@@ -95,6 +95,7 @@ This updates:
 - Android launcher icons and splash images in [frontend/android/app/src/main/res](/Users/bingodedingo/Desktop/mzansiserve-main/frontend/android/app/src/main/res)
 - iOS app icon and splash images in [frontend/ios/App/App/Assets.xcassets](/Users/bingodedingo/Desktop/mzansiserve-main/frontend/ios/App/App/Assets.xcassets)
 - master preview assets in [frontend/src/assets/mobile](/Users/bingodedingo/Desktop/mzansiserve-main/frontend/src/assets/mobile)
+- the 512×512 Play Console listing icon at [frontend/src/assets/mobile/app-icon-google-play-512.png](/Users/bingodedingo/Desktop/mzansiserve-main/frontend/src/assets/mobile/app-icon-google-play-512.png)
 
 ## Environment Variables
 
@@ -140,6 +141,8 @@ Then in Android Studio:
 3. place your release keystore at the `storeFile` path you choose
 4. build a signed release bundle
 5. upload the release artifact to Play Console
+
+To replace the legacy brain image on the store listing, open **Grow users → Store presence → Main store listing** in Play Console and upload [app-icon-google-play-512.png](/Users/bingodedingo/Desktop/mzansiserve-main/frontend/src/assets/mobile/app-icon-google-play-512.png) as the app icon.
 
 Release build notes:
 
