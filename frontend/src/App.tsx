@@ -15,6 +15,7 @@ import ScrollToTop from "@/components/ScrollToTop";
 import SeoManager from "@/components/SeoManager";
 import {
   configureNativeChrome,
+  configureNativeKeyboard,
   isNativeApp,
   resolveAppReturnPath,
 } from "@/lib/native";
@@ -71,6 +72,7 @@ const RouteFallback = () => (
 const NativeAppBoot = () => {
   useEffect(() => {
     configureNativeChrome();
+    configureNativeKeyboard();
   }, []);
 
   return null;

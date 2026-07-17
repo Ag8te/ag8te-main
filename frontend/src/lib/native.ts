@@ -1,6 +1,7 @@
 import { Browser } from "@capacitor/browser";
 import { Capacitor } from "@capacitor/core";
 import { Geolocation } from "@capacitor/geolocation";
+import { Keyboard, KeyboardResize, KeyboardStyle } from "@capacitor/keyboard";
 import { SplashScreen } from "@capacitor/splash-screen";
 import { StatusBar, Style } from "@capacitor/status-bar";
 
@@ -164,5 +165,29 @@ export const configureNativeChrome = async () => {
     await SplashScreen.hide();
   } catch (error) {
     console.warn("Failed to hide splash screen:", error);
+  }
+};
+
+export const configureNativeKeyboard = async () => {
+  if (!isNativeApp) return;
+
+  try {
+    if (isIOSApp) {
+      await Keyboard.setResizeMode({ mode: KeyboardResize.Body });
+      await Keyboard.setStyle({ style: KeyboardStyle.Light });
+      await Keyboard.setAccessoryBarVisible({ isVisible: false });
+    }
+
+    await Keyboard.addListener("keyboardWillShow", ({ keyboardHeight }) => {
+      document.documentElement.classList.add("native-keyboard-open");
+      document.documentElement.style.setProperty("--native-keyboard-height", `${keyboardHeight}px`);
+    });
+
+    await Keyboard.addListener("keyboardWillHide", () => {
+      document.documentElement.classList.remove("native-keyboard-open");
+      document.documentElement.style.setProperty("--native-keyboard-height", "0px");
+    });
+  } catch (error) {
+    console.warn("Failed to configure native keyboard:", error);
   }
 };

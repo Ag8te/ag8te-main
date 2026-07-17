@@ -12,6 +12,7 @@ import { Card } from '../../components/UI/Card';
 import { Button } from '../../components/UI/Button';
 
 const { width } = Dimensions.get('window');
+const HERO_CARD_HEIGHT = width < 380 ? 196 : 216;
 
 export default function Home() {
   const { user } = useAuth();
@@ -112,7 +113,7 @@ export default function Home() {
                     color={COLORS.white}
                     weight="bold"
                     numberOfLines={2}
-                    style={{ marginBottom: 6, textShadowColor: 'rgba(0,0,0,0.6)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 6 }}
+                    style={styles.heroTitle}
                   >
                     {slide.title || 'MzansiServe\nMarketplace'}
                   </Typography>
@@ -120,14 +121,14 @@ export default function Home() {
                     variant="label"
                     color={'rgba(255,255,255,0.85)'}
                     numberOfLines={2}
-                    style={{ marginBottom: 16 }}
+                    style={styles.heroSubtitle}
                   >
                     {slide.subtitle || 'Connecting South Africa to reliable services.'}
                   </Typography>
                   <Button
                     title={slide.cta_text || "Book a Ride"}
                     variant="secondary"
-                    size="md"
+                    size="sm"
                     fullWidth={true}
                     style={styles.heroButton}
                     onPress={() => router.push(slide.cta_link || '/services')}
@@ -314,11 +315,11 @@ const styles = StyleSheet.create({
     borderColor: COLORS.white,
   },
   heroWrapper: {
-    paddingVertical: SPACING.lg,
+    paddingVertical: SPACING.md,
     backgroundColor: 'transparent',
   },
   heroCard: {
-    height: 260,
+    height: HERO_CARD_HEIGHT,
     backgroundColor: COLORS.primary,
     marginRight: SPACING.md,
     borderRadius: SIZES.radius.xl,
@@ -328,8 +329,8 @@ const styles = StyleSheet.create({
   },
   heroGradient: {
     flex: 1,
-    padding: SPACING.lg,
-    paddingBottom: SPACING.xl,
+    padding: SPACING.md,
+    paddingBottom: SPACING.lg,
     justifyContent: 'flex-end',
   },
   heroContent: {
@@ -346,20 +347,32 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.4)',
     overflow: 'hidden',
   },
+  heroTitle: {
+    fontSize: width < 380 ? 20 : 22,
+    lineHeight: width < 380 ? 24 : 26,
+    marginBottom: 4,
+    textShadowColor: 'rgba(0,0,0,0.6)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 6,
+  },
+  heroSubtitle: {
+    marginBottom: 10,
+    lineHeight: 18,
+  },
   badgeText: {
     fontSize: 10,
     letterSpacing: 1,
   },
   heroButton: {
     borderRadius: 4,
-    marginTop: 8,
+    marginTop: 4,
     alignSelf: 'stretch',
   },
   paginationContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: SPACING.md,
+    marginTop: SPACING.sm,
   },
   paginationDot: {
     width: 8,
