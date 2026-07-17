@@ -505,6 +505,24 @@ const Navbar = () => {
               )}
             </div>
           )}
+          <CartDrawer>
+            <button
+              className={cn(
+                "relative flex h-9 w-9 items-center justify-center rounded-full border transition-colors",
+                isTransparent
+                  ? "text-white border-white/30 hover:bg-white/10"
+                  : "text-[#222222] border-slate-200 hover:bg-slate-50",
+              )}
+              aria-label={`Open cart${count > 0 ? `, ${count} item${count === 1 ? "" : "s"}` : ""}`}
+            >
+              <ShoppingCart className="h-4 w-4" />
+              {count > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold leading-none text-white">
+                  {count > 99 ? "99+" : count}
+                </span>
+              )}
+            </button>
+          </CartDrawer>
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
             className={cn(

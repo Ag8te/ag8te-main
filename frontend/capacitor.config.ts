@@ -1,4 +1,5 @@
 import type { CapacitorConfig } from '@capacitor/cli';
+import { KeyboardResize, KeyboardStyle } from '@capacitor/keyboard';
 
 const config: CapacitorConfig = {
   appId: 'co.za.mzansiserve.app',
@@ -18,6 +19,12 @@ const config: CapacitorConfig = {
       overlaysWebView: false,
       style: "LIGHT",
       backgroundColor: "#ffffff",
+    },
+    Keyboard: {
+      resize: KeyboardResize.Body,
+      style: KeyboardStyle.Light,
+      resizeOnFullScreen: true,
+      autoBackdropColor: "auto",
     },
   },
 };
