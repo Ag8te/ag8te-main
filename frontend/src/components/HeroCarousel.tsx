@@ -143,7 +143,7 @@ const HeroCarousel = () => {
   const IconComponent = iconMap[slide.badge || "Shop"] || ShoppingBag;
 
   return (
-    <section id="home" className="mobile-app-hero relative h-[720px] w-full overflow-hidden sm:h-[760px] lg:h-[850px]">
+    <section id="home" className="mobile-app-hero relative h-[450px] w-full overflow-hidden sm:h-[450px] lg:h-[850px]">
       {/* Background images */}
       <AnimatePresence mode="wait">
         <motion.div
