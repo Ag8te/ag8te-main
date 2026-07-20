@@ -24,7 +24,7 @@ const steps = [
 
 export const HowItWorks = () => {
     return (
-        <section className="mobile-app-how-section py-12 bg-white relative">
+        <section className="mobile-app-how-section bg-white relative">
             {/* Subtle dot pattern */}
             <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width=\'6\' height=\'6\' viewBox=\'0 0 6 6\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'%23E5E7EB\' fill-opacity=\'0.4\'%3E%3Cpath d=\'M5 0h1L0 6V5zM6 5v1H5z\'/%3E%3C/g%3E%3C/svg%3E')] opacity-50" />
 
