@@ -18,8 +18,8 @@ from backend.services.profile_service import ProfileService
 
 bp = Blueprint('profile', __name__)
 
-# Registration fee amount in cents (e.g., 10000 = R100.00)
-REGISTRATION_FEE_AMOUNT = 10000  # R100.00
+# Registration fee amount in cents. Temporarily free.
+REGISTRATION_FEE_AMOUNT = 0
 
 # After approval, only these profile fields may be changed (and require admin approval to apply)
 ALLOWED_AFTER_APPROVAL_COMMON = {'phone', 'next_of_kin', 'full_name', 'surname', 'gender'}

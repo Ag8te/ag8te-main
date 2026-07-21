@@ -370,8 +370,8 @@ const DriverDashboard = () => {
                       }}
                     >
                       {user.is_paid
-                        ? "Registration payment received"
-                        : "Complete your Yoco registration payment"}
+                        ? "Registration fee settled"
+                        : "Registration fee is currently free"}
                     </Typography>
                   </Box>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
