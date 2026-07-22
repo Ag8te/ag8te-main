@@ -11,6 +11,7 @@ from backend.models import User, ServiceRequest, ServiceType, UserSelectedServic
 from backend.services.email_service import EmailService
 from backend.services.request_service import RequestService
 from backend.services.shipping_service import ShiplogicService
+from backend.services.auth_service import REGISTRATION_FEE_REQUIRED
 
 logger = logging.getLogger(__name__)
 
@@ -18,15 +19,18 @@ class AdminService:
     @staticmethod
     def requires_registration_payment_before_approval(user):
         """True when a user must pay the registration fee before approval can proceed."""
-        return bool(user and user.role not in ('client', 'admin') and not user.is_paid)
+        return bool(REGISTRATION_FEE_REQUIRED and user and user.role not in ('client', 'admin') and not user.is_paid)
 
     @staticmethod
     def _countable_user_query():
         """Users visible in admin growth/base metrics.
 
         Clients count immediately because they do not pay a registration fee.
-        Non-client registrations only count after payment is completed.
+        Non-client registrations only count after payment is completed when a
+        registration fee is active.
         """
+        if not REGISTRATION_FEE_REQUIRED:
+            return User.query
         return User.query.filter(
             or_(
                 User.role == 'client',

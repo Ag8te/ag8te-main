@@ -331,7 +331,7 @@ MzansiServe Team"""
 
 We have received your MzansiServe {account_type} registration.
 
-Your account is not active yet. Please complete the registration payment, after which our administrator will review your application. You will receive another email when the review is complete.
+Your registration fee is currently free. Your account is not active yet because our administrator still needs to review your application. You will receive another email when the review is complete.
 
 To continue, log in here: {login_url}
 
@@ -340,8 +340,8 @@ MzansiServe Team"""
             body_html = f"""<html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; text-align: left;">
 <p>Hi {first_name},</p>
 <p>We have received your MzansiServe <strong>{account_type}</strong> registration.</p>
-<p>Your account is not active yet. Please complete the registration payment, after which our administrator will review your application. You will receive another email when the review is complete.</p>
-<p><a href="{login_url}" style="display:inline-block;background:#2563eb;color:#fff;padding:10px 20px;text-decoration:none;border-radius:6px;">Continue Registration</a></p>
+<p>Your registration fee is currently free. Your account is not active yet because our administrator still needs to review your application. You will receive another email when the review is complete.</p>
+<p><a href="{login_url}" style="display:inline-block;background:#2563eb;color:#fff;padding:10px 20px;text-decoration:none;border-radius:6px;">View Account</a></p>
 <p>Kind regards,<br>MzansiServe Team</p>
 </body></html>"""
         email = EmailService.queue_email(

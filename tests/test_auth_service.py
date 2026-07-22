@@ -40,7 +40,7 @@ def test_non_client_registration_sends_next_steps_email(db_session):
     queued_email = EmailQueue.query.filter_by(recipient=user.email).order_by(EmailQueue.created_at.desc()).first()
     assert queued_email.subject == "Registration Received - Next Steps for MzansiServe"
     assert "not active yet" in queued_email.body
-    assert "complete the registration payment" in queued_email.body
+    assert "registration fee is currently free" in queued_email.body
 
 
 def test_otp_email_raises_when_delivery_fails(db_session):
@@ -113,7 +113,7 @@ def test_login_user_unverified_email_allowed(db_session):
     assert error is None
     assert logged_in_user.id == user.id
 
-def test_login_user_unpaid_non_client_requires_payment(db_session):
+def test_login_user_unpaid_non_client_is_settled_when_fee_is_free(db_session):
     email = "driver@example.com"
     password = "password123"
     role = "driver"
@@ -125,5 +125,6 @@ def test_login_user_unpaid_non_client_requires_payment(db_session):
 
     logged_in_user, error = AuthService.login_user(email, password, role)
 
-    assert error == "PAYMENT_REQUIRED"
+    assert error is None
     assert logged_in_user.id == user.id
+    assert logged_in_user.is_paid is True

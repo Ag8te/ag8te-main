@@ -20,7 +20,7 @@ from backend.services.email_service import EmailService
 from backend.services.wallet_service import WalletService
 from backend.services.payment_service import PaymentService
 from backend.services.agent_service import AgentService
-from backend.services.auth_service import AuthService
+from backend.services.auth_service import AuthService, REGISTRATION_FEE_AMOUNT, REGISTRATION_FEE_REQUIRED
 from backend.services.otp_service import OtpService, SENSITIVE_SMS_PURPOSES
 from backend.utils.url import (
     append_query_params,
@@ -32,13 +32,19 @@ from backend.utils.url import (
 bp = Blueprint('auth', __name__)
 logger = logging.getLogger(__name__)
 
-REGISTRATION_FEE_AMOUNT = 10000  # R100.00 in cents
-
-
 def _create_registration_checkout_for_user(user, provider='yoco'):
     """Create a one-time Yoco checkout for non-client registration."""
     if user.role == 'client':
         raise ValueError("Clients do not require registration payment.")
+    if not REGISTRATION_FEE_REQUIRED:
+        user.is_paid = True
+        db.session.commit()
+        return {
+            'redirect_url': None,
+            'checkout_id': None,
+            'external_id': None,
+            'payment_required': False,
+        }
 
     provider_name = (provider or 'yoco').strip().lower()
     if provider_name != 'yoco':
@@ -167,6 +173,15 @@ def login():
             return error_response('ACCOUNT_INACTIVE', 'Account is inactive', None, 403)
         if error == "PAYMENT_REQUIRED":
             checkout_result = _create_registration_checkout_for_user(user, provider='yoco')
+            if not checkout_result.get('payment_required', True):
+                challenge = OtpService.create_email_login_challenge(user)
+                return success_response({
+                    'user': user.to_dict(),
+                    'otp_required': True,
+                    'challenge_id': str(challenge.id),
+                    'channel': 'email',
+                    'expires_at': challenge.expires_at.isoformat() if challenge.expires_at else None
+                }, 'Login OTP sent')
             return success_response({
                 'user': user.to_dict(),
                 **checkout_result,
@@ -546,6 +561,12 @@ def initiate_registration_payment():
             return error_response('ALREADY_PAID', 'Registration fee already paid', None, 400)
 
         checkout_result = _create_registration_checkout_for_user(user, provider=provider)
+        if not checkout_result.get('payment_required', True):
+            return success_response({
+                'user': user.to_dict(),
+                'payment_required': False,
+                'message': 'Registration is currently free. No payment is required.'
+            })
 
         logger.info("initiate_registration_payment: success user_id=%s external_id=%s", user.id, checkout_result['external_id'])
         return success_response(checkout_result)
@@ -635,17 +656,26 @@ def register_with_payment():
                 **checkout_result,
                 'message': 'Your registration already exists and payment is still pending. Redirecting to Yoco.'
             }, 'Existing unpaid registration found. Redirecting to payment.', 200)
+        if error == "EXISTING_FREE_USER":
+            access_token = create_access_token(identity=str(user.id))
+            return success_response({
+                'user': user.to_dict(),
+                'token': access_token,
+                'payment_required': False,
+                'message': 'Registration completed successfully. No registration fee is required.'
+            }, 'Registration completed successfully.', 200)
         if error == "INVALID_AGENT":
             return error_response('INVALID_FIELDS', 'Invalid agent code format.', None, 400)
         if error:
             return error_response('REGISTRATION_FAILED', error, None, 400)
 
-        if user.role == 'client':
+        if user.role == 'client' or not REGISTRATION_FEE_REQUIRED:
             access_token = create_access_token(identity=str(user.id))
             return success_response({
                 'user': user.to_dict(),
                 'token': access_token,
-                'message': 'Registration completed successfully.'
+                'payment_required': False,
+                'message': 'Registration completed successfully. No registration fee is required.'
             }, 'Registration completed successfully.', 201)
 
         checkout_result = _create_registration_checkout_for_user(user, provider='yoco')

@@ -1535,9 +1535,9 @@ const removeCarImage = (index: number) => {
 
                   {form.role && form.role !== "client" && (
                     <div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-4">
-                      <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2">Registration Payment</p>
+                      <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2">Registration Fee</p>
                       <p className="text-sm text-slate-600">
-                        Drivers, professionals, and service providers complete registration with a once-off Yoco payment of <span className="font-bold text-[#222222]">R100.00</span>.
+                        Drivers, professionals, and service providers can register for <span className="font-bold text-[#222222]">R0.00</span> while the registration fee is temporarily free.
                       </p>
                     </div>
                   )}

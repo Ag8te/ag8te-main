@@ -13,6 +13,9 @@ from backend.services.payment_service import PaymentService
 
 logger = logging.getLogger(__name__)
 
+REGISTRATION_FEE_AMOUNT = 0  # Free registration period; restore paid amount when needed.
+REGISTRATION_FEE_REQUIRED = REGISTRATION_FEE_AMOUNT > 0
+
 class AuthService:
     @staticmethod
     def register_user(email, password, role, full_name=None, phone=None):
@@ -21,12 +24,13 @@ class AuthService:
             return None, "USER_EXISTS"
 
         is_client = role == 'client'
+        is_registration_paid = is_client or not REGISTRATION_FEE_REQUIRED
         
         user = User(
             email=email,
             role=role,
             is_admin=False,
-            is_paid=is_client,
+            is_paid=is_registration_paid,
             is_approved=False,
             is_active=True,
             email_verified=True,
@@ -71,7 +75,11 @@ class AuthService:
             return None, "ACCOUNT_INACTIVE"
 
         if user.role != 'client' and user.role != 'admin' and not user.is_paid:
-            return user, "PAYMENT_REQUIRED"
+            if not REGISTRATION_FEE_REQUIRED:
+                user.is_paid = True
+                db.session.commit()
+            else:
+                return user, "PAYMENT_REQUIRED"
             
         return user, None
 
@@ -104,6 +112,10 @@ class AuthService:
             # If the same non-client user has not paid yet, resume the payment flow
             # instead of blocking them with a duplicate-account message.
             if role != 'client' and not existing_user.is_paid and existing_user.check_password(password):
+                if not REGISTRATION_FEE_REQUIRED:
+                    existing_user.is_paid = True
+                    db.session.commit()
+                    return existing_user, "EXISTING_FREE_USER"
                 return existing_user, "EXISTING_UNPAID_USER"
             return None, "USER_EXISTS"
 
@@ -121,13 +133,14 @@ class AuthService:
                     return None, "INVALID_AGENT"
 
         is_client = role == 'client'
+        is_registration_paid = is_client or not REGISTRATION_FEE_REQUIRED
 
         # Create user
         user = User(
             email=email,
             role=role,
             is_admin=False,
-            is_paid=is_client,
+            is_paid=is_registration_paid,
             is_approved=False,
             is_active=True,
             email_verified=True,
