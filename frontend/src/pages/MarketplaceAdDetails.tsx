@@ -15,6 +15,7 @@ import { apiFetch } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { ChatOverlay } from "@/components/ChatOverlay";
 import { useAuth } from "@/contexts/AuthContext";
+import productPlaceholder from "@/assets/product-placeholder.svg";
 
 interface Ad {
     id: string;
@@ -164,7 +165,7 @@ const MarketplaceAdDetails = () => {
                                         initial={{ opacity: 0 }}
                                         animate={{ opacity: 1 }}
                                         exit={{ opacity: 0 }}
-                                        src={ad.images[activeImageIndex] || "https://images.unsplash.com/photo-1549421263-5ec394a5ad4c?q=80&w=1200&fm=jpg&fit=crop"}
+                                        src={ad.images[activeImageIndex] || productPlaceholder}
                                         className="w-full h-full object-cover"
                                     />
                                 </AnimatePresence>
