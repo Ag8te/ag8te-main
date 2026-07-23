@@ -3,7 +3,6 @@ import { Capacitor } from "@capacitor/core";
 import { Geolocation } from "@capacitor/geolocation";
 import { Keyboard, KeyboardResize, KeyboardStyle } from "@capacitor/keyboard";
 import { SplashScreen } from "@capacitor/splash-screen";
-import { StatusBar, Style } from "@capacitor/status-bar";
 
 export const nativePlatform = Capacitor.getPlatform();
 export const isNativeApp = Capacitor.isNativePlatform();
@@ -149,17 +148,6 @@ export const requestCurrentPosition = async (
 
 export const configureNativeChrome = async () => {
   if (!isNativeApp) return;
-
-  try {
-    await StatusBar.show();
-    await StatusBar.setOverlaysWebView({ overlay: false });
-    await StatusBar.setStyle({ style: Style.Light });
-    if (isAndroidApp) {
-      await StatusBar.setBackgroundColor({ color: "#ffffff" });
-    }
-  } catch (error) {
-    console.warn("Failed to configure native status bar:", error);
-  }
 
   try {
     await SplashScreen.hide();

@@ -1,0 +1,15 @@
+<svg width="1200" height="800" viewBox="0 0 1200 800" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="800" fill="#F8FAFC"/>
+  <path d="M0 0H1200V800H0V0Z" fill="#FFF7F7"/>
+  <path d="M0 620C160 560 260 640 410 590C560 540 650 470 820 520C990 570 1060 500 1200 450V800H0V620Z" fill="#FEE2E2"/>
+  <path d="M0 680C180 620 300 690 470 640C640 590 760 600 910 650C1060 700 1120 640 1200 610V800H0V680Z" fill="#FFE4E6"/>
+  <rect x="420" y="175" width="360" height="360" rx="64" fill="white"/>
+  <rect x="420" y="175" width="360" height="360" rx="64" stroke="#F1F5F9" stroke-width="4"/>
+  <path d="M505 310H695L718 455C722 482 701 506 674 506H526C499 506 478 482 482 455L505 310Z" fill="#E53935"/>
+  <path d="M548 310V282C548 253 571 230 600 230C629 230 652 253 652 282V310" stroke="#222222" stroke-width="26" stroke-linecap="round"/>
+  <circle cx="548" cy="362" r="12" fill="white"/>
+  <circle cx="652" cy="362" r="12" fill="white"/>
+  <path d="M553 422C581 446 619 446 647 422" stroke="white" stroke-width="18" stroke-linecap="round"/>
+  <text x="600" y="605" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="56" font-weight="800" fill="#222222">MzansiServe</text>
+  <text x="600" y="660" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" fill="#64748B">Product image coming soon</text>
+</svg>
