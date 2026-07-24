@@ -182,17 +182,17 @@ const Navbar = () => {
         {/* ── Logo ─────────────────────────────────────────────────────────── */}
         <button
           onClick={() => navigate("/")}
-          className="group flex shrink-0 items-center gap-2"
+          className="brand-link group flex min-w-0 shrink-0 items-center gap-2"
         >
-          <div className="flex h-12 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-white/80 bg-white shadow-md transition-all group-hover:shadow-lg lg:h-14 lg:w-16">
+          <div className="brand-logo flex h-12 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-white/80 bg-white shadow-md transition-all group-hover:shadow-lg lg:h-14 lg:w-16">
             <img
               src={logo}
               alt="MzansiServe"
-              className="h-full w-full object-cover"
+              className="h-full w-full object-contain"
             />
           </div>
           <span className={cn(
-            "text-[16px] font-semibold tracking-tight transition-colors lg:text-[17px]",
+            "brand-name min-w-0 truncate text-[16px] font-semibold tracking-tight transition-colors lg:text-[17px]",
             isTransparent ? "text-white" : "text-[#222222]"
           )}>
             MzansiServe
