@@ -13,41 +13,76 @@ type SeoConfig = {
 
 const PUBLIC_ROUTES: Record<string, SeoConfig> = {
   "/": {
-    title: "MzansiServe – Services at Your Fingertips",
+    title: "MzansiServe",
     description: DEFAULT_DESCRIPTION,
   },
   "/shop": {
-    title: "Shop Products Online in South Africa | MzansiServe",
+    title: "Shop",
     description: "Browse products from South African sellers on the MzansiServe marketplace.",
   },
   "/ads": {
-    title: "Local Marketplace Ads | MzansiServe",
+    title: "Ads",
     description: "Discover local listings and marketplace advertisements across South Africa.",
   },
   "/about": {
-    title: "About MzansiServe | South African Service Marketplace",
+    title: "About",
     description: "Learn how MzansiServe connects South Africans with trusted local services, transport and products.",
   },
   "/how-it-works": {
-    title: "How MzansiServe Works | Find and Book Local Services",
+    title: "How It Works",
     description: "Learn how to find verified providers, book services and pay securely with MzansiServe.",
   },
   "/advertise": {
-    title: "Advertise on MzansiServe | Reach South African Customers",
+    title: "Advertise",
     description: "Promote your business, products or services to customers across South Africa with MzansiServe.",
   },
   "/terms": {
-    title: "Terms of Use | MzansiServe",
+    title: "Terms",
     description: "Read the terms governing use of the MzansiServe platform and marketplace.",
   },
   "/privacy": {
-    title: "Privacy Policy | MzansiServe",
+    title: "Privacy",
     description: "Learn how MzansiServe collects, uses and protects personal information under POPIA.",
   },
   "/cookies": {
-    title: "Cookie Policy | MzansiServe",
+    title: "Cookies",
     description: "Learn how MzansiServe uses cookies and how you can manage your preferences.",
   },
+  "/login": {
+    title: "Login",
+    description: "Log in securely to your MzansiServe account.",
+  },
+  "/register": {
+    title: "Register",
+    description: "Create your MzansiServe account.",
+  },
+  "/admin": {
+    title: "Administrator",
+    description: "MzansiServe administrator console.",
+  },
+  "/admin/login": {
+    title: "Administrator Login",
+    description: "Secure access to the MzansiServe administrator console.",
+  },
+  "/login/otp": { title: "Login OTP", description: "Verify your MzansiServe login." },
+  "/services": { title: "Services", description: DEFAULT_DESCRIPTION },
+  "/transport": { title: "Transport", description: DEFAULT_DESCRIPTION },
+  "/professionals": { title: "Professionals", description: DEFAULT_DESCRIPTION },
+  "/my-bookings": { title: "My Bookings", description: DEFAULT_DESCRIPTION },
+  "/checkout": { title: "Checkout", description: DEFAULT_DESCRIPTION },
+  "/shopping-history": { title: "Shopping History", description: DEFAULT_DESCRIPTION },
+  "/payment-status": { title: "Payment Status", description: DEFAULT_DESCRIPTION },
+  "/payment-error": { title: "Payment Error", description: DEFAULT_DESCRIPTION },
+  "/profile": { title: "Profile", description: DEFAULT_DESCRIPTION },
+  "/ads/post": { title: "Post Ad", description: DEFAULT_DESCRIPTION },
+  "/forgot-password": { title: "Forgot Password", description: DEFAULT_DESCRIPTION },
+  "/reset-password": { title: "Reset Password", description: DEFAULT_DESCRIPTION },
+  "/verify-email": { title: "Verify Email", description: DEFAULT_DESCRIPTION },
+  "/dashboard/driver": { title: "Driver Dashboard", description: DEFAULT_DESCRIPTION },
+  "/dashboard/professional": { title: "Professional Dashboard", description: DEFAULT_DESCRIPTION },
+  "/dashboard/provider": { title: "Provider Dashboard", description: DEFAULT_DESCRIPTION },
+  "/dashboard/agent": { title: "Agent Dashboard", description: DEFAULT_DESCRIPTION },
+  "/dashboard/advertiser": { title: "Advertiser Dashboard", description: DEFAULT_DESCRIPTION },
 };
 
 const NOINDEX_PATHS = [
@@ -81,21 +116,24 @@ function setMeta(selector: string, attribute: "name" | "property", key: string, 
 function dynamicConfig(pathname: string): SeoConfig | undefined {
   if (pathname.startsWith("/shop/product/")) {
     return {
-      title: "Product Details | MzansiServe Shop",
+      title: "Product Details",
       description: "View product details, seller information and purchasing options on MzansiServe.",
     };
   }
   if (pathname.startsWith("/provider/")) {
     return {
-      title: "Service Provider | MzansiServe",
+      title: "Provider Details",
       description: "View provider details, services and booking options on MzansiServe.",
     };
   }
   if (pathname.startsWith("/ads/ad/")) {
     return {
-      title: "Marketplace Listing | MzansiServe",
+      title: "Ad Details",
       description: "View this local marketplace listing on MzansiServe.",
     };
+  }
+  if (pathname.startsWith("/book/")) {
+    return { title: "Book Service", description: "Book a service on MzansiServe.", index: false };
   }
   return undefined;
 }

@@ -18,6 +18,7 @@ IOS_ASSETS_DIR = ROOT / "ios/App/App/Assets.xcassets"
 EXPO_ASSET_DIR = ROOT.parent / "apps/mobile/assets"
 PUBLIC_DIR = ROOT / "public"
 WEB_MARK_PATH = ROOT / "src/assets/brand-mark.png"
+GOOGLE_PLAY_ICON_PATH = MOBILE_ASSET_DIR / "app-icon-google-play-512.png"
 
 WHITE = (255, 255, 255, 255)
 
@@ -161,6 +162,10 @@ def generate_shared_assets() -> None:
     )
 
     write_png(icon_master.convert("RGB"), EXPO_ASSET_DIR / "icon.png")
+    write_png(
+        icon_master.resize((512, 512), Image.Resampling.LANCZOS).convert("RGB"),
+        GOOGLE_PLAY_ICON_PATH,
+    )
     write_png(splash_icon, EXPO_ASSET_DIR / "splash-icon.png")
     write_png(icon_master.resize((192, 192), Image.Resampling.LANCZOS), EXPO_ASSET_DIR / "favicon.png")
     write_png(Image.new("RGBA", (512, 512), WHITE), EXPO_ASSET_DIR / "android-icon-background.png")
@@ -261,6 +266,7 @@ def main() -> None:
         MOBILE_ASSET_DIR / "splash-master.png",
         IOS_ASSETS_DIR / "AppIcon.appiconset" / "AppIcon-512@2x.png",
         EXPO_ASSET_DIR / "icon.png",
+        GOOGLE_PLAY_ICON_PATH,
         WEB_MARK_PATH,
         PUBLIC_DIR / "favicon.ico",
     )

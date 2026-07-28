@@ -24,20 +24,28 @@ const CartContext = createContext<CartContextType | null>(null);
 
 export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   const [items, setItems] = useState<CartItem[]>([]);
+  const [hasLoadedCart, setHasLoadedCart] = useState(false);
 
   useEffect(() => {
     const loadCart = async () => {
-      const storedCart = await AsyncStorage.getItem('cart');
-      if (storedCart) {
-        setItems(JSON.parse(storedCart));
+      try {
+        const storedCart = await AsyncStorage.getItem('cart');
+        if (storedCart) {
+          setItems(JSON.parse(storedCart));
+        }
+      } catch (error) {
+        console.warn('Failed to load cart:', error);
+      } finally {
+        setHasLoadedCart(true);
       }
     };
     loadCart();
   }, []);
 
   useEffect(() => {
+    if (!hasLoadedCart) return;
     AsyncStorage.setItem('cart', JSON.stringify(items));
-  }, [items]);
+  }, [hasLoadedCart, items]);
 
   const addItem = (item: CartItem) => {
     setItems(prev => {
@@ -54,6 +62,10 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const updateQuantity = (id: string, quantity: number) => {
+    if (quantity <= 0) {
+      removeItem(id);
+      return;
+    }
     setItems(prev => prev.map(i => i.id === id ? { ...i, quantity } : i));
   };
 

@@ -5,6 +5,10 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { apiFetch, API_BASE_URL, getImageUrl } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import heroTransport from "@/assets/hero-transport.jpg";
+import heroProfessionals from "@/assets/hero-professionals.jpg";
+import heroServices from "@/assets/hero-services.jpg";
+import heroShop from "@/assets/hero-shop.jpg";
 
 // Mapping logical badge/types to appropriate Lucide icons
 const iconMap: Record<string, any> = {
@@ -30,8 +34,59 @@ interface SlideData {
   learnMore?: string;
 }
 
+const fallbackSlides: SlideData[] = [
+  {
+    id: "fallback-transport",
+    image_url: heroTransport,
+    cta_link: "/transport",
+    cta_text: "Book a Ride",
+    order: 1,
+    badge: "Transport",
+    title: "Reliable Rides,\nAnytime, Anywhere",
+    subtitle: "Book verified drivers across South Africa. Safe, affordable, and at your fingertips.",
+    ctaColor: "bg-gradient-purple shadow-glow-purple",
+    learnMore: "/transport",
+  },
+  {
+    id: "fallback-professionals",
+    image_url: heroProfessionals,
+    cta_link: "/professionals",
+    cta_text: "Find an Expert",
+    order: 2,
+    badge: "Professionals",
+    title: "Expert Help,\nOne Click Away",
+    subtitle: "Hire accredited lawyers, doctors, accountants, engineers and more — all verified.",
+    ctaColor: "bg-sa-blue shadow-lg",
+    learnMore: "/professionals",
+  },
+  {
+    id: "fallback-services",
+    image_url: heroServices,
+    cta_link: "/services",
+    cta_text: "Get a Service",
+    order: 3,
+    badge: "Services",
+    title: "Home & Garden\nServices on Demand",
+    subtitle: "From cleaning to events, DSTV to repairs — trusted service providers at your door.",
+    ctaColor: "bg-gradient-gold shadow-glow-gold",
+    learnMore: "/services",
+  },
+  {
+    id: "fallback-shop",
+    image_url: heroShop,
+    cta_link: "/shop",
+    cta_text: "Start Shopping",
+    order: 4,
+    badge: "Shop",
+    title: "Buy & Sell\nLocally with Ease",
+    subtitle: "Discover products from local sellers. A marketplace built for Mzansi.",
+    ctaColor: "bg-sa-red shadow-lg",
+    learnMore: "/shop",
+  },
+];
+
 const HeroCarousel = () => {
-  const [slides, setSlides] = useState<SlideData[]>([]);
+  const [slides, setSlides] = useState<SlideData[]>(fallbackSlides);
   const [current, setCurrent] = useState(0);
   const [direction, setDirection] = useState(1);
   const navigate = useNavigate();
@@ -65,6 +120,7 @@ const HeroCarousel = () => {
             };
           });
           setSlides(enrichedSlides);
+          setCurrent(0);
         }
       } catch (err) {
         console.error("Failed to load carousel slides:", err);
@@ -87,7 +143,7 @@ const HeroCarousel = () => {
   const IconComponent = iconMap[slide.badge || "Shop"] || ShoppingBag;
 
   return (
-    <section id="home" className="mobile-app-hero relative h-[720px] w-full overflow-hidden sm:h-[760px] lg:h-[850px]">
+    <section id="home" className="mobile-app-hero relative h-[450px] w-full overflow-hidden sm:h-[450px] lg:h-[850px]">
       {/* Background images */}
       <AnimatePresence mode="wait">
         <motion.div

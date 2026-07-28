@@ -76,12 +76,21 @@ const VerifyEmail = () => {
                 method: "POST",
                 data: { provider: "yoco" }
             });
-            if (result.success && result.data.redirect_url) {
+            if (result.success && result.data?.redirect_url) {
                 await openExternalUrl(result.data.redirect_url);
+            } else if (result.success && result.data?.payment_required === false) {
+                const updatedUser = result.data.user || { ...userData, is_paid: true };
+                setUserData(updatedUser);
+                localStorage.setItem("user", JSON.stringify(updatedUser));
+                localStorage.removeItem("registrationPaymentUser");
+                toast({
+                    title: "Registration fee settled",
+                    description: "Registration is currently free. Your account is ready for admin review.",
+                });
             } else {
                 toast({
-                    title: "Payment Error",
-                    description: typeof result.error === 'string' ? result.error : "Could not initiate payment. Please try logging in.",
+                    title: "Registration Error",
+                    description: typeof result.error === 'string' ? result.error : "Could not continue registration. Please try logging in.",
                     variant: "destructive"
                 });
             }
@@ -119,12 +128,12 @@ const VerifyEmail = () => {
                                 <CheckCircle2 className="w-10 h-10 text-emerald-600" />
                             </div>
                             <h1 className="text-2xl font-bold text-[#222222] mb-3">
-                                {userData?.is_paid ? "Payment received" : "Complete your registration payment"}
+                                {userData?.is_paid ? "Registration fee settled" : "Complete your registration"}
                             </h1>
                             <p className="text-[#717171] mb-8 max-w-sm mx-auto">
                                 {userData?.is_paid
-                                    ? "Your registration payment has already been received. If your account still shows pending, our administrator is reviewing your documents."
-                                    : "Final step: pay the R100 registration fee with Yoco so we can submit your account for admin approval."}
+                                    ? "Your registration fee is currently settled at R0.00. If your account still shows pending, our administrator is reviewing your documents."
+                                    : "Registration is currently free. Continue so we can submit your account for admin approval."}
                             </p>
 
                             {userData?.is_paid ? (
@@ -140,8 +149,8 @@ const VerifyEmail = () => {
                                         <div className="rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-left">
                                             <p className="text-sm font-semibold text-amber-900">
                                                 {paymentState === "cancel"
-                                                    ? "Payment was cancelled. You can retry your registration payment below."
-                                                    : "Payment did not complete. Please try your Yoco registration payment again."}
+                                                    ? "Payment was cancelled. Registration is now free, so you can continue without paying."
+                                                    : "Payment did not complete. Registration is now free, so you can continue without paying."}
                                             </p>
                                         </div>
                                     )}
@@ -154,7 +163,7 @@ const VerifyEmail = () => {
                                         {paying ? (
                                             <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Redirecting...</>
                                         ) : (
-                                            "Pay Registration Fee (R100) with Yoco"
+                                            "Continue Registration (R0.00)"
                                         )}
                                     </Button>
                                     <Button

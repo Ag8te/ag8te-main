@@ -36,6 +36,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import productPlaceholder from "@/assets/product-placeholder.svg";
 
 const iconMap: Record<string, any> = {
   'Car': Car,
@@ -728,7 +729,7 @@ export default function Shop() {
                   <img
                     src={
                       item.image ||
-                      "https://images.unsplash.com/photo-1549421263-5ec394a5ad4c?q=80&w=800&auto=format&fit=crop"
+                      productPlaceholder
                     }
                     alt={item.title}
                     className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-110 bg-slate-100"

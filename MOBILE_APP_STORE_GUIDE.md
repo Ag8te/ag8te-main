@@ -95,6 +95,7 @@ This updates:
 - Android launcher icons and splash images in [frontend/android/app/src/main/res](/Users/bingodedingo/Desktop/mzansiserve-main/frontend/android/app/src/main/res)
 - iOS app icon and splash images in [frontend/ios/App/App/Assets.xcassets](/Users/bingodedingo/Desktop/mzansiserve-main/frontend/ios/App/App/Assets.xcassets)
 - master preview assets in [frontend/src/assets/mobile](/Users/bingodedingo/Desktop/mzansiserve-main/frontend/src/assets/mobile)
+- the 512×512 Play Console listing icon at [frontend/src/assets/mobile/app-icon-google-play-512.png](/Users/bingodedingo/Desktop/mzansiserve-main/frontend/src/assets/mobile/app-icon-google-play-512.png)
 
 ## Environment Variables
 
@@ -140,6 +141,8 @@ Then in Android Studio:
 3. place your release keystore at the `storeFile` path you choose
 4. build a signed release bundle
 5. upload the release artifact to Play Console
+
+To replace the legacy brain image on the store listing, open **Grow users → Store presence → Main store listing** in Play Console and upload [app-icon-google-play-512.png](/Users/bingodedingo/Desktop/mzansiserve-main/frontend/src/assets/mobile/app-icon-google-play-512.png) as the app icon.
 
 Release build notes:
 
@@ -225,10 +228,12 @@ Recommended path:
 
 1. use the Android project as the AppGallery base
 2. create the AppGallery listing using package name `co.za.mzansiserve.app`
-3. build a Huawei-labelled artifact
-4. upload the APK or App Bundle to AppGallery Connect
-5. test the full flow on a Huawei device
-6. if maps or auth are inconsistent, add Huawei-specific replacements later
+3. add the release signing certificate SHA-256 fingerprint to the AppGallery Connect app
+4. enable **Location Kit** for that app in **HMS API Services > API Library**
+5. build the Huawei flavor
+6. upload the APK or App Bundle to AppGallery Connect
+7. test the full flow on a Huawei device
+8. if maps or auth are inconsistent, add Huawei-specific replacements later
 
 Build commands:
 
@@ -246,10 +251,20 @@ frontend/store-builds/huawei/
 
 Use the same signing key as Google Play unless you intentionally want separate store signing. Keeping one package name and one signing identity makes payment callbacks, deep links, and future cross-store updates simpler.
 
+The Android project uses store-specific product flavors:
+
+- `huaweiRelease` registers the local Capacitor `Geolocation` bridge backed by Huawei Location Kit `6.12.0.300`
+- `googleRelease` retains `@capacitor/geolocation` and Google Play Services Location
+- the release scripts select the correct flavor from `STORE_CHANNEL`; do not detect Huawei support from the phone manufacturer name
+- `npx cap sync android` regenerates Capacitor dependencies, so `npm run cap:android` runs `scripts/configure_android_store_flavors.mjs` immediately afterward to restore the store-specific split
+
+Huawei Location Kit authorization is tied to the AppGallery Connect package and signing certificate. If AppGallery Connect provides an `agconnect-services.json` file while enabling the service, place it in the location specified by the current Huawei console instructions before the device-validation build.
+
 Current Huawei readiness notes:
 
 - native builds hide Google web sign-in
-- there are no native Google Play Services dependencies in the Capacitor shell
+- Huawei builds use Huawei Location Kit and exclude Google Play Services Location
+- Google Play builds keep the standard Google-backed Capacitor geolocation implementation
 - map screens still use Google Maps in the web UI, so a real Huawei device test is required before submission
 - AppGallery requires listing information such as app name, package name, category, screenshots, release countries/regions, and privacy policy URL
 

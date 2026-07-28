@@ -20,8 +20,7 @@ const PayPalLogo = () => (
 
 export default function Checkout() {
     const router = useRouter();
-    //const { total, clearCart } = useCart();
-    const { total, clearCart, cartItems } = useCart();
+    const { items, total, clearCart } = useCart();
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState<'card' | 'paypal'>('card');
@@ -44,7 +43,7 @@ export default function Checkout() {
                 Authorization: `Bearer ${token}`
             },
             body: JSON.stringify({
-                //items: [], // New one added by Thabang
+                items,
                 shipping_address: "123 Nelson Mandela Blvd",
                 total: total,
                 provider: paymentMethod === 'paypal' ? 'paypal' : 'yoco'
