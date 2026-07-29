@@ -1,11 +1,49 @@
 import { motion } from "framer-motion";
 import { ExternalLink, Smartphone, Store } from "lucide-react";
 
+const APP_DEEP_LINK = import.meta.env.VITE_MOBILE_APP_URL || "co.za.mzansiserve.app://app";
+const GOOGLE_PACKAGE_ID = "co.za.mzansiserve.app";
+const HUAWEI_PACKAGE_ID = "co.za.mzansiserve.app.huawei";
+const GOOGLE_PLAY_URL =
+    import.meta.env.VITE_GOOGLE_PLAY_URL ||
+    `https://play.google.com/store/apps/details?id=${GOOGLE_PACKAGE_ID}&hl=en`;
+const HUAWEI_APPGALLERY_URL =
+    import.meta.env.VITE_HUAWEI_APPGALLERY_URL ||
+    `appmarket://details?id=${HUAWEI_PACKAGE_ID}`;
+const APPLE_APP_STORE_URL = import.meta.env.VITE_APPLE_APP_STORE_URL || "";
+
+const isAndroidDevice = () =>
+    typeof navigator !== "undefined" && /android/i.test(navigator.userAgent);
+
+const openAppOrStore = (storeUrl: string, store: "apple" | "google" | "huawei") => {
+    if (!storeUrl || typeof window === "undefined") return;
+
+    if (store === "google" && isAndroidDevice()) {
+        const fallbackUrl = encodeURIComponent(storeUrl);
+        window.location.href =
+            `intent://app#Intent;scheme=co.za.mzansiserve.app;package=${GOOGLE_PACKAGE_ID};S.browser_fallback_url=${fallbackUrl};end`;
+        return;
+    }
+
+    if (store === "huawei" && isAndroidDevice()) {
+        window.location.href = storeUrl;
+        return;
+    }
+
+    const startedAt = Date.now();
+    window.location.href = APP_DEEP_LINK;
+
+    window.setTimeout(() => {
+        if (document.hidden || Date.now() - startedAt > 1800) return;
+        window.location.href = storeUrl;
+    }, 1200);
+};
+
 export const MobileAppPromo = () => {
     const storeLinks = {
-        apple: import.meta.env.VITE_APPLE_APP_STORE_URL || "",
-        google: import.meta.env.VITE_GOOGLE_PLAY_URL || "/mzansiserve.apk",
-        huawei: import.meta.env.VITE_HUAWEI_APPGALLERY_URL || "",
+        apple: APPLE_APP_STORE_URL,
+        google: GOOGLE_PLAY_URL,
+        huawei: HUAWEI_APPGALLERY_URL,
     };
 
     const StoreButton = ({
@@ -13,27 +51,26 @@ export const MobileAppPromo = () => {
         label,
         sublabel,
         variant = "dark",
+        store,
         children,
     }: {
         href?: string;
         label: string;
         sublabel: string;
         variant?: "dark" | "primary";
+        store: "apple" | "google" | "huawei";
         children: React.ReactNode;
     }) => {
         const isEnabled = Boolean(href);
-        const isDirectDownload = Boolean(href?.endsWith(".apk"));
         const baseClasses =
             variant === "primary"
                 ? "bg-primary text-white hover:bg-primary/90"
                 : "bg-[#222222] text-white hover:bg-black";
 
         return (
-            <a
-                href={isEnabled ? href : undefined}
-                target={isEnabled && !isDirectDownload ? "_blank" : undefined}
-                rel={isEnabled ? "noreferrer" : undefined}
-                download={isDirectDownload ? true : undefined}
+            <button
+                type="button"
+                onClick={() => isEnabled && openAppOrStore(href!, store)}
                 aria-disabled={!isEnabled}
                 className={`flex min-w-0 items-center gap-2 rounded-xl px-3 py-3 shadow-lg transition-all sm:gap-3 sm:px-5 ${isEnabled ? `${baseClasses} hover:scale-105` : "cursor-not-allowed bg-slate-200 text-slate-500"
                     }`}
@@ -49,7 +86,7 @@ export const MobileAppPromo = () => {
                     </div>
                     {!isEnabled ? <div className="text-[10px] mt-1 uppercase tracking-wide">Coming soon</div> : null}
                 </div>
-            </a>
+            </button>
         );
     };
 
@@ -75,17 +112,16 @@ export const MobileAppPromo = () => {
                                     <svg className="w-5 h-5 fill-current shrink-0" viewBox="0 0 384 512">
                                         <path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41-84.5-41.9-38.9-.9-74.3 22.1-94.6 22.1-20.3 0-48.4-19.1-79-18.3-40.4.6-77.4 25.8-98.1 61.1-41.9 71.4-10.7 177.3 29.8 238.9 19.8 29.1 43.1 61.8 74.5 61.5 30.1-.3 41.4-19.1 77.6-19.1 36.3 0 46.5 19.1 77.8 18.5 31.9-.6 52.3-29.3 72-58.4 22.8-33.1 32.2-65.2 32.6-67.1-.7-.3-62.8-24.3-63-96.1zM288.2 86.4c17.5-22.1 29.4-52.6 26.2-86.4-28.9 1.2-58.8 19.8-79.6 44.1-18.6 21.6-34.8 53-30.7 85.1 32.2 2.5 60.1-17.7 84.1-42.8z" />
                                     </svg>
-                                ), bg: "bg-[#1a1a2e]" },
-                                { label: "Google Play", sublabel: "Get it on", href: storeLinks.google, icon: <Smartphone className="w-5 h-5 shrink-0" />, bg: "bg-primary" },
-                                { label: "AppGallery", sublabel: "Explore on", href: storeLinks.huawei, icon: <Store className="w-5 h-5 shrink-0" />, bg: "bg-[#1a1a2e]" },
-                            ].map(({ label, sublabel, href, icon, bg }) => {
+                                ), bg: "bg-[#1a1a2e]", store: "apple" as const },
+                                { label: "Google Play", sublabel: "Get it on", href: storeLinks.google, icon: <Smartphone className="w-5 h-5 shrink-0" />, bg: "bg-primary", store: "google" as const },
+                                { label: "AppGallery", sublabel: "Explore on", href: storeLinks.huawei, icon: <Store className="w-5 h-5 shrink-0" />, bg: "bg-[#1a1a2e]", store: "huawei" as const },
+                            ].map(({ label, sublabel, href, icon, bg, store }) => {
                                 const enabled = Boolean(href);
                                 return (
-                                    <a
+                                    <button
+                                        type="button"
                                         key={label}
-                                        href={enabled ? href : undefined}
-                                        target={enabled ? "_blank" : undefined}
-                                        rel={enabled ? "noreferrer" : undefined}
+                                        onClick={() => enabled && openAppOrStore(href!, store)}
                                         aria-disabled={!enabled}
                                         className={`flex items-center gap-2 rounded-xl px-3 py-2 transition-all ${enabled ? `${bg} text-white active:scale-95` : "bg-slate-200 text-slate-500 cursor-not-allowed"}`}
                                     >
@@ -95,7 +131,7 @@ export const MobileAppPromo = () => {
                                             <p className="text-xs font-bold leading-tight text-white">{label}</p>
                                             {!enabled && <p className="text-[9px] uppercase tracking-wide text-slate-400">Coming soon</p>}
                                         </div>
-                                    </a>
+                                    </button>
                                 );
                             })}
                         </div>
@@ -233,6 +269,7 @@ export const MobileAppPromo = () => {
                                 href={storeLinks.apple}
                                 label="App Store"
                                 sublabel="Download on the"
+                                store="apple"
                             >
                                 <svg className="w-7 h-7 fill-current" viewBox="0 0 384 512">
                                     <path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41-84.5-41.9-38.9-.9-74.3 22.1-94.6 22.1-20.3 0-48.4-19.1-79-18.3-40.4.6-77.4 25.8-98.1 61.1-41.9 71.4-10.7 177.3 29.8 238.9 19.8 29.1 43.1 61.8 74.5 61.5 30.1-.3 41.4-19.1 77.6-19.1 36.3 0 46.5 19.1 77.8 18.5 31.9-.6 52.3-29.3 72-58.4 22.8-33.1 32.2-65.2 32.6-67.1-.7-.3-62.8-24.3-63-96.1zM288.2 86.4c17.5-22.1 29.4-52.6 26.2-86.4-28.9 1.2-58.8 19.8-79.6 44.1-18.6 21.6-34.8 53-30.7 85.1 32.2 2.5 60.1-17.7 84.1-42.8z" />
@@ -244,6 +281,7 @@ export const MobileAppPromo = () => {
                                 label="Google Play"
                                 sublabel="Get it on"
                                 variant="primary"
+                                store="google"
                             >
                                 <Smartphone className="w-7 h-7" />
                             </StoreButton>
@@ -252,13 +290,11 @@ export const MobileAppPromo = () => {
                                 href={storeLinks.huawei}
                                 label="AppGallery"
                                 sublabel="Explore on"
+                                store="huawei"
                             >
                                 <Store className="w-7 h-7" />
                             </StoreButton>
                         </div>
-                        <p className="mt-4 text-sm text-slate-500">
-                            Store links will activate automatically once the published listing URLs are added to the frontend environment.
-                        </p>
                     </div>
 
                     {/* Phone mockup — hidden on mobile */}

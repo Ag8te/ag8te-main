@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { apiFetch } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { openExternalUrl } from "@/lib/native";
+import { useAuth } from "@/contexts/AuthContext";
 
 const VerifyEmail = () => {
     const [searchParams] = useSearchParams();
@@ -17,7 +18,9 @@ const VerifyEmail = () => {
     const [errorMsg, setErrorMsg] = useState("");
     const { toast } = useToast();
     const navigate = useNavigate();
+    const { setUser } = useAuth();
     const paymentState = searchParams.get("payment");
+    const nextPath = searchParams.get("next");
 
     const [userData, setUserData] = useState<any>(null);
     const [paying, setPaying] = useState(false);
@@ -53,9 +56,13 @@ const VerifyEmail = () => {
             if (result.success) {
                 setStatus("success");
                 setUserData(result.data.user);
-                localStorage.setItem("registrationPaymentUser", JSON.stringify(result.data.user));
+                setUser(result.data.user);
                 if (result.data.token) {
                     localStorage.setItem("token", result.data.token);
+                }
+                if (nextPath?.startsWith("/") && !nextPath.startsWith("//")) {
+                    navigate(nextPath, { replace: true });
+                    return;
                 }
             } else {
                 setStatus("error");

@@ -258,6 +258,43 @@ www.mzansiserve.co.za"""
         return email
 
     @staticmethod
+    def send_client_registration_profile_link(user, token):
+        """Send client registration confirmation link that opens profile completion."""
+        frontend_url = get_public_frontend_base_url()
+        confirmation_url = f"{frontend_url}/verify-email?token={token}&next=/profile"
+        first_name = _first_name(user)
+        subject = "Confirm Your MzansiServe Registration"
+        body = f"""Hi {first_name},
+
+Welcome to MzansiServe.
+
+Please confirm your registration by clicking the link below. After confirmation, you will be taken to your client profile page where you can complete your personal information if you want to.
+
+Confirm Registration: {confirmation_url}
+
+Your personal information is optional for client accounts, and client accounts do not need to upload verification documents.
+
+Kind regards,
+MzansiServe Team"""
+        body_html = f"""<html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; text-align: left;">
+<p>Hi {first_name},</p>
+<p>Welcome to MzansiServe.</p>
+<p>Please confirm your registration by clicking the button below. After confirmation, you will be taken to your client profile page where you can complete your personal information if you want to.</p>
+<p><a href="{confirmation_url}" style="display:inline-block;background:#2563eb;color:#fff;padding:10px 20px;text-decoration:none;border-radius:6px;">Confirm Registration</a></p>
+<p>Your personal information is optional for client accounts, and client accounts do not need to upload verification documents.</p>
+<p>Kind regards,<br>MzansiServe Team</p>
+</body></html>"""
+        email = EmailService.queue_email(
+            recipient=user.email,
+            subject=subject,
+            body=body,
+            body_html=body_html,
+            metadata={'type': 'client_registration_confirmation', 'user_id': str(user.id)}
+        )
+        EmailService.send_email(email_id=email.id)
+        return email
+
+    @staticmethod
     def send_password_reset_email(user, token):
         """Send password reset email"""
         frontend_url = get_public_frontend_base_url()

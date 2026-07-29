@@ -188,6 +188,21 @@ def login():
                 'payment_required': True,
                 'message': 'Registration payment is still pending. Redirecting to Yoco.'
             }, 'Registration payment required.', 200)
+
+        huawei_review_email = (current_app.config.get('HUAWEI_REVIEW_EMAIL') or '').strip().lower()
+        if (
+            huawei_review_email
+            and user.role == 'client'
+            and str(user.email).strip().lower() == huawei_review_email
+        ):
+            access_token = create_access_token(identity=str(user.id))
+            logger.info("login: Huawei reviewer OTP bypass user_id=%s", user.id)
+            return success_response({
+                'user': user.to_dict(),
+                'token': access_token,
+                'otp_required': False
+            }, 'Login successful')
+
         challenge = OtpService.create_email_login_challenge(user)
         return success_response({
             'user': user.to_dict(),
