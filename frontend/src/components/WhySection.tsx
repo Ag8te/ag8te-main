@@ -57,7 +57,7 @@ const WhySection = () => {
           className="mobile-app-section-heading text-center mb-8"
         >
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold text-[#222222] mb-3">
-            Why <span className="text-primary">MzansiServe</span>?
+            Why <span className="text-primary">AG8TE</span>?
           </h2>
           <p className="text-base md:text-lg text-slate-600 font-normal max-w-xl mx-auto">
             Built by South Africans, for South Africans. We go beyond connecting — we verify, validate, and protect.

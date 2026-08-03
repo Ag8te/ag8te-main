@@ -1,9 +1,9 @@
 import { motion } from "framer-motion";
 import { ExternalLink, Smartphone, Store } from "lucide-react";
 
-const APP_DEEP_LINK = import.meta.env.VITE_MOBILE_APP_URL || "co.za.mzansiserve.app://app";
-const GOOGLE_PACKAGE_ID = "co.za.mzansiserve.app";
-const HUAWEI_PACKAGE_ID = "co.za.mzansiserve.app.huawei";
+const APP_DEEP_LINK = import.meta.env.VITE_MOBILE_APP_URL || "co.za.ag8te.app://app";
+const GOOGLE_PACKAGE_ID = "co.za.ag8te.app";
+const HUAWEI_PACKAGE_ID = "co.za.ag8te.app.huawei";
 const GOOGLE_PLAY_URL =
     import.meta.env.VITE_GOOGLE_PLAY_URL ||
     `https://play.google.com/store/apps/details?id=${GOOGLE_PACKAGE_ID}&hl=en`;
@@ -21,7 +21,7 @@ const openAppOrStore = (storeUrl: string, store: "apple" | "google" | "huawei") 
     if (store === "google" && isAndroidDevice()) {
         const fallbackUrl = encodeURIComponent(storeUrl);
         window.location.href =
-            `intent://app#Intent;scheme=co.za.mzansiserve.app;package=${GOOGLE_PACKAGE_ID};S.browser_fallback_url=${fallbackUrl};end`;
+            `intent://app#Intent;scheme=co.za.ag8te.app;package=${GOOGLE_PACKAGE_ID};S.browser_fallback_url=${fallbackUrl};end`;
         return;
     }
 
@@ -103,7 +103,7 @@ export const MobileAppPromo = () => {
                     {/* Left — heading + store buttons */}
                     <div className="flex-1 min-w-0">
                         <h2 className="text-base font-bold text-[#222222] mb-3 leading-tight">
-                            Get the MzansiServe{" "}
+                            Get the AG8TE{" "}
                             <span className="text-primary">Super App</span>
                         </h2>
                         <div className="flex flex-col gap-2">
@@ -156,7 +156,7 @@ export const MobileAppPromo = () => {
                                     </div>
                                     <div className="h-[14px] bg-white rounded border border-gray-200 flex items-center px-1.5 gap-1">
                                         <div className="w-1 h-1 bg-primary rounded-full" />
-                                        <div className="text-[5px] text-gray-500 font-medium truncate">mzansiserve.co.za</div>
+                                        <div className="text-[5px] text-gray-500 font-medium truncate">ag8te.com</div>
                                     </div>
                                 </div>
                                 {/* Screen content */}
@@ -164,7 +164,7 @@ export const MobileAppPromo = () => {
                                     <div className="bg-white h-full flex flex-col">
                                         {/* Navbar */}
                                         <div className="px-1.5 py-1 flex justify-between items-center bg-[#0F172A] text-white">
-                                            <div className="font-bold tracking-tight text-[6px]">MZANSISERVE</div>
+                                            <div className="font-bold tracking-tight text-[6px]">AG8TE</div>
                                             <div className="w-3 h-3 flex flex-col justify-between py-[2px]">
                                                 <div className="h-[1px] w-full bg-white rounded-full" />
                                                 <div className="h-[1px] w-full bg-white rounded-full" />
@@ -238,7 +238,7 @@ export const MobileAppPromo = () => {
                     {/* Text content */}
                     <div className="flex-1">
                         <h2 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-semibold text-[#222222] mb-3 sm:mb-6">
-                            Get the MzansiServe{" "}
+                            Get the AG8TE{" "}
                             <span className="text-primary">Super App</span>
                         </h2>
                         <p className="hidden sm:block text-lg md:text-xl text-slate-600 font-normal mb-10 leading-relaxed max-w-xl">
@@ -320,7 +320,7 @@ export const MobileAppPromo = () => {
                                         </div>
                                         <div className="h-7 bg-white rounded-lg border border-gray-200 flex items-center px-3 gap-2">
                                             <div className="w-2 h-2 bg-primary rounded-full" />
-                                            <div className="text-[10px] text-gray-500 font-medium truncate">mzansiserve.co.za</div>
+                                            <div className="text-[10px] text-gray-500 font-medium truncate">ag8te.com</div>
                                         </div>
                                     </div>
 
@@ -329,7 +329,7 @@ export const MobileAppPromo = () => {
                                         <div className="bg-white">
                                             {/* Navbar */}
                                             <div className="px-3 py-2 flex justify-between items-center bg-[#0F172A] text-white">
-                                                <div className="font-bold tracking-tight text-[10px]">MZANSISERVE</div>
+                                                <div className="font-bold tracking-tight text-[10px]">AG8TE</div>
                                                 <div className="w-4 h-4 flex flex-col justify-between py-1">
                                                     <div className="h-0.5 w-full bg-white rounded-full" />
                                                     <div className="h-0.5 w-full bg-white rounded-full" />

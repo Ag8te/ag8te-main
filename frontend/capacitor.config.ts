@@ -2,8 +2,8 @@ import type { CapacitorConfig } from '@capacitor/cli';
 import { KeyboardResize, KeyboardStyle } from '@capacitor/keyboard';
 
 const config: CapacitorConfig = {
-  appId: 'co.za.mzansiserve.app',
-  appName: 'MzansiServe',
+  appId: 'co.za.ag8te.app',
+  appName: 'AG8TE',
   webDir: 'dist',
   bundledWebRuntime: false,
   ios: {

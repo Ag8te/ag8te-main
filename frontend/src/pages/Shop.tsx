@@ -221,7 +221,7 @@ export default function Shop() {
         image: imgSrc,
         category: p.category?.title || "Shop Product",
         category_id: p.category?.id || p.category_id,
-        seller: p.seller_name || "MzansiServe",
+        seller: p.seller_name || "AG8TE",
         locations: normalizeProductLocations(p.locations),
         location: normalizeProductLocations(p.locations).join(", ") || "Mzansi",
         date: p.created_at,
@@ -482,7 +482,7 @@ export default function Shop() {
               </h1>
               <p className="text-slate-500 text-lg mb-8 max-w-2xl mx-auto">
                 Discover the best local items curated and sold exclusively by
-                MzansiServe. Want us to sell your items for a small fee?{" "}
+                AG8TE. Want us to sell your items for a small fee?{" "}
                 <button
                   onClick={() => navigate("/contact")}
                   className="text-primary font-bold hover:underline cursor-pointer"

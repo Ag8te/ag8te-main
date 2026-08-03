@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">MzansiServe</string>
-    <string name="title_activity_main">MzansiServe</string>
-    <string name="package_name">co.za.mzansiserve.app</string>
-    <string name="custom_url_scheme">co.za.mzansiserve.app</string>
+    <string name="app_name">AG8TE</string>
+    <string name="title_activity_main">AG8TE</string>
+    <string name="package_name">co.za.ag8te.app</string>
+    <string name="custom_url_scheme">co.za.ag8te.app</string>
 </resources>

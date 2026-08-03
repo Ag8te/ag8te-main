@@ -49,7 +49,7 @@ jobs:
         run: |
           git add mobile-version.json CHANGELOG.md
           git commit -m "release: mobile ${{ steps.version.outputs.version_name }}"
-          git tag -a "${{ steps.version.outputs.tag }}" -m "MzansiServe mobile ${{ steps.version.outputs.version_name }}"
+          git tag -a "${{ steps.version.outputs.tag }}" -m "AG8TE mobile ${{ steps.version.outputs.version_name }}"
           git push origin "HEAD:${{ github.ref_name }}"
           git push origin "${{ steps.version.outputs.tag }}"
 
@@ -58,5 +58,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "${{ steps.version.outputs.tag }}" \
-            --title "MzansiServe ${{ steps.version.outputs.version_name }}" \
+            --title "AG8TE ${{ steps.version.outputs.version_name }}" \
             --notes-file "${{ steps.version.outputs.notes_file }}"

@@ -36,7 +36,7 @@ export default function Checkout() {
             throw new Error("You must be logged in to make a payment");
         }
 
-        const response = await fetch('https://mzansiserve.co.za/api/payments/create-order', {
+        const response = await fetch('https://ag8te.com/api/payments/create-order', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

@@ -1,54 +1,54 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
-const SITE_URL = "https://mzansiserve.co.za";
+const SITE_URL = "https://ag8te.com";
 const DIST_DIR = new URL("../dist/", import.meta.url);
 
 const routes = [
   {
     path: "/",
-    title: "MzansiServe – Services at Your Fingertips",
-    description: "MzansiServe connects South Africans with verified transport, professionals, service providers and marketplace products.",
+    title: "AG8TE – Services at Your Fingertips",
+    description: "AG8TE connects South Africans with verified transport, professionals, service providers and marketplace products.",
   },
   {
     path: "/shop",
-    title: "Shop Products Online in South Africa | MzansiServe",
-    description: "Browse products from South African sellers on the MzansiServe marketplace.",
+    title: "Shop Products Online in South Africa | AG8TE",
+    description: "Browse products from South African sellers on the AG8TE marketplace.",
   },
   {
     path: "/ads",
-    title: "Local Marketplace Ads | MzansiServe",
+    title: "Local Marketplace Ads | AG8TE",
     description: "Discover local listings and marketplace advertisements across South Africa.",
   },
   {
     path: "/about",
-    title: "About MzansiServe | South African Service Marketplace",
-    description: "Learn how MzansiServe connects South Africans with trusted local services, transport and products.",
+    title: "About AG8TE | South African Service Marketplace",
+    description: "Learn how AG8TE connects South Africans with trusted local services, transport and products.",
   },
   {
     path: "/how-it-works",
-    title: "How MzansiServe Works | Find and Book Local Services",
-    description: "Learn how to find verified providers, book services and pay securely with MzansiServe.",
+    title: "How AG8TE Works | Find and Book Local Services",
+    description: "Learn how to find verified providers, book services and pay securely with AG8TE.",
   },
   {
     path: "/advertise",
-    title: "Advertise on MzansiServe | Reach South African Customers",
-    description: "Promote your business, products or services to customers across South Africa with MzansiServe.",
+    title: "Advertise on AG8TE | Reach South African Customers",
+    description: "Promote your business, products or services to customers across South Africa with AG8TE.",
   },
   {
     path: "/terms",
-    title: "Terms of Use | MzansiServe",
-    description: "Read the terms governing use of the MzansiServe platform and marketplace.",
+    title: "Terms of Use | AG8TE",
+    description: "Read the terms governing use of the AG8TE platform and marketplace.",
   },
   {
     path: "/privacy",
-    title: "Privacy Policy | MzansiServe",
-    description: "Learn how MzansiServe collects, uses and protects personal information under POPIA.",
+    title: "Privacy Policy | AG8TE",
+    description: "Learn how AG8TE collects, uses and protects personal information under POPIA.",
   },
   {
     path: "/cookies",
-    title: "Cookie Policy | MzansiServe",
-    description: "Learn how MzansiServe uses cookies and how you can manage your preferences.",
+    title: "Cookie Policy | AG8TE",
+    description: "Learn how AG8TE uses cookies and how you can manage your preferences.",
   },
 ];
 

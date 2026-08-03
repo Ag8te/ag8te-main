@@ -22,7 +22,7 @@ platform :android do
   lane :google_internal do
     existing_codes = %w[internal alpha beta production].flat_map do |track|
       google_play_track_version_codes(
-        package_name: "co.za.mzansiserve.app",
+        package_name: "co.za.ag8te.app",
         json_key_data: required_env("GOOGLE_PLAY_SERVICE_ACCOUNT_JSON"),
         track: track
       )
@@ -35,7 +35,7 @@ platform :android do
     ) if requested_build_number <= highest_code
 
     upload_to_play_store(
-      package_name: "co.za.mzansiserve.app",
+      package_name: "co.za.ag8te.app",
       json_key_data: required_env("GOOGLE_PLAY_SERVICE_ACCOUNT_JSON"),
       aab: required_env("ANDROID_AAB_PATH"),
       track: ENV.fetch("GOOGLE_PLAY_TRACK", "internal"),
@@ -76,7 +76,7 @@ platform :ios do
 
     latest_build = latest_testflight_build_number(
       api_key: api_key,
-      app_identifier: "co.za.mzansiserve.app",
+      app_identifier: "co.za.ag8te.app",
       version: required_env("APP_VERSION_NAME"),
       initial_build_number: 0
     ).to_i

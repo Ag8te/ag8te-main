@@ -1,6 +1,6 @@
 # Changelog
 
-All notable MzansiServe mobile releases are recorded here.
+All notable AG8TE mobile releases are recorded here.
 
 ## [Unreleased]
 

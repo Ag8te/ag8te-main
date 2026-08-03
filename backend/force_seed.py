@@ -10,7 +10,7 @@ with app.app_context():
     db.session.query(ShopProduct).filter(ShopProduct.name.in_(default_names)).delete(synchronize_session=False)
     
     # Delete demo users by email
-    demo_emails = ['prof_lawyer@mzansiserve.co.za', 'prov_cleaning@mzansiserve.co.za', 'prof_accountant@mzansiserve.co.za']
+    demo_emails = ['prof_lawyer@ag8te.com', 'prov_cleaning@ag8te.com', 'prof_accountant@ag8te.com']
     db.session.query(User).filter(User.email.in_(demo_emails)).delete(synchronize_session=False)
 
     # Delete demo ads

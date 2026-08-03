@@ -1,4 +1,4 @@
-# MzansiServe Mobile Web-Parity Checklist
+# AG8TE Mobile Web-Parity Checklist
 
 This checklist is the working source of truth for bringing the existing Expo mobile app in `apps/mobile` to parity with the web application.
 

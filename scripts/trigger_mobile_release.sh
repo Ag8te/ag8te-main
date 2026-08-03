@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-REPOSITORY="${GITHUB_REPOSITORY:-MzansiServe/mzansiserve-main}"
+REPOSITORY="${GITHUB_REPOSITORY:-AG8TE/ag8te-main}"
 WORKFLOW="${MOBILE_RELEASE_WORKFLOW:-mobile-store-release.yml}"
 BRANCH="${1:-main}"
 RELEASE_NOTES="${2:-Automated mobile testing build after a successful production deployment.}"

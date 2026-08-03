@@ -850,7 +850,7 @@ const removeCarImage = (index: number) => {
                 <p className="text-slate-600 text-base mb-8">
                   {form.role === "client"
                     ? "Your account has been created successfully. We sent you an email link to confirm your registration and open your client profile."
-                    : "Your account has been created successfully. You can now sign in and start using MzansiServe."}
+                    : "Your account has been created successfully. You can now sign in and start using AG8TE."}
                 </p>
                 <div className="space-y-3">
                   <Button asChild className="w-full h-14 rounded-2xl bg-primary hover:bg-primary/90 text-white font-bold text-base shadow-xl shadow-primary/10 transition-all active:scale-[0.98]">
@@ -892,7 +892,7 @@ const removeCarImage = (index: number) => {
           {/* Header */}
           <div className="mb-10 text-center">
             <h1 className="text-3xl font-bold text-[#222222] tracking-tight mb-3">Create your account</h1>
-            <p className="text-slate-600 text-base font-normal">Join the MzansiServe community today.</p>
+            <p className="text-slate-600 text-base font-normal">Join the AG8TE community today.</p>
           </div>
 
           <Card className="bg-white border border-slate-100 rounded-[32px] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.08)] overflow-hidden">

@@ -1,9 +1,9 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 
-const SITE_URL = "https://mzansiserve.co.za";
+const SITE_URL = "https://ag8te.com";
 const DEFAULT_DESCRIPTION =
-  "MzansiServe connects South Africans with verified transport, professionals, service providers and marketplace products.";
+  "AG8TE connects South Africans with verified transport, professionals, service providers and marketplace products.";
 
 type SeoConfig = {
   title: string;
@@ -13,12 +13,12 @@ type SeoConfig = {
 
 const PUBLIC_ROUTES: Record<string, SeoConfig> = {
   "/": {
-    title: "MzansiServe",
+    title: "AG8TE",
     description: DEFAULT_DESCRIPTION,
   },
   "/shop": {
     title: "Shop",
-    description: "Browse products from South African sellers on the MzansiServe marketplace.",
+    description: "Browse products from South African sellers on the AG8TE marketplace.",
   },
   "/ads": {
     title: "Ads",
@@ -26,45 +26,45 @@ const PUBLIC_ROUTES: Record<string, SeoConfig> = {
   },
   "/about": {
     title: "About",
-    description: "Learn how MzansiServe connects South Africans with trusted local services, transport and products.",
+    description: "Learn how AG8TE connects South Africans with trusted local services, transport and products.",
   },
   "/how-it-works": {
     title: "How It Works",
-    description: "Learn how to find verified providers, book services and pay securely with MzansiServe.",
+    description: "Learn how to find verified providers, book services and pay securely with AG8TE.",
   },
   "/advertise": {
     title: "Advertise",
-    description: "Promote your business, products or services to customers across South Africa with MzansiServe.",
+    description: "Promote your business, products or services to customers across South Africa with AG8TE.",
   },
   "/terms": {
     title: "Terms",
-    description: "Read the terms governing use of the MzansiServe platform and marketplace.",
+    description: "Read the terms governing use of the AG8TE platform and marketplace.",
   },
   "/privacy": {
     title: "Privacy",
-    description: "Learn how MzansiServe collects, uses and protects personal information under POPIA.",
+    description: "Learn how AG8TE collects, uses and protects personal information under POPIA.",
   },
   "/cookies": {
     title: "Cookies",
-    description: "Learn how MzansiServe uses cookies and how you can manage your preferences.",
+    description: "Learn how AG8TE uses cookies and how you can manage your preferences.",
   },
   "/login": {
     title: "Login",
-    description: "Log in securely to your MzansiServe account.",
+    description: "Log in securely to your AG8TE account.",
   },
   "/register": {
     title: "Register",
-    description: "Create your MzansiServe account.",
+    description: "Create your AG8TE account.",
   },
   "/admin": {
     title: "Administrator",
-    description: "MzansiServe administrator console.",
+    description: "AG8TE administrator console.",
   },
   "/admin/login": {
     title: "Administrator Login",
-    description: "Secure access to the MzansiServe administrator console.",
+    description: "Secure access to the AG8TE administrator console.",
   },
-  "/login/otp": { title: "Login OTP", description: "Verify your MzansiServe login." },
+  "/login/otp": { title: "Login OTP", description: "Verify your AG8TE login." },
   "/services": { title: "Services", description: DEFAULT_DESCRIPTION },
   "/transport": { title: "Transport", description: DEFAULT_DESCRIPTION },
   "/professionals": { title: "Professionals", description: DEFAULT_DESCRIPTION },
@@ -117,23 +117,23 @@ function dynamicConfig(pathname: string): SeoConfig | undefined {
   if (pathname.startsWith("/shop/product/")) {
     return {
       title: "Product Details",
-      description: "View product details, seller information and purchasing options on MzansiServe.",
+      description: "View product details, seller information and purchasing options on AG8TE.",
     };
   }
   if (pathname.startsWith("/provider/")) {
     return {
       title: "Provider Details",
-      description: "View provider details, services and booking options on MzansiServe.",
+      description: "View provider details, services and booking options on AG8TE.",
     };
   }
   if (pathname.startsWith("/ads/ad/")) {
     return {
       title: "Ad Details",
-      description: "View this local marketplace listing on MzansiServe.",
+      description: "View this local marketplace listing on AG8TE.",
     };
   }
   if (pathname.startsWith("/book/")) {
-    return { title: "Book Service", description: "Book a service on MzansiServe.", index: false };
+    return { title: "Book Service", description: "Book a service on AG8TE.", index: false };
   }
   return undefined;
 }
@@ -146,7 +146,7 @@ export default function SeoManager() {
       (path) => pathname === path || (path.endsWith("/") && pathname.startsWith(path)),
     );
     const config = PUBLIC_ROUTES[pathname] || dynamicConfig(pathname) || {
-      title: "Page Not Found | MzansiServe",
+      title: "Page Not Found | AG8TE",
       description: DEFAULT_DESCRIPTION,
       index: false,
     };

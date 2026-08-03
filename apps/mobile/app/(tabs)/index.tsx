@@ -115,7 +115,7 @@ export default function Home() {
                     numberOfLines={2}
                     style={styles.heroTitle}
                   >
-                    {slide.title || 'MzansiServe\nMarketplace'}
+                    {slide.title || 'AG8TE\nMarketplace'}
                   </Typography>
                   <Typography
                     variant="label"

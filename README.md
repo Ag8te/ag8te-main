@@ -1,4 +1,4 @@
-# MzansiServe Flask Application and React
+# AG8TE Flask Application and React
 
 A service ads platform connecting users with vetted service providers (cabs, professionals, service providers).
 
@@ -93,7 +93,7 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
 # Set environment variables (see env.example for full list)
-export DATABASE_URL=postgresql://mzansi:changeme@localhost:5432/mzansiserve
+export DATABASE_URL=postgresql://mzansi:changeme@localhost:5432/ag8te
 export SECRET_KEY=dev-secret-key
 export JWT_SECRET_KEY=jwt-secret-key
 export GOOGLE_MAPS_API_KEY=your-google-maps-api-key
@@ -275,7 +275,7 @@ Change a user's password:
 # With Docker
 docker-compose exec app flask cli change-password --email user@example.com
 docker-compose exec app flask cli change-password --email user@example.com --role driver
-docker-compose exec app flask cli change-password --email info@mzansiserve.co.za
+docker-compose exec app flask cli change-password --email info@ag8te.com
 docker-compose exec app flask cli change-password --id <user-uuid>
 winningqueen123
 

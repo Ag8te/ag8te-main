@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import uuid
+from datetime import datetime, timezone
 
 from flask import Blueprint, request, current_app, jsonify
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
@@ -20,7 +21,7 @@ from backend.services.email_service import EmailService
 from backend.services.wallet_service import WalletService
 from backend.services.payment_service import PaymentService
 from backend.services.agent_service import AgentService
-from backend.services.auth_service import AuthService, REGISTRATION_FEE_AMOUNT, REGISTRATION_FEE_REQUIRED
+from backend.services.auth_service import AuthService, MAX_FAILED_LOGIN_ATTEMPTS, REGISTRATION_FEE_AMOUNT, REGISTRATION_FEE_REQUIRED
 from backend.services.otp_service import OtpService, SENSITIVE_SMS_PURPOSES
 from backend.utils.url import (
     append_query_params,
@@ -92,7 +93,7 @@ class LoginSchema(Schema):
 
 class ForgotPasswordSchema(Schema):
     email = fields.Email(required=True)
-    role = fields.Str(validate=validate.OneOf(['client', 'driver', 'professional', 'service-provider']))
+    role = fields.Str(validate=validate.OneOf(['client', 'driver', 'professional', 'service-provider', 'agent', 'admin']))
 
 class ResetPasswordSchema(Schema):
     token = fields.Str(required=True)
@@ -169,6 +170,13 @@ def login():
         
         if error == "INVALID_CREDENTIALS":
             return error_response('INVALID_CREDENTIALS', 'Invalid email, password, or role combination', None, 401)
+        if error == "PASSWORD_RESET_REQUIRED":
+            return error_response(
+                'PASSWORD_RESET_REQUIRED',
+                'Too many unsuccessful login attempts. Please reset your password before trying again.',
+                None,
+                423
+            )
         if error == "ACCOUNT_INACTIVE":
             return error_response('ACCOUNT_INACTIVE', 'Account is inactive', None, 403)
         if error == "PAYMENT_REQUIRED":
@@ -426,7 +434,31 @@ def admin_login():
         schema = AdminLoginSchema()
         data = schema.load(request.json)
         user = User.query.filter_by(email=data['email'], role='admin').first()
-        if not user or not user.check_password(data['password']):
+        if not user:
+            logger.warning("admin_login: invalid credentials")
+            return error_response('INVALID_CREDENTIALS', 'Invalid email or password', None, 401)
+        if user.password_reset_required:
+            logger.warning("admin_login: password reset required user_id=%s", user.id)
+            return error_response(
+                'PASSWORD_RESET_REQUIRED',
+                'Too many unsuccessful login attempts. Please reset your password before trying again.',
+                None,
+                423
+            )
+        if not user.check_password(data['password']):
+            user.login_failed_attempts = (user.login_failed_attempts or 0) + 1
+            if user.login_failed_attempts >= MAX_FAILED_LOGIN_ATTEMPTS:
+                user.password_reset_required = True
+                user.password_reset_required_at = datetime.now(timezone.utc)
+                db.session.commit()
+                logger.warning("admin_login: password reset required user_id=%s", user.id)
+                return error_response(
+                    'PASSWORD_RESET_REQUIRED',
+                    'Too many unsuccessful login attempts. Please reset your password before trying again.',
+                    None,
+                    423
+                )
+            db.session.commit()
             logger.warning("admin_login: invalid credentials")
             return error_response('INVALID_CREDENTIALS', 'Invalid email or password', None, 401)
         if not user.is_active:
@@ -435,6 +467,11 @@ def admin_login():
         if not user.is_admin:
             logger.warning("admin_login: not admin user_id=%s", user.id)
             return error_response('FORBIDDEN', 'Not an admin account', None, 403)
+        if user.login_failed_attempts or user.password_reset_required:
+            user.login_failed_attempts = 0
+            user.password_reset_required = False
+            user.password_reset_required_at = None
+            db.session.commit()
         access_token = create_access_token(identity=str(user.id))
         logger.info("admin_login: success user_id=%s", user.id)
         return success_response({

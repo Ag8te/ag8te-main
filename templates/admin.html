@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Admin Account Management - MzansiServe{% endblock %}
+{% block title %}Admin Account Management - AG8TE{% endblock %}
 
 {% block extra_head %}
 <style>
@@ -63,7 +63,7 @@
         <aside class="w-full md:w-64 bg-white border-r border-gray-200 p-6 flex-shrink-0">
             <div class="mb-10">
                 <h2 class="text-xl font-black text-purple-600 tracking-tight">Admin Portal</h2>
-                <p class="text-xs text-gray-400 mt-1 uppercase tracking-widest font-bold">MzansiServe</p>
+                <p class="text-xs text-gray-400 mt-1 uppercase tracking-widest font-bold">AG8TE</p>
             </div>
 
             <nav class="space-y-1">
@@ -775,7 +775,7 @@
                                     Name</label>
                                 <input type="text" id="cmsCompanyName"
                                     class="w-full h-11 px-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all outline-none text-sm font-medium"
-                                    placeholder="MzansiServe">
+                                    placeholder="AG8TE">
                             </div>
                             <div>
                                 <label
@@ -4393,7 +4393,7 @@
                     'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
-                    company_name: companyName || 'MzansiServe',
+                    company_name: companyName || 'AG8TE',
                     email,
                     phone,
                     physical_address: physicalAddress

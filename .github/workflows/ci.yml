@@ -1,4 +1,4 @@
-name: MzansiServe CI
+name: AG8TE CI
 
 on:
   push:

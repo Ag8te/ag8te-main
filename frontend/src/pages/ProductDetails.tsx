@@ -30,6 +30,7 @@ import { apiFetch, API_BASE_URL, getImageUrl } from "@/lib/api";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { cn } from "@/lib/utils";
+import productPlaceholder from "@/assets/product-placeholder.svg";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 interface ApiProduct {
@@ -234,7 +235,7 @@ const ProductDetails = () => {
           category: product.category?.title || "Bundle",
           price: -discountAmount,
           image: "",
-          seller: "MzansiServe",
+          seller: "AG8TE",
           rating: 5,
           reviews: 0,
           inStock: true,
@@ -397,7 +398,7 @@ const ProductDetails = () => {
                     transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
                     src={
                       getImageSrc(images[selectedImageIndex]) ||
-                      "/placeholder.png"
+                      productPlaceholder
                     }
                     alt={product.name}
                     className="w-full h-full object-contain p-12 md:p-20"
@@ -445,7 +446,7 @@ const ProductDetails = () => {
                       )}
                     >
                       <img
-                        src={getImageSrc(img) || "/placeholder.png"}
+                        src={getImageSrc(img) || productPlaceholder}
                         alt={`${product.name} thumbnail ${idx + 1}`}
                         className="w-full h-full object-cover"
                       />
@@ -557,7 +558,7 @@ const ProductDetails = () => {
                   </h3>
                   <p className="text-slate-600 text-base leading-relaxed font-normal">
                     {product.description ||
-                      "Every MzansiServe product is carefully selected to meet our high quality standards. This item combines durability with modern design to provide exceptional value for our customers."}
+                      "Every AG8TE product is carefully selected to meet our high quality standards. This item combines durability with modern design to provide exceptional value for our customers."}
                   </p>
                 </div>
 
@@ -802,7 +803,7 @@ const ProductDetails = () => {
                     <p className="text-xs text-slate-400 font-medium leading-relaxed">
                       This product is sold and fulfilled by an external partner.
                       Delivery, returns, and payment are managed by them directly —
-                      not by MzansiServe.
+                      not by AG8TE.
                     </p>
                   </div>
                 ) : (

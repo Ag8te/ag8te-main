@@ -65,8 +65,8 @@ export default function ProductDetails() {
     const handleShare = async () => {
         try {
             await Share.share({
-                message: `Check out ${product?.name} on MzansiServe!`,
-                url: `https://mzansiserve.com/shop/product/${id}`,
+                message: `Check out ${product?.name} on AG8TE!`,
+                url: `https://ag8te.com/shop/product/${id}`,
             });
         } catch (error) {
             console.error(error);

@@ -118,7 +118,7 @@ const Advertise = () => {
                                     </div>
                                     <h2 className="text-3xl font-bold text-[#1a1a1a] mb-4">Application Received!</h2>
                                     <p className="text-slate-600 mb-8">
-                                        Thank you for your interest in advertising with MzansiServe. Our team will review your application and respond to <strong>{formData.email}</strong> shortly.
+                                        Thank you for your interest in advertising with AG8TE. Our team will review your application and respond to <strong>{formData.email}</strong> shortly.
                                     </p>
                                     <Button
                                         variant="outline"

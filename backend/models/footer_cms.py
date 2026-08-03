@@ -10,7 +10,7 @@ class FooterContent(db.Model):
     __tablename__ = 'footer_content'
 
     id = db.Column(db.Integer, primary_key=True, default=1, autoincrement=False)
-    company_name = db.Column(db.String(255), nullable=True, default='MzansiServe')
+    company_name = db.Column(db.String(255), nullable=True, default='AG8TE')
     email = db.Column(db.String(255), nullable=True)
     phone = db.Column(db.String(80), nullable=True)
     physical_address = db.Column(db.Text, nullable=True)

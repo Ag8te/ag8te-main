@@ -1,14 +1,6 @@
 package co.za.mzansiserve.app;
 
-import android.os.Bundle;
-import androidx.activity.EdgeToEdge;
-import com.getcapacitor.BridgeActivity;
-
-public class MainActivity extends BridgeActivity {
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        EdgeToEdge.enable(this);
-        registerPlugin(HuaweiGeolocationPlugin.class);
-        super.onCreate(savedInstanceState);
-    }
-}
+/*
+ * Legacy source path kept for rebrand traceability. The active AG8TE
+ * Huawei MainActivity lives under co/za/ag8te/app and is the one used by builds.
+ */

@@ -1,4 +1,4 @@
-# MzansiServe Mobile Web-Parity Plan
+# AG8TE Mobile Web-Parity Plan
 
 This plan aligns the existing Expo mobile app in `apps/mobile` with the current web feature set.
 

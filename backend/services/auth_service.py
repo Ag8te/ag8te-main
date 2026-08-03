@@ -2,6 +2,7 @@ import logging
 import os
 import uuid
 import json
+from datetime import datetime, timezone
 from flask import current_app
 from werkzeug.utils import secure_filename
 from backend.models import User, Agent, VehicleImage, UserSelectedService, SubscriptionPlan
@@ -15,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 REGISTRATION_FEE_AMOUNT = 0  # Free registration period; restore paid amount when needed.
 REGISTRATION_FEE_REQUIRED = REGISTRATION_FEE_AMOUNT > 0
+MAX_FAILED_LOGIN_ATTEMPTS = 5
 
 class AuthService:
     @staticmethod
@@ -76,9 +78,28 @@ class AuthService:
             users.sort(key=lambda u: role_order.index(u.role) if u.role in role_order else len(role_order))
             user = next((candidate for candidate in users if candidate.check_password(password)), None)
 
-        if not user or not user.check_password(password):
+        if not user:
+            return None, "INVALID_CREDENTIALS"
+
+        if user.password_reset_required:
+            return user, "PASSWORD_RESET_REQUIRED"
+
+        if not user.check_password(password):
+            user.login_failed_attempts = (user.login_failed_attempts or 0) + 1
+            if user.login_failed_attempts >= MAX_FAILED_LOGIN_ATTEMPTS:
+                user.password_reset_required = True
+                user.password_reset_required_at = datetime.now(timezone.utc)
+                db.session.commit()
+                return user, "PASSWORD_RESET_REQUIRED"
+            db.session.commit()
             return None, "INVALID_CREDENTIALS"
         
+        if user.login_failed_attempts or user.password_reset_required:
+            user.login_failed_attempts = 0
+            user.password_reset_required = False
+            user.password_reset_required_at = None
+            db.session.commit()
+
         if not user.is_active:
             return None, "ACCOUNT_INACTIVE"
 

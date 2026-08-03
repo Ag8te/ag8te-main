@@ -38,7 +38,7 @@ def test_non_client_registration_sends_next_steps_email(db_session):
         EmailService.send_registration_confirmation(user)
 
     queued_email = EmailQueue.query.filter_by(recipient=user.email).order_by(EmailQueue.created_at.desc()).first()
-    assert queued_email.subject == "Registration Received - Next Steps for MzansiServe"
+    assert queued_email.subject == "Registration Received - Next Steps for AG8TE"
     assert "not active yet" in queued_email.body
     assert "registration fee is currently free" in queued_email.body
 

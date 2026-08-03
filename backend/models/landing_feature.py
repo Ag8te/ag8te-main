@@ -8,7 +8,7 @@ from backend.extensions import db
 
 
 class LandingFeature(db.Model):
-    """Items displayed in the 'Why Choose MzansiServe' section."""
+    """Items displayed in the 'Why Choose AG8TE' section."""
     __tablename__ = 'landing_features'
 
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
