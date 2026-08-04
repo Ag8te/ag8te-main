@@ -90,7 +90,7 @@ export const ProviderDashboardLayout = ({
                             <Shield className="h-5 w-5" />
                         </div>
                         <span className="text-xl font-bold tracking-tighter text-[#222222]">
-                            MzansiServe
+                            AG8TE
                         </span>
                     </span>
                 </div>

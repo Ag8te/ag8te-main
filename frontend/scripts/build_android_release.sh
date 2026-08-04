@@ -75,11 +75,11 @@ cd "${ANDROID_DIR}"
 mkdir -p "${STORE_OUTPUT_DIR}"
 
 if [[ "${TASK}" == "bundleRelease" ]]; then
-  FINAL_OUTPUT="${STORE_OUTPUT_DIR}/mzansiserve-${STORE_CHANNEL}-${APP_VERSION_NAME}-${APP_VERSION_CODE}.aab"
+  FINAL_OUTPUT="${STORE_OUTPUT_DIR}/ag8te-${STORE_CHANNEL}-${APP_VERSION_NAME}-${APP_VERSION_CODE}.aab"
   cp "${OUTPUT_AAB}" "${FINAL_OUTPUT}"
   echo "Android App Bundle ready at ${FINAL_OUTPUT}"
 else
-  FINAL_OUTPUT="${STORE_OUTPUT_DIR}/mzansiserve-${STORE_CHANNEL}-${APP_VERSION_NAME}-${APP_VERSION_CODE}.apk"
+  FINAL_OUTPUT="${STORE_OUTPUT_DIR}/ag8te-${STORE_CHANNEL}-${APP_VERSION_NAME}-${APP_VERSION_CODE}.apk"
   cp "${OUTPUT_APK}" "${FINAL_OUTPUT}"
   echo "Android APK ready at ${FINAL_OUTPUT}"
 fi

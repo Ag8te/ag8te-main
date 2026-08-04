@@ -18,11 +18,11 @@ export const isGoogleOAuthConfigured = () =>
   canUseGoogleOAuth() &&
   isValidGoogleOAuthClientId(googleOAuthClientId);
 
-export const defaultMobileApiBaseUrl = "https://mzansiserve.co.za";
+export const defaultMobileApiBaseUrl = "https://ag8te.com";
 export const publicWebBaseUrl =
-  import.meta.env.VITE_PUBLIC_FRONTEND_URL || "https://mzansiserve.co.za";
+  import.meta.env.VITE_PUBLIC_FRONTEND_URL || "https://ag8te.com";
 export const mobileAppBaseUrl =
-  import.meta.env.VITE_MOBILE_APP_URL || "co.za.mzansiserve.app://app";
+  import.meta.env.VITE_MOBILE_APP_URL || "co.za.ag8te.app://app";
 
 const stripTrailingSlash = (value: string) => value.replace(/\/+$/, "");
 

@@ -71,7 +71,7 @@ class EmailService:
             port = current_app.config.get('MAIL_PORT')
             user = current_app.config.get('MAIL_USERNAME')
             password = current_app.config.get('MAIL_PASSWORD')
-            from_name = current_app.config.get('DEFAULT_FROM_NAME') or 'Mzansi Serve'
+            from_name = current_app.config.get('DEFAULT_FROM_NAME') or 'AG8TE'
             default_from = current_app.config.get('DEFAULT_FROM_EMAIL') or user
             default_reply_to = current_app.config.get('DEFAULT_REPLY_TO_EMAIL') or default_from
             
@@ -143,7 +143,7 @@ class EmailService:
             return False
 
         sender_email = current_app.config.get('BREVO_SENDER_EMAIL') or current_app.config.get('DEFAULT_FROM_EMAIL')
-        sender_name = current_app.config.get('BREVO_SENDER_NAME') or current_app.config.get('DEFAULT_FROM_NAME') or 'Mzansi Serve'
+        sender_name = current_app.config.get('BREVO_SENDER_NAME') or current_app.config.get('DEFAULT_FROM_NAME') or 'AG8TE'
         api_url = current_app.config.get('BREVO_API_URL') or 'https://api.brevo.com/v3'
 
         response = requests.post(
@@ -175,21 +175,21 @@ class EmailService:
             'password_reset': 'password reset',
             'payout': 'payout confirmation',
         }.get(purpose, 'verification')
-        subject = f"Your MzansiServe verification code: {code}"
+        subject = f"Your AG8TE verification code: {code}"
         body = f"""Hi {first_name},
 
-Your MzansiServe {purpose_label} code is: {code}
+Your AG8TE {purpose_label} code is: {code}
 
 This code expires shortly. If you did not request it, you can ignore this email.
 
 Regards,
-MzansiServe Team"""
+AG8TE Team"""
         body_html = f"""<html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
 <p>Hi {first_name},</p>
-<p>Your MzansiServe {purpose_label} code is:</p>
+<p>Your AG8TE {purpose_label} code is:</p>
 <p style="font-size: 28px; font-weight: 700; letter-spacing: 4px;">{code}</p>
 <p>This code expires shortly. If you did not request it, you can ignore this email.</p>
-<p>Regards,<br>MzansiServe Team</p>
+<p>Regards,<br>AG8TE Team</p>
 </body></html>"""
 
         email = EmailService.queue_email(
@@ -222,10 +222,10 @@ MzansiServe Team"""
         frontend_url = get_public_frontend_base_url()
         verification_url = f"{frontend_url}/verify-email?token={token}"
         first_name = _first_name(user)
-        subject = "Verify Your Email Address - Welcome to MzansiServe"
+        subject = "Verify Your Email Address - Welcome to AG8TE"
         body = f"""Hi {first_name},
 
-Welcome to MzansiServe 
+Welcome to AG8TE 
 
 To complete your registration, please verify your email address by clicking the button below:
 
@@ -236,16 +236,16 @@ If you did not create this account, you can safely ignore this email.
 Thank you for joining South Africa's trusted marketplace for services, professionals, drivers, and shops.
 
 Warm regards,
-MzansiServe Support Team
-www.mzansiserve.co.za"""
+AG8TE Support Team
+www.ag8te.com"""
         body_html = f"""<html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333 text-align: left;">
 <p>Hi {first_name},</p>
-<p>Welcome to MzansiServe</p>
+<p>Welcome to AG8TE</p>
 <p>To complete your registration, please verify your email address by clicking the button below:</p>
 <p><a href="{verification_url}" style="display:inline-block;background:#2563eb;color:#fff;padding:10px 20px;text-decoration:none;border-radius:6px;">Verify My Email</a></p>
 <p>If you did not create this account, you can safely ignore this email.</p>
 <p>Thank you for joining South Africa's trusted marketplace for services, professionals, drivers, and shops.</p>
-<p>Warm regards,<br>MzansiServe Support Team<br><a href="https://www.mzansiserve.co.za">www.mzansiserve.co.za</a></p>
+<p>Warm regards,<br>AG8TE Support Team<br><a href="https://www.ag8te.com">www.ag8te.com</a></p>
 </body></html>"""
         email = EmailService.queue_email(
             recipient=user.email,
@@ -258,20 +258,57 @@ www.mzansiserve.co.za"""
         return email
 
     @staticmethod
+    def send_client_registration_profile_link(user, token):
+        """Send client registration confirmation link that opens profile completion."""
+        frontend_url = get_public_frontend_base_url()
+        confirmation_url = f"{frontend_url}/verify-email?token={token}&next=/profile"
+        first_name = _first_name(user)
+        subject = "Confirm Your AG8TE Registration"
+        body = f"""Hi {first_name},
+
+Welcome to AG8TE.
+
+Please confirm your registration by clicking the link below. After confirmation, you will be taken to your client profile page where you can complete your personal information if you want to.
+
+Confirm Registration: {confirmation_url}
+
+Your personal information is optional for client accounts, and client accounts do not need to upload verification documents.
+
+Kind regards,
+AG8TE Team"""
+        body_html = f"""<html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; text-align: left;">
+<p>Hi {first_name},</p>
+<p>Welcome to AG8TE.</p>
+<p>Please confirm your registration by clicking the button below. After confirmation, you will be taken to your client profile page where you can complete your personal information if you want to.</p>
+<p><a href="{confirmation_url}" style="display:inline-block;background:#2563eb;color:#fff;padding:10px 20px;text-decoration:none;border-radius:6px;">Confirm Registration</a></p>
+<p>Your personal information is optional for client accounts, and client accounts do not need to upload verification documents.</p>
+<p>Kind regards,<br>AG8TE Team</p>
+</body></html>"""
+        email = EmailService.queue_email(
+            recipient=user.email,
+            subject=subject,
+            body=body,
+            body_html=body_html,
+            metadata={'type': 'client_registration_confirmation', 'user_id': str(user.id)}
+        )
+        EmailService.send_email(email_id=email.id)
+        return email
+
+    @staticmethod
     def send_password_reset_email(user, token):
         """Send password reset email"""
         frontend_url = get_public_frontend_base_url()
         reset_url = f"{frontend_url}/reset-password?token={token}"
         
         first_name = _first_name(user)
-        subject = "Reset Your Password - MzansiServe"
+        subject = "Reset Your Password - AG8TE"
         body = f"Hi {first_name},\n\nReset your password by clicking the link: {reset_url}"
         body_html = f"""<html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333 text-align: center;">
 <p>Hi {first_name},</p>
 <p>You requested to reset your password. Click the button below to set a new password:</p>
 <p><a href="{reset_url}" style="display:inline-block;background:#2563eb;color:#fff;padding:10px 20px;text-decoration:none;border-radius:6px;">Reset My Password</a></p>
 <p>If you did not request this, you can safely ignore this email.</p>
-<p>Warm regards,<br>MzansiServe Team</p>
+<p>Warm regards,<br>AG8TE Team</p>
 </body></html>"""
         
         email = EmailService.queue_email(
@@ -294,10 +331,10 @@ www.mzansiserve.co.za"""
         account_type = (user.role or 'user').replace('-', ' ')
 
         if is_client:
-            subject = "Registration Successful - Welcome to MzansiServe!"
+            subject = "Registration Successful - Welcome to AG8TE!"
             body = f"""Hi {first_name},
 
-Great news! Your registration on MzansiServe was successful 
+Great news! Your registration on AG8TE was successful 
 
 Your account is now active, and you can start exploring:
 - Local professionals & service providers
@@ -305,15 +342,15 @@ Your account is now active, and you can start exploring:
 - Online shopping
 - Secure payments
 
-Login anytime here: {login_url} or directly from the mzansiserve mobile app, www.MzansiServe.com or www.MzansiServe.co.za
+Login anytime here: {login_url} or directly from the AG8TE mobile app, www.ag8te.com or www.ag8te.co.za
 
-Thank you for choosing MzansiServe - made for Mzansi, built for you
+Thank you for choosing AG8TE - made for Mzansi, built for you
 
 Kind regards,
-MzansiServe Team"""
+AG8TE Team"""
             body_html = f"""<html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; text-align: left;">
 <p>Hi {first_name},</p>
-<p>Great news! Your registration on MzansiServe was successful</p>
+<p>Great news! Your registration on AG8TE was successful</p>
 <p>Your account is now active, and you can start exploring:</p>
 <ul>
     <li>Local professionals & service providers</li>
@@ -321,28 +358,28 @@ MzansiServe Team"""
     <li>Online shopping</li>
     <li>Secure payments</li>
 </ul>
-<p>Login anytime here: <a href="{login_url}">{login_url}</a> or directly from the mzansiserve mobile app, <a href="https://www.MzansiServe.com">www.MzansiServe.com</a> or <a href="https://www.MzansiServe.co.za">www.MzansiServe.co.za</a></p>
-<p>Thank you for choosing MzansiServe - made for Mzansi, built for you</p>
-<p>Kind regards,<br>MzansiServe Team</p>
+<p>Login anytime here: <a href="{login_url}">{login_url}</a> or directly from the AG8TE mobile app, <a href="https://www.ag8te.com">www.ag8te.com</a> or <a href="https://www.ag8te.co.za">www.ag8te.co.za</a></p>
+<p>Thank you for choosing AG8TE - made for Mzansi, built for you</p>
+<p>Kind regards,<br>AG8TE Team</p>
 </body></html>"""
         else:
-            subject = "Registration Received - Next Steps for MzansiServe"
+            subject = "Registration Received - Next Steps for AG8TE"
             body = f"""Hi {first_name},
 
-We have received your MzansiServe {account_type} registration.
+We have received your AG8TE {account_type} registration.
 
 Your registration fee is currently free. Your account is not active yet because our administrator still needs to review your application. You will receive another email when the review is complete.
 
 To continue, log in here: {login_url}
 
 Kind regards,
-MzansiServe Team"""
+AG8TE Team"""
             body_html = f"""<html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; text-align: left;">
 <p>Hi {first_name},</p>
-<p>We have received your MzansiServe <strong>{account_type}</strong> registration.</p>
+<p>We have received your AG8TE <strong>{account_type}</strong> registration.</p>
 <p>Your registration fee is currently free. Your account is not active yet because our administrator still needs to review your application. You will receive another email when the review is complete.</p>
 <p><a href="{login_url}" style="display:inline-block;background:#2563eb;color:#fff;padding:10px 20px;text-decoration:none;border-radius:6px;">View Account</a></p>
-<p>Kind regards,<br>MzansiServe Team</p>
+<p>Kind regards,<br>AG8TE Team</p>
 </body></html>"""
         email = EmailService.queue_email(
             recipient=user.email,
@@ -361,7 +398,7 @@ MzansiServe Team"""
         payment_date = datetime.utcnow().strftime('%Y-%m-%d')
         reference = getattr(user, 'tracking_number', None) or 'Registration'
         if user.role == 'client':
-            subject = "Registration Completed - Welcome to MzansiServe"
+            subject = "Registration Completed - Welcome to AG8TE"
             body = f"""Hi {first_name},
 
 Thank you. Your registration has been completed successfully.
@@ -373,8 +410,8 @@ Reference: {reference}
 Your account is active and ready to use.
 
 Regards,
-MzansiServe Billing Team
-billing@mzansiserve.co.za"""
+AG8TE Billing Team
+billing@ag8te.com"""
             body_html = f"""<html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333 text-align: left;">
 <p>Hi {first_name},</p>
 <p>Thank you. Your registration has been completed successfully.</p>
@@ -382,14 +419,14 @@ billing@mzansiserve.co.za"""
 <strong>Date:</strong> {payment_date}<br>
 <strong>Reference:</strong> {reference}</p>
 <p>Your account is active and ready to use.</p>
-<p>Regards,<br>MzansiServe Billing Team<br><a href="mailto:billing@mzansiserve.co.za">billing@mzansiserve.co.za</a></p>
+<p>Regards,<br>AG8TE Billing Team<br><a href="mailto:billing@ag8te.com">billing@ag8te.com</a></p>
 </body></html>"""
         else:
             account_type = (user.role or 'member').replace('-', ' ').title()
             subject = "Registration Payment Received - Pending Admin Approval"
             body = f"""Hi {first_name},
 
-Thank you. We have received your registration payment and created your MzansiServe {account_type} account.
+Thank you. We have received your registration payment and created your AG8TE {account_type} account.
 
 Amount Paid: R{payment_amount:.2f}
 Date: {payment_date}
@@ -399,17 +436,17 @@ Current Status: Pending admin approval
 Your registration is now awaiting review by the system administrator. You will receive another email as soon as your account has been approved.
 
 Regards,
-MzansiServe Billing Team
-billing@mzansiserve.co.za"""
+AG8TE Billing Team
+billing@ag8te.com"""
             body_html = f"""<html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333 text-align: left;">
 <p>Hi {first_name},</p>
-<p>Thank you. We have received your registration payment and created your MzansiServe <strong>{account_type}</strong> account.</p>
+<p>Thank you. We have received your registration payment and created your AG8TE <strong>{account_type}</strong> account.</p>
 <p><strong>Amount Paid:</strong> R{payment_amount:.2f}<br>
 <strong>Date:</strong> {payment_date}<br>
 <strong>Reference:</strong> {reference}<br>
 <strong>Current Status:</strong> Pending admin approval</p>
 <p>Your registration is now awaiting review by the system administrator. You will receive another email as soon as your account has been approved.</p>
-<p>Regards,<br>MzansiServe Billing Team<br><a href="mailto:billing@mzansiserve.co.za">billing@mzansiserve.co.za</a></p>
+<p>Regards,<br>AG8TE Billing Team<br><a href="mailto:billing@ag8te.com">billing@ag8te.com</a></p>
 </body></html>"""
         email = EmailService.queue_email(
             recipient=user.email,
@@ -433,10 +470,10 @@ billing@mzansiserve.co.za"""
         payment_amount = float(REGISTRATION_FEE_AMOUNT) / 100.0
         reference = getattr(user, 'tracking_number', None) or 'Registration'
 
-        subject = "Complete Your Registration Payment to Activate MzansiServe"
+        subject = "Complete Your Registration Payment to Activate AG8TE"
         body = f"""Hi {first_name},
 
-Your MzansiServe {account_type} account is almost ready, but your registration fee is still outstanding.
+Your AG8TE {account_type} account is almost ready, but your registration fee is still outstanding.
 
 Registration Fee Due: R{payment_amount:.2f}
 Reference: {reference}
@@ -448,17 +485,17 @@ Login here: {login_url}
 Once payment is received, your account can move forward for approval.
 
 Warm regards,
-MzansiServe Billing Team
-billing@mzansiserve.co.za"""
+AG8TE Billing Team
+billing@ag8te.com"""
         body_html = f"""<html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; text-align: left;">
 <p>Hi {first_name},</p>
-<p>Your MzansiServe <strong>{account_type}</strong> account is almost ready, but your registration fee is still outstanding.</p>
+<p>Your AG8TE <strong>{account_type}</strong> account is almost ready, but your registration fee is still outstanding.</p>
 <p><strong>Registration Fee Due:</strong> R{payment_amount:.2f}<br>
 <strong>Reference:</strong> {reference}</p>
 <p>Please log in to your account and complete the registration payment so our admin team can continue with your approval and activate your access to the system.</p>
 <p><a href="{login_url}" style="display:inline-block;background:#2563eb;color:#fff;padding:10px 20px;text-decoration:none;border-radius:6px;">Login to Complete Payment</a></p>
 <p>Once payment is received, your account can move forward for approval.</p>
-<p>Warm regards,<br>MzansiServe Billing Team<br><a href="mailto:billing@mzansiserve.co.za">billing@mzansiserve.co.za</a></p>
+<p>Warm regards,<br>AG8TE Billing Team<br><a href="mailto:billing@ag8te.com">billing@ag8te.com</a></p>
 </body></html>"""
 
         email = EmailService.queue_email(
@@ -481,10 +518,10 @@ billing@mzansiserve.co.za"""
         if isinstance(delivery_address, dict):
             parts = [delivery_address.get('street'), delivery_address.get('city'), delivery_address.get('postal_code')]
             delivery_address = ', '.join(p for p in parts if p) or 'N/A'
-        subject = "Order Confirmed - Thank You for Shopping with MzansiServe"
+        subject = "Order Confirmed - Thank You for Shopping with AG8TE"
         body = f"""Hi {first_name},
 
-Thank you for your purchase on MzansiServe Shop
+Thank you for your purchase on AG8TE Shop
 
 Order Number: {order.id}
 Total Amount: R{float(order.total):.2f}
@@ -494,16 +531,16 @@ Order Date: {order_date}
 You will receive another update once your order is dispatched.
 
 Warm regards,
-MzansiServe Shop Team"""
+AG8TE Shop Team"""
         body_html = f"""<html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333 text-align: left;">
 <p>Hi {first_name},</p>
-<p>Thank you for your purchase on MzansiServe Shop</p>
+<p>Thank you for your purchase on AG8TE Shop</p>
 <p><strong>Order Number:</strong> {order.id}<br>
 <strong>Total Amount:</strong> R{float(order.total):.2f}<br>
 <strong>Delivery Address:</strong> {delivery_address}<br>
 <strong>Order Date:</strong> {order_date}</p>
 <p>You will receive another update once your order is dispatched.</p>
-<p>Warm regards,<br>MzansiServe Shop Team</p>
+<p>Warm regards,<br>AG8TE Shop Team</p>
 </body></html>"""
         email = EmailService.queue_email(
             recipient=user.email,
@@ -541,7 +578,7 @@ Booking Date: {booking_date}
 The provider will contact you shortly.
 
 Regards,
-MzansiServe Support Team"""
+AG8TE Support Team"""
         body_html = f"""<html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333 text-align: left;">
 <p>Hi {first_name},</p>
 <p>Your call-out payment has been successfully processed</p>
@@ -550,7 +587,7 @@ MzansiServe Support Team"""
 <strong>Call-Out Fee Paid:</strong> R{payment_amount:.2f}<br>
 <strong>Booking Date:</strong> {booking_date}</p>
 <p>The provider will contact you shortly.</p>
-<p>Regards,<br>MzansiServe Support Team</p>
+<p>Regards,<br>AG8TE Support Team</p>
 </body></html>"""
         email = EmailService.queue_email(
             recipient=user.email,
@@ -585,7 +622,7 @@ MzansiServe Support Team"""
             booking_date = f"{booking_date} {service_request.scheduled_time}".strip()
         booking_date = booking_date or 'To be confirmed'
 
-        subject = "Your Booking Has Been Accepted - MzansiServe"
+        subject = "Your Booking Has Been Accepted - AG8TE"
         body = f"""Hi {first_name},
 
 Good news. Your booking has been accepted.
@@ -595,10 +632,10 @@ Accepted By: {provider_name}
 Scheduled For: {booking_date}
 Request Reference: {service_request.id}
 
-You can log in to MzansiServe to view the booking details and next steps.
+You can log in to AG8TE to view the booking details and next steps.
 
 Regards,
-MzansiServe Support Team"""
+AG8TE Support Team"""
         body_html = f"""<html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; text-align: left;">
 <p>Hi {first_name},</p>
 <p>Good news. Your booking has been accepted.</p>
@@ -606,8 +643,8 @@ MzansiServe Support Team"""
 <strong>Accepted By:</strong> {provider_name}<br>
 <strong>Scheduled For:</strong> {booking_date}<br>
 <strong>Request Reference:</strong> {service_request.id}</p>
-<p>You can log in to MzansiServe to view the booking details and next steps.</p>
-<p>Regards,<br>MzansiServe Support Team</p>
+<p>You can log in to AG8TE to view the booking details and next steps.</p>
+<p>Regards,<br>AG8TE Support Team</p>
 </body></html>"""
 
         email = EmailService.queue_email(
@@ -631,12 +668,12 @@ Dear {user_name},
 
 Great news! Your ID document has been verified.
 
-Your account verification is now complete, and you can enjoy full access to all MzansiServe services.
+Your account verification is now complete, and you can enjoy full access to all AG8TE services.
 
 Thank you for your patience.
 
 Best regards,
-MzansiServe Team
+AG8TE Team
             """.strip()
             
             body_html = f"""
@@ -645,13 +682,13 @@ MzansiServe Team
                 <h2>ID Verification Successful</h2>
                 <p>Dear {user_name},</p>
                 <p>Great news! Your ID document has been verified.</p>
-                <p>Your account verification is now complete, and you can enjoy full access to all MzansiServe services.</p>
+                <p>Your account verification is now complete, and you can enjoy full access to all AG8TE services.</p>
                 <p>Thank you for your patience.</p>
-                <p>Best regards,<br>MzansiServe Team</p>
+                <p>Best regards,<br>AG8TE Team</p>
             </body>
             </html>
             """
-            subject = "ID Verification Successful - MzansiServe"
+            subject = "ID Verification Successful - AG8TE"
         else:  # rejected
             body = f"""
 Dear {user_name},
@@ -665,7 +702,7 @@ Please upload a new, clear ID document through your profile page for re-verifica
 If you have any questions, please contact our support team.
 
 Best regards,
-MzansiServe Team
+AG8TE Team
             """.strip()
             
             body_html = f"""
@@ -677,11 +714,11 @@ MzansiServe Team
                 <p><strong>Reason:</strong> {reason or 'Not specified'}</p>
                 <p>Please upload a new, clear ID document through your profile page for re-verification.</p>
                 <p>If you have any questions, please contact our support team.</p>
-                <p>Best regards,<br>MzansiServe Team</p>
+                <p>Best regards,<br>AG8TE Team</p>
             </body>
             </html>
             """
-            subject = "ID Verification Update - MzansiServe"
+            subject = "ID Verification Update - AG8TE"
         
         email = EmailService.queue_email(
             recipient=user.email,
@@ -700,7 +737,7 @@ MzansiServe Team
         frontend_url = get_public_frontend_base_url()
         dashboard_url = f"{frontend_url}/dashboard"
         account_type = (user.role or 'member').replace('-', ' ').title()
-        subject = "Account Approved - Welcome to MzansiServe!"
+        subject = "Account Approved - Welcome to AG8TE!"
         body = f"""Hi {first_name},
 
 Congratulations
@@ -712,14 +749,14 @@ You are now authorised as a: {account_type}
 Access your dashboard here: {dashboard_url}
 
 Warm regards,
-MzansiServe Team"""
+AG8TE Team"""
         body_html = f"""<html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333 text-align: left;">
 <p>Hi {first_name},</p>
 <p>Congratulations</p>
 <p>Your account has been successfully reviewed and approved!</p>
 <p>You are now authorised as a: <strong>{account_type}</strong></p>
 <p>Access your dashboard here: <a href="{dashboard_url}">{dashboard_url}</a></p>
-<p>Warm regards,<br>MzansiServe Team</p>
+<p>Warm regards,<br>AG8TE Team</p>
 </body></html>"""
         email = EmailService.queue_email(
             recipient=user.email,
@@ -736,11 +773,11 @@ MzansiServe Team"""
         """Send user suspension notification email. reason is optional."""
         first_name = _first_name(user)
         suspension_reason = (reason or '').strip() or 'Please contact support for details.'
-        support_email = current_app.config.get('SUPPORT_EMAIL') or 'support@mzansiserve.co.za'
+        support_email = current_app.config.get('SUPPORT_EMAIL') or 'support@ag8te.com'
         subject = "Account Suspended - Important Notice"
         body = f"""Hi {first_name},
 
-We regret to inform you that your MzansiServe account has been temporarily suspended.
+We regret to inform you that your AG8TE account has been temporarily suspended.
 
 Reason: {suspension_reason}
 
@@ -748,13 +785,13 @@ If you believe this was done in error, please contact us:
 {support_email}
 
 Sincerely,
-MzansiServe Compliance Team"""
+AG8TE Compliance Team"""
         body_html = f"""<html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333 text-align: left;">
 <p>Hi {first_name},</p>
-<p>We regret to inform you that your MzansiServe account has been temporarily suspended.</p>
+<p>We regret to inform you that your AG8TE account has been temporarily suspended.</p>
 <p><strong>Reason:</strong> {suspension_reason}</p>
 <p>If you believe this was done in error, please contact us:<br><a href="mailto:{support_email}">{support_email}</a></p>
-<p>Sincerely,<br>MzansiServe Compliance Team</p>
+<p>Sincerely,<br>AG8TE Compliance Team</p>
 </body></html>"""
         email = EmailService.queue_email(
             recipient=user.email,
@@ -775,15 +812,15 @@ MzansiServe Compliance Team"""
         """
         first_name = _first_name(user)
         account_type = (user.role or 'member').replace('-', ' ').title()
-        support_email = current_app.config.get('SUPPORT_EMAIL') or 'support@mzansiserve.co.za'
+        support_email = current_app.config.get('SUPPORT_EMAIL') or 'support@ag8te.com'
         frontend_url = get_public_frontend_base_url()
         dashboard_url = f"{frontend_url}/dashboard"
 
-        subject = "Application Update, Action Required | MzansiServe"
+        subject = "Application Update, Action Required | AG8TE"
 
         body = f"""Hi {first_name},
 
-Thank you for applying to join MzansiServe as a {account_type}.
+Thank you for applying to join AG8TE as a {account_type}.
 
 After reviewing your application, we were unfortunately unable to approve it at this time.
 
@@ -800,13 +837,13 @@ If you have any questions or need assistance, please contact us:
 We look forward to welcoming you on the platform once the documents are in order.
 
 Warm regards,
-MzansiServe Compliance Team"""
+AG8TE Compliance Team"""
 
         body_html = f"""<html>
 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; text-align: left;">
   <h2 style="color: #c0392b;">Application Update, Action Required</h2>
   <p>Hi {first_name},</p>
-  <p>Thank you for applying to join MzansiServe as a <strong>{account_type}</strong>.</p>
+  <p>Thank you for applying to join AG8TE as a <strong>{account_type}</strong>.</p>
   <p>After reviewing your application, we were unfortunately unable to approve it at this time.</p>
   <p><strong>Reason:</strong><br>
      <span style="background:#fff3f3; border-left:4px solid #c0392b; padding:8px 12px; display:block; margin-top:6px;">{reason}</span>
@@ -821,7 +858,7 @@ MzansiServe Compliance Team"""
      <a href="mailto:{support_email}">{support_email}</a>
   </p>
   <p>We look forward to welcoming you on the platform once the documents are in order.</p>
-  <p>Warm regards,<br>MzansiServe Compliance Team</p>
+  <p>Warm regards,<br>AG8TE Compliance Team</p>
 </body>
 </html>"""
 
@@ -852,7 +889,7 @@ MzansiServe Compliance Team"""
         admin_email = (
             current_app.config.get("ADMIN_EMAIL")
             or current_app.config.get("SUPPORT_EMAIL")
-            or "support@mzansiserve.co.za"
+            or "support@ag8te.com"
         )
         user = alert.user
         d = user.data or {}
@@ -897,7 +934,7 @@ MzansiServe Compliance Team"""
 <div style="max-width:600px;margin:auto;background:#fff;border-radius:8px;overflow:hidden;">
   <div style="background:#dc2626;padding:24px;text-align:center;">
     <h1 style="color:#fff;margin:0;font-size:26px;">PANIC ALERT</h1>
-    <p style="color:#fecaca;margin:6px 0 0;">MzansiServe Emergency Notification</p>
+    <p style="color:#fecaca;margin:6px 0 0;">AG8TE Emergency Notification</p>
   </div>
   <div style="padding:28px;">
     <div style="background:#fef2f2;border:2px solid #dc2626;border-radius:8px;padding:16px;margin-bottom:20px;">
@@ -962,7 +999,7 @@ MzansiServe Compliance Team"""
         subject = f"Emergency Alert - {full_name} needs help"
         body = (
             f"Dear {nok_name},\n\n{full_name} has triggered an emergency panic alert on "
-            f"MzansiServe. They may be in danger. Please try to contact them urgently.\n\n"
+            f"AG8TE. They may be in danger. Please try to contact them urgently.\n\n"
             f"Their phone: {phone}\nLast location: {maps_link or 'Not available'}\n\n"
             f"If you cannot reach them, call: Police 10111 | Emergency 112"
         )
@@ -974,7 +1011,7 @@ MzansiServe Compliance Team"""
   </div>
   <div style="padding:28px;">
     <p>Dear {nok_name},</p>
-    <p><strong>{full_name}</strong> has triggered an emergency panic alert on MzansiServe.
+    <p><strong>{full_name}</strong> has triggered an emergency panic alert on AG8TE.
     They may be in danger. Please try to contact them urgently.</p>
     <div style="background:#fef2f2;border:2px solid #dc2626;border-radius:8px;padding:16px;margin:20px 0;">
       <p style="margin:0 0 10px;"><strong>!! Last Known Location:</strong></p>

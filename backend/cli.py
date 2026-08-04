@@ -122,7 +122,7 @@ def delete_user(email, id, force):
 
 
 @cli.command('clear-database')
-@click.option('--admin-email', default='admin@mzansiserve.co.za', show_default=True, help='Admin account to keep')
+@click.option('--admin-email', default='admin@ag8te.com', show_default=True, help='Admin account to keep')
 @click.option('--keep-settings/--clear-settings', default=True, show_default=True, help='Keep app_settings such as payment and shipping config')
 @click.option('--force', is_flag=True, help='Run without confirmation')
 @with_appcontext
@@ -1338,10 +1338,10 @@ def seed_landing_content(clear):
 
     # ── Testimonials ──────────────────────────────────────────────────────────
     testimonials_data = [
-        {'name': 'Sipho Dlamini', 'role': 'Homeowner, Johannesburg', 'rating': 5, 'text': 'I booked a plumber through MzansiServe and he arrived within the hour. Verified, professional, and affordable. Highly recommend!', 'order': 1},
-        {'name': 'Zanele Mokoena', 'role': 'Business Owner, Cape Town', 'rating': 5, 'text': 'The drivers on this platform are punctual and courteous. I use MzansiServe for all my business transport needs now.', 'order': 2},
+        {'name': 'Sipho Dlamini', 'role': 'Homeowner, Johannesburg', 'rating': 5, 'text': 'I booked a plumber through AG8TE and he arrived within the hour. Verified, professional, and affordable. Highly recommend!', 'order': 1},
+        {'name': 'Zanele Mokoena', 'role': 'Business Owner, Cape Town', 'rating': 5, 'text': 'The drivers on this platform are punctual and courteous. I use AG8TE for all my business transport needs now.', 'order': 2},
         {'name': 'Thabo Sithole', 'role': 'Software Engineer, Durban', 'rating': 5, 'text': 'Found an amazing accountant for my small business through the platform. The verification process gives me peace of mind.', 'order': 3},
-        {'name': 'Lerato Khumalo', 'role': 'Event Planner, Pretoria', 'rating': 5, 'text': 'I hired a caterer and DJ through MzansiServe for my client\'s event. Both were exceptional. This platform is a game-changer for SA events!', 'order': 4},
+        {'name': 'Lerato Khumalo', 'role': 'Event Planner, Pretoria', 'rating': 5, 'text': 'I hired a caterer and DJ through AG8TE for my client\'s event. Both were exceptional. This platform is a game-changer for SA events!', 'order': 4},
     ]
     test_created = 0
     for tdata in testimonials_data:
@@ -1406,7 +1406,7 @@ def seed_demo_data():
     # ── Professionals ──
     profs_data = [
         {
-            'email': 'prof_lawyer@mzansiserve.co.za',
+            'email': 'prof_lawyer@ag8te.com',
             'full_name': 'Advocate Sipho Mdluli',
             'profession': 'Legal Consultant',
             'services': [
@@ -1417,7 +1417,7 @@ def seed_demo_data():
             'body': 'Legal Practice Council (LPC)'
         },
         {
-            'email': 'prof_accountant@mzansiserve.co.za',
+            'email': 'prof_accountant@ag8te.com',
             'full_name': 'Zanele Khumalo CA(SA)',
             'profession': 'Chartered Accountant',
             'services': [
@@ -1428,7 +1428,7 @@ def seed_demo_data():
             'body': 'SAICA'
         },
         {
-            'email': 'prof_doctor@mzansiserve.co.za',
+            'email': 'prof_doctor@ag8te.com',
             'full_name': 'Dr. Thabo Sithole',
             'profession': 'General Practitioner',
             'services': [
@@ -1443,7 +1443,7 @@ def seed_demo_data():
     # ── Service Providers ──
     providers_data = [
         {
-            'email': 'prov_cleaning@mzansiserve.co.za',
+            'email': 'prov_cleaning@ag8te.com',
             'full_name': 'Sarah Moremi',
             'business': 'Sparkle Home Services',
             'services': [
@@ -1452,7 +1452,7 @@ def seed_demo_data():
             ]
         },
         {
-            'email': 'prov_plumbing@mzansiserve.co.za',
+            'email': 'prov_plumbing@ag8te.com',
             'full_name': 'Johannes van der Merwe',
             'business': 'Jozi Plumbing Pros',
             'services': [
@@ -1461,7 +1461,7 @@ def seed_demo_data():
             ]
         },
         {
-            'email': 'prov_electrical@mzansiserve.co.za',
+            'email': 'prov_electrical@ag8te.com',
             'full_name': 'Lerato Nkosi',
             'business': 'Nkosi Electrical Solutions',
             'services': [

@@ -10,9 +10,9 @@ from pathlib import Path
 from typing import Iterable
 
 
-EXPECTED_APP_URL = "co.za.mzansiserve.app://app"
-EXPECTED_URL_SCHEME = "co.za.mzansiserve.app"
-EXPECTED_ANDROID_PACKAGE = "co.za.mzansiserve.app"
+EXPECTED_APP_URL = "co.za.ag8te.app://app"
+EXPECTED_URL_SCHEME = "co.za.ag8te.app"
+EXPECTED_ANDROID_PACKAGE = "co.za.ag8te.app"
 MIN_RECOMMENDED_TARGET_SDK = 35
 
 SCRIPT_PATH = Path(__file__).resolve()
@@ -304,7 +304,7 @@ def huawei_findings() -> list[Finding]:
     build_script = (FRONTEND_DIR / "scripts/build_android_release.sh").read_text(encoding="utf-8")
     native_helper = (FRONTEND_DIR / "src/lib/native.ts").read_text(encoding="utf-8")
     android_gradle = (FRONTEND_DIR / "android/app/build.gradle").read_text(encoding="utf-8")
-    huawei_plugin = FRONTEND_DIR / "android/app/src/huawei/java/co/za/mzansiserve/app/HuaweiGeolocationPlugin.java"
+    huawei_plugin = FRONTEND_DIR / "android/app/src/huawei/java/co/za/ag8te/app/HuaweiGeolocationPlugin.java"
 
     if "huawei:bundle:release" in package_json and "huawei:assemble:release" in package_json:
         findings.append(Finding("OK", "Huawei release commands", "Huawei AppGallery build commands are available."))
@@ -459,7 +459,7 @@ def next_steps(failures: int) -> list[str]:
 
 
 def main() -> int:
-    print("MzansiServe Mobile Release Doctor")
+    print("AG8TE Mobile Release Doctor")
     print(f"Workspace: {ROOT_DIR}")
 
     totals = [0, 0, 0]

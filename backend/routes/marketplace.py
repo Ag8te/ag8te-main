@@ -6,7 +6,7 @@ from backend.utils.decorators import require_auth
 from flask_jwt_extended import get_jwt_identity
 import uuid
 
-bp = Blueprint('ads', __name__)
+bp = Blueprint('marketplace_ads', __name__)
 
 @bp.route('/categories', methods=['GET'])
 def list_categories():

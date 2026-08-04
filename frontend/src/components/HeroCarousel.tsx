@@ -113,7 +113,7 @@ const HeroCarousel = () => {
             return {
               ...item,
               badge: item.badge || "Highlight",
-              title: item.title || "MzansiServe\nMarketplace",
+              title: item.title || "AG8TE\nMarketplace",
               subtitle: item.subtitle || "Connecting South Africa to reliable services and products.",
               ctaColor: item.cta_color || defaultColor,
               learnMore: item.cta_link || "/"

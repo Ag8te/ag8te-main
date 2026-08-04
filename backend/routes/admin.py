@@ -2619,7 +2619,7 @@ def get_footer_admin():
     try:
         footer = FooterContent.query.get(1)
         if not footer:
-            footer = FooterContent(id=1, company_name="MzansiServe")
+            footer = FooterContent(id=1, company_name="AG8TE")
             db.session.add(footer)
             db.session.commit()
         return success_response(footer.to_dict())
@@ -2635,7 +2635,7 @@ def update_footer():
     try:
         footer = FooterContent.query.get(1)
         if not footer:
-            footer = FooterContent(id=1, company_name="MzansiServe")
+            footer = FooterContent(id=1, company_name="AG8TE")
             db.session.add(footer)
             db.session.flush()
         data = request.get_json(silent=True) or {}

@@ -49,7 +49,7 @@ const sections = [
     {
         id: "why-we-use",
         title: "Why We Use Cookies",
-        content: `MzansiServe uses cookies and similar technologies to:
+        content: `AG8TE uses cookies and similar technologies to:
 
     • Keep you signed in to your account securely.
     • Remember your preferences and settings.
@@ -112,8 +112,8 @@ const sections = [
         title: "Contact Us",
         content: `If you have any questions about how we use cookies, please contact us:
 
-    MzansiServe (Pty) Ltd
-    Email: privacy@mzansiserve.co.za
+    AG8TE (Pty) Ltd
+    Email: privacy@ag8te.com
     Phone: +27 (0) 11 000 0000
 
     You may also lodge a complaint with the Information Regulator of South Africa at inforeg.org.za.`,

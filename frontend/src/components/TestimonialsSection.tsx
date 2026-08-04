@@ -13,10 +13,10 @@ interface TestimonialItem {
 }
 
 const FALLBACK: TestimonialItem[] = [
-    { id: "1", name: "Sipho Dlamini", role: "Homeowner, Johannesburg", avatar_url: null, rating: 5, text: "I booked a plumber through MzansiServe and he arrived within the hour. Verified, professional, and affordable. Highly recommend!" },
-    { id: "2", name: "Zanele Mokoena", role: "Business Owner, Cape Town", avatar_url: null, rating: 5, text: "The drivers on this platform are punctual and courteous. I use MzansiServe for all my business transport needs now." },
+    { id: "1", name: "Sipho Dlamini", role: "Homeowner, Johannesburg", avatar_url: null, rating: 5, text: "I booked a plumber through AG8TE and he arrived within the hour. Verified, professional, and affordable. Highly recommend!" },
+    { id: "2", name: "Zanele Mokoena", role: "Business Owner, Cape Town", avatar_url: null, rating: 5, text: "The drivers on this platform are punctual and courteous. I use AG8TE for all my business transport needs now." },
     { id: "3", name: "Thabo Sithole", role: "Software Engineer, Durban", avatar_url: null, rating: 5, text: "Found an amazing accountant for my small business through the platform. The verification process gives me peace of mind." },
-    { id: "4", name: "Lerato Khumalo", role: "Event Planner, Pretoria", avatar_url: null, rating: 5, text: "I hired a caterer and DJ through MzansiServe for my client's event. Both were exceptional. A game-changer for SA events!" },
+    { id: "4", name: "Lerato Khumalo", role: "Event Planner, Pretoria", avatar_url: null, rating: 5, text: "I hired a caterer and DJ through AG8TE for my client's event. Both were exceptional. A game-changer for SA events!" },
 ];
 
 const StarRating = ({ rating }: { rating: number }) => (
@@ -73,7 +73,7 @@ const TestimonialsSection = () => {
                         What <span className="text-primary">South Africans</span> Say
                     </h2>
                     <p className="text-lg md:text-xl text-slate-600 font-normal max-w-xl mx-auto">
-                        Real reviews from real people who've used MzansiServe to find trusted providers.
+                        Real reviews from real people who've used AG8TE to find trusted providers.
                     </p>
                 </motion.div>
 

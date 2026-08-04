@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://mzansiserve.co.za';
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://ag8te.com';
 
 const apiClient = axios.create({
   baseURL: `${API_URL}/api`,

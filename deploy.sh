@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
 # =============================================================================
-# MzansiServe Deployment Script (Git-based)
+# AG8TE Deployment Script (Git-based)
 # Usage: ./deploy.sh [--env-only | --restart-only | --logs | --setup | --skip-mobile-release]
 # =============================================================================
 set -e
 
 # ─── Configuration ────────────────────────────────────────────────────────────
 ZONE="us-central1-c"
-INSTANCE="mzansiserveprod"
+INSTANCE="ag8teprod"
 PROJECT="white-caster-270410"
-REMOTE_DIR="/opt/mzansiserve"
+REMOTE_DIR="/opt/ag8te"
 LOCAL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DOMAIN="mzansiserve.co.za"
-REPO_URL="git@github.com:MzansiServe/mzansiserve-main.git"
+DOMAIN="ag8te.com"
+REPO_URL="git@github.com:AG8TE/ag8te-main.git"
 BRANCH="${DEPLOY_BRANCH:-$(git -C "$LOCAL_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || echo 'main')}"
 MOBILE_RELEASE_ON_DEPLOY="${MOBILE_RELEASE_ON_DEPLOY:-1}"
 
@@ -77,7 +77,7 @@ command -v gcloud &>/dev/null || error "gcloud CLI not found. Install it: https:
 
 echo ""
 echo -e "${CYAN}╔══════════════════════════════════════════════════╗${NC}"
-echo -e "${CYAN}║     MzansiServe  —  Deploy to GCP VM (Git)      ║${NC}"
+echo -e "${CYAN}║     AG8TE  —  Deploy to GCP VM (Git)      ║${NC}"
 echo -e "${CYAN}╚══════════════════════════════════════════════════╝${NC}"
 echo ""
 
@@ -135,7 +135,7 @@ setup_deploy_key() {
   remote "
     if [ ! -f ~/.ssh/deploy_key ]; then
       echo 'Generating new SSH deploy key…'
-      ssh-keygen -t ed25519 -f ~/.ssh/deploy_key -N '' -C 'mzansiserve-deploy@gcp'
+      ssh-keygen -t ed25519 -f ~/.ssh/deploy_key -N '' -C 'ag8te-deploy@gcp'
       # Configure SSH to use this key for GitHub
       cat > ~/.ssh/config << 'SSHEOF'
 Host github.com
@@ -152,7 +152,7 @@ SSHEOF
     echo ''
     echo '═══════════════════════════════════════════════════════════'
     echo '  Copy the public key below and add it as a Deploy Key at:'
-    echo '  https://github.com/MzansiServe/mzansiserve-main/settings/keys'
+    echo '  https://github.com/AG8TE/ag8te-main/settings/keys'
     echo '  (Check \"Allow write access\" is NOT needed — read-only is fine)'
     echo '═══════════════════════════════════════════════════════════'
     echo ''
@@ -194,14 +194,14 @@ if [[ "$ACTION" == "setup" ]]; then
   success "Git ready."
 
   info "Step 3 — Opening GCP firewall ports…"
-  gcloud compute firewall-rules describe mzansiserve-http \
+  gcloud compute firewall-rules describe ag8te-http \
     --project "$PROJECT" &>/dev/null 2>&1 || \
-  gcloud compute firewall-rules create mzansiserve-http \
+  gcloud compute firewall-rules create ag8te-http \
     --project "$PROJECT" \
     --allow tcp:80,tcp:5006,tcp:443 \
     --source-ranges 0.0.0.0/0 \
     --target-tags http-server \
-    --description "MzansiServe HTTP ports" \
+    --description "AG8TE HTTP ports" \
     --quiet 2>/dev/null || true
   gcloud compute instances add-tags "$INSTANCE" \
     --zone "$ZONE" \
@@ -219,7 +219,7 @@ if [[ "$ACTION" == "setup" ]]; then
   echo ""
   echo -e "  ${YELLOW}Next steps:${NC}"
   echo -e "  1. Copy the public key above"
-  echo -e "  2. Go to: ${CYAN}https://github.com/MzansiServe/mzansiserve-main/settings/keys${NC}"
+  echo -e "  2. Go to: ${CYAN}https://github.com/AG8TE/ag8te-main/settings/keys${NC}"
   echo -e "  3. Click ${GREEN}Add deploy key${NC}, paste the key, and save"
   echo -e "  4. Run: ${YELLOW}./deploy.sh${NC} to do your first git-based deploy"
   echo ""

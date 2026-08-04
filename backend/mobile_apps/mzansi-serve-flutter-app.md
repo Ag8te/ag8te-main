@@ -1,4 +1,4 @@
-# Flutter Mobile App – MzansiServe
+# Flutter Mobile App – AG8TE
 
 > Note as of April 22, 2026:
 > The active mobile implementation in this repository lives in `apps/mobile` and is an Expo React Native app.
@@ -6,13 +6,13 @@
 > - `apps/mobile/FUNCTIONALITY_CHECKLIST.md`
 > - `apps/mobile/WEB_PARITY_PLAN.md`
 
-Technical specification and project quote for a Flutter app that mirrors the existing MzansiServe web application and consumes the current backend API.
+Technical specification and project quote for a Flutter app that mirrors the existing AG8TE web application and consumes the current backend API.
 
 ---
 
 ## 1. Executive Summary
 
-The MzansiServe backend is a Flask API serving a service ads (cabs, professionals, service providers). This document specifies a **native Flutter mobile app** (iOS and Android) that reuses all existing API endpoints, authentication, and business logic. No backend changes are required beyond ensuring CORS/configuration allow mobile clients where applicable.
+The AG8TE backend is a Flask API serving a service ads (cabs, professionals, service providers). This document specifies a **native Flutter mobile app** (iOS and Android) that reuses all existing API endpoints, authentication, and business logic. No backend changes are required beyond ensuring CORS/configuration allow mobile clients where applicable.
 
 **Delivery:** 3 weeks from kick-off.  
 **Quote:** See Section 7.
@@ -128,7 +128,7 @@ The MzansiServe backend is a Flask API serving a service ads (cabs, professional
 
 - **Offline:** Optional: cache account management and “my requests” for read-only offline viewing; write actions require network.
 - **Loading and errors:** Consistent loading indicators and error messages; retry where appropriate.
-- **Deep linking:** Optional: support `mzansiserve://` for post-payment return and password reset.
+- **Deep linking:** Optional: support `ag8te://` for post-payment return and password reset.
 
 ### 3.10 Security and Compliance
 
@@ -172,7 +172,7 @@ The MzansiServe backend is a Flask API serving a service ads (cabs, professional
 
 ### 7.1 Scope Summary
 
-- **In scope:** Flutter app (Android + iOS) with auth, registration (with fee), profile, service requests (cab + professional + provider), account management, wallet, addresses, and (optionally) shop. Uses existing MzansiServe API only.
+- **In scope:** Flutter app (Android + iOS) with auth, registration (with fee), profile, service requests (cab + professional + provider), account management, wallet, addresses, and (optionally) shop. Uses existing AG8TE API only.
 - **Out of scope:** Admin app, backend feature work, push notifications, formal UX design phase.
 
 ### 7.2 Quote (Indicative)
@@ -203,6 +203,6 @@ The MzansiServe backend is a Flask API serving a service ads (cabs, professional
 ## 8. Document Control
 
 - **Version:** 1.0  
-- **Based on:** MzansiServe backend and web app as of current form (roles: client, driver, professional, service-provider, admin; APIs: auth, profile, requests, dashboard, payments, shop, location, addresses, FAQ).  
+- **Based on:** AG8TE backend and web app as of current form (roles: client, driver, professional, service-provider, admin; APIs: auth, profile, requests, dashboard, payments, shop, location, addresses, FAQ).  
 - **Assumption:** Backend API remains stable; Flutter app consumes it without new endpoints.  
 - **Quote validity:** 30 days from date of proposal.

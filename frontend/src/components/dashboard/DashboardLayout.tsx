@@ -349,7 +349,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           </Container>
 
           <Box component="footer" sx={{ py: 3, px: 4, borderTop: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="caption" color="text.secondary">© {new Date().getFullYear()} MzansiServe Admin</Typography>
+            <Typography variant="caption" color="text.secondary">© {new Date().getFullYear()} AG8TE Admin</Typography>
             <Box sx={{ display: 'flex', gap: 3 }}>
               <Typography variant="caption" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' } }}>Privacy</Typography>
               <Typography variant="caption" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' } }}>Terms</Typography>

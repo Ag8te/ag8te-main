@@ -11,9 +11,9 @@ export const TERMS_SECTIONS = [
     {
         id: "acceptance",
         title: "Acceptance of Terms",
-        content: `By accessing or using the MzansiServe platform ("Platform"), website, or any associated mobile applications, you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, please do not use the Platform.
+        content: `By accessing or using the AG8TE platform ("Platform"), website, or any associated mobile applications, you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, please do not use the Platform.
 
-    These Terms constitute a legally binding agreement between you and MzansiServe (Pty) Ltd, a company incorporated in the Republic of South Africa. Use of the Platform is also governed by our Privacy Policy and Cookie Policy, which are incorporated into these Terms by reference.`,
+    These Terms constitute a legally binding agreement between you and AG8TE (Pty) Ltd, a company incorporated in the Republic of South Africa. Use of the Platform is also governed by our Privacy Policy and Cookie Policy, which are incorporated into these Terms by reference.`,
     },
     {
         id: "definitions",
@@ -29,25 +29,25 @@ export const TERMS_SECTIONS = [
         title: "Eligibility & Account Registration",
         content: `You must be at least 18 years of age and legally capable of entering into binding contracts under South African law to use this Platform. By registering, you warrant that all information provided is accurate and complete.
 
-    You are responsible for maintaining the confidentiality of your account credentials. You agree to notify us immediately at support@mzansiserve.co.za if you become aware of any unauthorised access to your account.
+    You are responsible for maintaining the confidentiality of your account credentials. You agree to notify us immediately at support@ag8te.com if you become aware of any unauthorised access to your account.
 
-    MzansiServe reserves the right to suspend or terminate any account that provides false information, engages in prohibited conduct, or violates these Terms.`,
+    AG8TE reserves the right to suspend or terminate any account that provides false information, engages in prohibited conduct, or violates these Terms.`,
     },
     {
         id: "services",
         title: "Service Listings & Bookings",
-        content: `MzansiServe acts as a ads intermediary connecting Clients with Service Providers. We do not directly provide the services listed and are not a party to contracts entered into between Clients and Service Providers.
+        content: `AG8TE acts as a ads intermediary connecting Clients with Service Providers. We do not directly provide the services listed and are not a party to contracts entered into between Clients and Service Providers.
 
-    All Service Providers are independently verified through relevant South African regulatory databases including SARS, CIPC, Home Affairs, and SAPS where applicable. However, MzansiServe does not guarantee the quality, safety, or legality of any service provided.
+    All Service Providers are independently verified through relevant South African regulatory databases including SARS, CIPC, Home Affairs, and SAPS where applicable. However, AG8TE does not guarantee the quality, safety, or legality of any service provided.
 
-    Clients are encouraged to review provider profiles, ratings, and reviews before making a Booking. A Booking is confirmed only upon receipt of a confirmation notification from MzansiServe.`,
+    Clients are encouraged to review provider profiles, ratings, and reviews before making a Booking. A Booking is confirmed only upon receipt of a confirmation notification from AG8TE.`,
     },
     {
         id: "payments",
         title: "Payments & Fees",
         content: `All prices displayed on the Platform are in South African Rand (ZAR) and are inclusive of VAT where applicable, in accordance with the Value-Added Tax Act, 89 of 1991.
 
-    Payments are processed through secure third-party payment gateways. MzansiServe does not store your full payment card information. A service fee may be charged on transactions, which will be clearly disclosed before checkout.
+    Payments are processed through secure third-party payment gateways. AG8TE does not store your full payment card information. A service fee may be charged on transactions, which will be clearly disclosed before checkout.
 
     Refunds are subject to the individual Service Provider's cancellation policy and, where applicable, the Consumer Protection Act, 68 of 2008 ("CPA"). You have the right to cancel a booking without penalty within five (5) business days for fixed-term service agreements in accordance with the CPA.`,
     },
@@ -58,14 +58,14 @@ export const TERMS_SECTIONS = [
 
     Service Providers who fail to honour a confirmed Booking without adequate notice may be subject to penalties, suspension, or removal from the Platform.
 
-    In the event of a dispute regarding a cancellation, MzansiServe's decision following a review of evidence submitted by both parties shall be final, subject to applicable South African consumer protection legislation.`,
+    In the event of a dispute regarding a cancellation, AG8TE's decision following a review of evidence submitted by both parties shall be final, subject to applicable South African consumer protection legislation.`,
     },
     {
         id: "popia",
         title: "Personal Information & POPIA",
-        content: `MzansiServe collects and processes personal information in accordance with the Protection of Personal Information Act, 4 of 2013 ("POPIA"). By using the Platform, you consent to the collection and processing of your personal information as set out in our Privacy Policy.
+        content: `AG8TE collects and processes personal information in accordance with the Protection of Personal Information Act, 4 of 2013 ("POPIA"). By using the Platform, you consent to the collection and processing of your personal information as set out in our Privacy Policy.
 
-    You have the right to access, correct, and request deletion of your personal information held by MzansiServe. Please contact our Information Officer at privacy@mzansiserve.co.za for any POPIA-related requests.`,
+    You have the right to access, correct, and request deletion of your personal information held by AG8TE. Please contact our Information Officer at privacy@ag8te.com for any POPIA-related requests.`,
     },
     {
         id: "prohibited",
@@ -76,21 +76,21 @@ export const TERMS_SECTIONS = [
     • Transmit any viruses, malware, or other harmful code.
     • Engage in fraudulent activity, including submitting false bookings or reviews.
     • Harass, abuse, or harm other Users or Service Providers.
-    • Circumvent MzansiServe's platform to conduct transactions off-platform to avoid legitimate fees.`,
+    • Circumvent AG8TE's platform to conduct transactions off-platform to avoid legitimate fees.`,
     },
     {
         id: "liability",
         title: "Limitation of Liability",
-        content: `To the maximum extent permitted by South African law, MzansiServe shall not be liable for any indirect, incidental, special, or consequential damages arising from your use of the Platform or any services booked through it.
+        content: `To the maximum extent permitted by South African law, AG8TE shall not be liable for any indirect, incidental, special, or consequential damages arising from your use of the Platform or any services booked through it.
 
-    MzansiServe's total liability for any claim arising from these Terms shall not exceed the total fees paid by you through the Platform in the three (3) months preceding the event giving rise to the claim.
+    AG8TE's total liability for any claim arising from these Terms shall not exceed the total fees paid by you through the Platform in the three (3) months preceding the event giving rise to the claim.
 
     Nothing in these Terms limits our liability for fraud, death, or personal injury caused by our negligence, or for any other liability that cannot be excluded by South African law.`,
     },
     {
         id: "changes",
         title: "Changes to These Terms",
-        content: `MzansiServe reserves the right to modify these Terms at any time. Material changes will be communicated via email or a prominent notice on the Platform at least fifteen (15) days before they take effect. Continued use of the Platform after such changes constitutes acceptance of the revised Terms.`,
+        content: `AG8TE reserves the right to modify these Terms at any time. Material changes will be communicated via email or a prominent notice on the Platform at least fifteen (15) days before they take effect. Continued use of the Platform after such changes constitutes acceptance of the revised Terms.`,
     },
     {
         id: "governing",
@@ -104,8 +104,8 @@ export const TERMS_SECTIONS = [
         title: "Contact Us",
         content: `If you have any questions about these Terms, please contact us at:
 
-    MzansiServe (Pty) Ltd
-    Email: legal@mzansiserve.co.za
+    AG8TE (Pty) Ltd
+    Email: legal@ag8te.com
     Phone: +27 (0) 11 000 0000
     Address: Johannesburg, Gauteng, South Africa`,
     },

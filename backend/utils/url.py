@@ -50,19 +50,19 @@ def _prefer_configured_public_url(value: str | None, config_key: str) -> str | N
 
 def _config_default_frontend() -> str:
     if current_app.config.get("FLASK_ENV") == "production":
-        return "https://mzansiserve.co.za"
+        return "https://ag8te.com"
     return "http://localhost"
 
 
 def _config_mobile_app_url() -> str:
     return _strip_trailing_slash(
-        current_app.config.get("MOBILE_APP_URL") or "co.za.mzansiserve.app://app"
+        current_app.config.get("MOBILE_APP_URL") or "co.za.ag8te.app://app"
     )
 
 
 def _config_default_backend() -> str:
     if current_app.config.get("FLASK_ENV") == "production":
-        return "https://mzansiserve.co.za"
+        return "https://ag8te.com"
     return "http://localhost:5006"
 
 

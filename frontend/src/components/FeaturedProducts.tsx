@@ -163,7 +163,7 @@ const FeaturedProducts = () => {
                                                     Verified seller
                                                 </p>
                                                 <p className="truncate text-sm font-bold text-emerald-950">
-                                                    {product.seller_name || "MzansiServe"}
+                                                    {product.seller_name || "AG8TE"}
                                                 </p>
                                             </div>
                                         </div>

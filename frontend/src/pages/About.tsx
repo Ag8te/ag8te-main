@@ -121,7 +121,7 @@ const About = () => {
             Ready to Get <span className="text-primary">Started?</span>
           </motion.h2>
           <p className="text-lg text-slate-500 font-normal mb-10">
-            Join thousands of South Africans already using MzansiServe.
+            Join thousands of South Africans already using AG8TE.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4">
             <Button

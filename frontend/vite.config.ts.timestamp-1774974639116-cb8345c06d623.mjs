@@ -7,7 +7,7 @@ var vite_config_default = defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
-    allowedHosts: ["mzansiserve.co.za"],
+    allowedHosts: ["ag8te.com", "www.ag8te.com", "ag8te.co.za", "www.ag8te.co.za"],
     hmr: {
       overlay: false
     }

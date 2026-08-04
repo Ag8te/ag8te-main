@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search, MapPin, Tag, Filter, ChevronRight,
@@ -116,6 +116,7 @@ export default function Shop() {
   const [sortBy, setSortBy] = useState("newest");
   const [onlyWishlist, setOnlyWishlist] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
+  const resultsRef = useRef<HTMLDivElement | null>(null);
   const [wishlist, setWishlist] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem("mz_wishlist");
@@ -220,7 +221,7 @@ export default function Shop() {
         image: imgSrc,
         category: p.category?.title || "Shop Product",
         category_id: p.category?.id || p.category_id,
-        seller: p.seller_name || "MzansiServe",
+        seller: p.seller_name || "AG8TE",
         locations: normalizeProductLocations(p.locations),
         location: normalizeProductLocations(p.locations).join(", ") || "Mzansi",
         date: p.created_at,
@@ -366,6 +367,22 @@ export default function Shop() {
     const start = (currentPage - 1) * itemsPerPage;
     return filteredItems.slice(start, start + itemsPerPage);
   }, [filteredItems, currentPage, itemsPerPage]);
+  const firstVisibleItem = totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+  const lastVisibleItem = Math.min(currentPage * itemsPerPage, totalItems);
+
+  const moveToPage = (page: number) => {
+    const nextPage = Math.min(Math.max(page, 1), Math.max(totalPages, 1));
+    setCurrentPage(nextPage);
+    window.setTimeout(() => {
+      resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 0);
+  };
+
+  useEffect(() => {
+    if (totalPages > 0 && currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   const updateParams = (updates: Record<string, string | null>) => {
     const newParams = new URLSearchParams(searchParams);
@@ -465,7 +482,7 @@ export default function Shop() {
               </h1>
               <p className="text-slate-500 text-lg mb-8 max-w-2xl mx-auto">
                 Discover the best local items curated and sold exclusively by
-                MzansiServe. Want us to sell your items for a small fee?{" "}
+                AG8TE. Want us to sell your items for a small fee?{" "}
                 <button
                   onClick={() => navigate("/contact")}
                   className="text-primary font-bold hover:underline cursor-pointer"
@@ -694,6 +711,48 @@ export default function Shop() {
               </SheetContent>
             </Sheet>
           </div>
+        </div>
+
+        <div
+          ref={resultsRef}
+          className="mb-5 flex flex-col gap-3 scroll-mt-28 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div>
+            <p className="text-sm font-bold text-slate-500">
+              {totalItems > 0
+                ? `Showing ${firstVisibleItem}-${lastVisibleItem} of ${totalItems} items`
+                : "No items to show"}
+            </p>
+            {totalPages > 1 && (
+              <p className="text-xs font-semibold text-slate-400">
+                Page {currentPage} of {totalPages}
+              </p>
+            )}
+          </div>
+          {totalPages > 1 && (
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="rounded-xl font-bold"
+                disabled={currentPage === 1}
+                onClick={() => moveToPage(currentPage - 1)}
+              >
+                Previous
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="rounded-xl font-bold"
+                disabled={currentPage === totalPages}
+                onClick={() => moveToPage(currentPage + 1)}
+              >
+                Next page
+              </Button>
+            </div>
+          )}
         </div>
 
         {isLoading ? (
@@ -1053,7 +1112,7 @@ export default function Shop() {
               <PaginationContent>
                 <PaginationItem>
                   <PaginationPrevious
-                    onClick={() => setCurrentPage((c) => Math.max(1, c - 1))}
+                    onClick={() => moveToPage(currentPage - 1)}
                     className={
                       currentPage === 1
                         ? "pointer-events-none opacity-50"
@@ -1072,7 +1131,7 @@ export default function Shop() {
                       <PaginationItem key={i}>
                         <PaginationLink
                           isActive={currentPage === page}
-                          onClick={() => setCurrentPage(page)}
+                          onClick={() => moveToPage(page)}
                           className="cursor-pointer"
                         >
                           {page}
@@ -1090,9 +1149,7 @@ export default function Shop() {
                 })}
                 <PaginationItem>
                   <PaginationNext
-                    onClick={() =>
-                      setCurrentPage((c) => Math.min(totalPages, c + 1))
-                    }
+                    onClick={() => moveToPage(currentPage + 1)}
                     className={
                       currentPage === totalPages
                         ? "pointer-events-none opacity-50"

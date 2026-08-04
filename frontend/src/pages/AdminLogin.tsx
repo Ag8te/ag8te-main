@@ -16,6 +16,7 @@ const AdminLogin = () => {
     const navigate = useNavigate();
     const { toast } = useToast();
     const { adminLogin } = useAuth();
+    const isPasswordResetRequired = error.toLowerCase().includes("reset your password");
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -75,7 +76,17 @@ const AdminLogin = () => {
                                     className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3 text-[#C13515]"
                                 >
                                     <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-                                    <p className="text-sm font-normal">{error}</p>
+                                    <div className="flex-1">
+                                        <p className="text-sm font-normal">{error}</p>
+                                        {isPasswordResetRequired && (
+                                            <Link
+                                                to="/forgot-password?role=admin"
+                                                className="mt-2 inline-flex text-[13px] font-bold underline hover:text-red-800 transition-colors"
+                                            >
+                                                Reset password
+                                            </Link>
+                                        )}
+                                    </div>
                                 </motion.div>
                             )}
                         </AnimatePresence>
@@ -93,7 +104,7 @@ const AdminLogin = () => {
                                         value={email}
                                         onChange={(e) => { setEmail(e.target.value); if (error) setError(""); }}
                                         className="w-full bg-transparent py-4 px-4 text-base text-[#222222] outline-none placeholder:text-[#B0B0B0] font-medium h-14"
-                                        placeholder="admin@mzansiserve.co.za"
+                                        placeholder="admin@ag8te.com"
                                         autoComplete="email"
                                         required
                                     />
@@ -109,6 +120,7 @@ const AdminLogin = () => {
                                     <button
                                         type="button"
                                         className="text-[13px] font-bold text-primary hover:underline underline-offset-4"
+                                        onClick={() => navigate("/forgot-password?role=admin")}
                                     >
                                         Forgot password?
                                     </button>
@@ -139,7 +151,7 @@ const AdminLogin = () => {
                                 id="admin-login-submit-button"
                                 type="submit"
                                 className="w-full bg-primary hover:bg-primary/95 text-white font-bold py-4 rounded-2xl shadow-xl shadow-primary/10 transition-all active:scale-[0.98] h-14 text-base mt-2"
-                                disabled={loading}
+                                disabled={loading || isPasswordResetRequired}
                             >
                                 {loading ? (
                                     <Loader2 className="w-5 h-5 animate-spin mx-auto" />
@@ -150,7 +162,7 @@ const AdminLogin = () => {
                         </form>
 
                         <div className="mt-4 flex justify-start">
-                            <Link to="#" className="text-sm font-semibold text-[#222222] underline hover:text-black transition-colors">
+                            <Link to="/forgot-password?role=admin" className="text-sm font-semibold text-[#222222] underline hover:text-black transition-colors">
                                 Forgot password?
                             </Link>
                         </div>
@@ -164,7 +176,7 @@ const AdminLogin = () => {
                                 Standard User Portal
                             </Link>
                             <p className="text-[10px] font-bold text-[#717171] uppercase tracking-[0.2em] mt-2">
-                                MzansiServe © 2026 • Security Protocol V2
+                                AG8TE © 2026 • Security Protocol V2
                             </p>
                         </div>
                     </div>

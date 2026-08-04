@@ -2,6 +2,9 @@ import { createContext, useContext, useState, useCallback, useEffect, type React
 import { apiFetch } from "@/lib/api";
 import { requiresRegistrationPayment } from "@/lib/registration-payment";
 
+const IDLE_TIMEOUT_MS = 5 * 60 * 1000;
+const LAST_ACTIVITY_KEY = "lastActivityAt";
+
 export interface User {
   id: string;
   name: string;
@@ -56,6 +59,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const initAuth = async () => {
       const token = localStorage.getItem("token") || localStorage.getItem("adminToken");
       if (token) {
+        const lastActivity = Number(localStorage.getItem(LAST_ACTIVITY_KEY) || 0);
+        if (lastActivity && Date.now() - lastActivity > IDLE_TIMEOUT_MS) {
+          localStorage.removeItem("token");
+          localStorage.removeItem("adminToken");
+          localStorage.removeItem("adminUser");
+          localStorage.removeItem(LAST_ACTIVITY_KEY);
+          syncUserState(null);
+          setIsLoading(false);
+          return;
+        }
+
         try {
           const result = await apiFetch("/api/auth/me", {
             headers: { Authorization: `Bearer ${token}` }
@@ -81,6 +95,55 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     initAuth();
   }, [syncUserState]);
+
+  const logout = useCallback(() => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("adminToken");
+    localStorage.removeItem("adminUser");
+    localStorage.removeItem(LAST_ACTIVITY_KEY);
+    syncUserState(null);
+  }, [syncUserState]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    let lastRecordedActivity = 0;
+
+    const redirectToLogin = () => {
+      const isAdmin = user.role === "admin" || !!localStorage.getItem("adminToken");
+      logout();
+      sessionStorage.setItem("sessionTimeoutReason", "idle");
+      window.location.assign(isAdmin ? "/admin/login?reason=timeout" : "/login?reason=timeout");
+    };
+
+    const scheduleLogout = () => {
+      if (timeoutId) window.clearTimeout(timeoutId);
+      const lastActivity = Number(localStorage.getItem(LAST_ACTIVITY_KEY) || Date.now());
+      const remaining = Math.max(0, IDLE_TIMEOUT_MS - (Date.now() - lastActivity));
+      timeoutId = window.setTimeout(redirectToLogin, remaining);
+    };
+
+    const recordActivity = () => {
+      const now = Date.now();
+      if (now - lastRecordedActivity < 1000) return;
+      lastRecordedActivity = now;
+      localStorage.setItem(LAST_ACTIVITY_KEY, String(now));
+      scheduleLogout();
+    };
+
+    recordActivity();
+
+    const events: Array<keyof WindowEventMap> = ["click", "keydown", "scroll", "touchstart", "pointerdown"];
+    events.forEach((eventName) => window.addEventListener(eventName, recordActivity, { passive: true }));
+    window.addEventListener("storage", scheduleLogout);
+
+    return () => {
+      if (timeoutId) window.clearTimeout(timeoutId);
+      events.forEach((eventName) => window.removeEventListener(eventName, recordActivity));
+      window.removeEventListener("storage", scheduleLogout);
+    };
+  }, [user, logout]);
 
   const login = useCallback(async (email: string, password: string, role?: string) => {
     try {
@@ -129,7 +192,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (error: any) {
       return { success: false, error: error.message || "An error occurred during admin login" };
     }
-  }, []);
+  }, [syncUserState]);
 
   const register = useCallback(async (data: FormData | Record<string, any>) => {
     try {
@@ -154,13 +217,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (error: any) {
       return { success: false, error: error.message || "An error occurred during registration" };
     }
-  }, [syncUserState]);
-
-  const logout = useCallback(() => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("adminToken");
-    localStorage.removeItem("adminUser");
-    syncUserState(null);
   }, [syncUserState]);
 
   return (

@@ -297,8 +297,8 @@ def get_footer_details():
         else:
             return success_response({
                 'footer': {
-                    'company_name': 'MzansiServe',
-                    'email': 'info@mzansiserve.co.za',
+                    'company_name': 'AG8TE',
+                    'email': 'info@ag8te.com',
                     'phone': '+27 (0) 11 000 0000',
                     'physical_address': 'Johannesburg, Gauteng, South Africa'
                 }

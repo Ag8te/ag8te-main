@@ -246,7 +246,7 @@ const MarketplaceAdDetails = () => {
 
                                 <div className="space-y-4 mb-10">
                                     <p className="text-slate-500 text-sm italic">
-                                        "Please mention that you found this ad on MzansiServe when contacting the seller."
+                                        "Please mention that you found this ad on AG8TE when contacting the seller."
                                     </p>
                                     <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
                                         <div className="h-14 w-14 rounded-full bg-white flex items-center justify-center text-xl font-bold text-slate-600 border border-slate-100">

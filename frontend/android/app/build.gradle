@@ -16,17 +16,17 @@ if (hasReleaseKeystore) {
 }
 
 android {
-    namespace = "co.za.mzansiserve.app"
+    namespace = "co.za.ag8te.app"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "co.za.mzansiserve.app"
+        applicationId "co.za.ag8te.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode resolvedVersionCode
         versionName resolvedVersionName
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         manifestPlaceholders = [
-            appUrlScheme: "co.za.mzansiserve.app",
+            appUrlScheme: "co.za.ag8te.app",
             appUrlHost  : "app",
         ]
         aaptOptions {

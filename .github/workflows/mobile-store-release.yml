@@ -78,9 +78,9 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           test -n "$ANDROID_KEYSTORE_BASE64"
-          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > frontend/android/app/mzansiserve-release.keystore
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > frontend/android/app/ag8te-release.keystore
           {
-            echo "storeFile=mzansiserve-release.keystore"
+            echo "storeFile=ag8te-release.keystore"
             echo "storePassword=$ANDROID_KEYSTORE_PASSWORD"
             echo "keyAlias=$ANDROID_KEY_ALIAS"
             echo "keyPassword=$ANDROID_KEY_PASSWORD"
@@ -103,7 +103,7 @@ jobs:
 
       - name: Upload to Google Play internal testing
         env:
-          ANDROID_AAB_PATH: ${{ github.workspace }}/frontend/store-builds/google-play/mzansiserve-google-play-${{ env.APP_VERSION_NAME }}-${{ env.APP_VERSION_CODE }}.aab
+          ANDROID_AAB_PATH: ${{ github.workspace }}/frontend/store-builds/google-play/ag8te-google-play-${{ env.APP_VERSION_NAME }}-${{ env.APP_VERSION_CODE }}.aab
           APP_VERSION_NAME: ${{ env.APP_VERSION_NAME }}
           APP_VERSION_CODE: ${{ env.APP_VERSION_CODE }}
           GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
@@ -112,7 +112,7 @@ jobs:
 
       - name: Upload to Huawei AppGallery
         env:
-          ANDROID_AAB_PATH: ${{ github.workspace }}/frontend/store-builds/google-play/mzansiserve-google-play-${{ env.APP_VERSION_NAME }}-${{ env.APP_VERSION_CODE }}.aab
+          ANDROID_AAB_PATH: ${{ github.workspace }}/frontend/store-builds/google-play/ag8te-google-play-${{ env.APP_VERSION_NAME }}-${{ env.APP_VERSION_CODE }}.aab
           HUAWEI_CLIENT_ID: ${{ secrets.HUAWEI_CLIENT_ID }}
           HUAWEI_CLIENT_SECRET: ${{ secrets.HUAWEI_CLIENT_SECRET }}
           HUAWEI_APP_ID: ${{ secrets.HUAWEI_APP_ID }}
@@ -167,7 +167,7 @@ jobs:
           security list-keychain -d user -s "$KEYCHAIN_PATH"
           security set-key-partition-list -S apple-tool:,apple: -k "$IOS_KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
-          cp "$PROFILE_PATH" "$HOME/Library/MobileDevice/Provisioning Profiles/mzansiserve.mobileprovision"
+          cp "$PROFILE_PATH" "$HOME/Library/MobileDevice/Provisioning Profiles/ag8te.mobileprovision"
 
       - name: Create App Store export configuration
         env:
@@ -187,7 +187,7 @@ jobs:
             <string>manual</string>
             <key>provisioningProfiles</key>
             <dict>
-              <key>co.za.mzansiserve.app</key>
+              <key>co.za.ag8te.app</key>
               <string>${IOS_PROVISIONING_PROFILE_NAME}</string>
             </dict>
             <key>uploadSymbols</key>
@@ -212,7 +212,7 @@ jobs:
 
       - name: Upload to TestFlight
         env:
-          IOS_IPA_PATH: ${{ github.workspace }}/frontend/store-builds/apple/mzansiserve-apple-${{ env.APP_VERSION_NAME }}-${{ env.APP_VERSION_CODE }}.ipa
+          IOS_IPA_PATH: ${{ github.workspace }}/frontend/store-builds/apple/ag8te-apple-${{ env.APP_VERSION_NAME }}-${{ env.APP_VERSION_CODE }}.ipa
           APP_VERSION_NAME: ${{ env.APP_VERSION_NAME }}
           APP_VERSION_CODE: ${{ env.APP_VERSION_CODE }}
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}

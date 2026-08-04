@@ -2,11 +2,12 @@ import logging
 import os
 import uuid
 import json
+from datetime import datetime, timezone
 from flask import current_app
 from werkzeug.utils import secure_filename
 from backend.models import User, Agent, VehicleImage, UserSelectedService, SubscriptionPlan
 from backend.extensions import db
-from backend.utils.auth import generate_tracking_number
+from backend.utils.auth import create_email_verification_token, generate_tracking_number
 from backend.services.email_service import EmailService
 from backend.services.wallet_service import WalletService
 from backend.services.payment_service import PaymentService
@@ -15,8 +16,17 @@ logger = logging.getLogger(__name__)
 
 REGISTRATION_FEE_AMOUNT = 0  # Free registration period; restore paid amount when needed.
 REGISTRATION_FEE_REQUIRED = REGISTRATION_FEE_AMOUNT > 0
+MAX_FAILED_LOGIN_ATTEMPTS = 5
 
 class AuthService:
+    @staticmethod
+    def _send_registration_email(user):
+        if user.role == 'client':
+            token = create_email_verification_token(user.id)
+            EmailService.send_client_registration_profile_link(user, token)
+        else:
+            EmailService.send_registration_confirmation(user)
+
     @staticmethod
     def register_user(email, password, role, full_name=None, phone=None):
         """Standard user registration."""
@@ -33,7 +43,7 @@ class AuthService:
             is_paid=is_registration_paid,
             is_approved=False,
             is_active=True,
-            email_verified=True,
+            email_verified=role != 'client',
             tracking_number=generate_tracking_number()
         )
         user.set_password(password)
@@ -51,7 +61,7 @@ class AuthService:
         WalletService.get_or_create_wallet(user.id)
 
         try:
-            EmailService.send_registration_confirmation(user)
+            AuthService._send_registration_email(user)
         except Exception as e:
             logger.warning(f"Failed to send registration confirmation email for user {user.id}: {e}")
             
@@ -68,9 +78,28 @@ class AuthService:
             users.sort(key=lambda u: role_order.index(u.role) if u.role in role_order else len(role_order))
             user = next((candidate for candidate in users if candidate.check_password(password)), None)
 
-        if not user or not user.check_password(password):
+        if not user:
+            return None, "INVALID_CREDENTIALS"
+
+        if user.password_reset_required:
+            return user, "PASSWORD_RESET_REQUIRED"
+
+        if not user.check_password(password):
+            user.login_failed_attempts = (user.login_failed_attempts or 0) + 1
+            if user.login_failed_attempts >= MAX_FAILED_LOGIN_ATTEMPTS:
+                user.password_reset_required = True
+                user.password_reset_required_at = datetime.now(timezone.utc)
+                db.session.commit()
+                return user, "PASSWORD_RESET_REQUIRED"
+            db.session.commit()
             return None, "INVALID_CREDENTIALS"
         
+        if user.login_failed_attempts or user.password_reset_required:
+            user.login_failed_attempts = 0
+            user.password_reset_required = False
+            user.password_reset_required_at = None
+            db.session.commit()
+
         if not user.is_active:
             return None, "ACCOUNT_INACTIVE"
 
@@ -143,28 +172,37 @@ class AuthService:
             is_paid=is_registration_paid,
             is_approved=False,
             is_active=True,
-            email_verified=True,
+            email_verified=role != 'client',
             tracking_number=generate_tracking_number(),
-            nationality=registration_data.get('nationality'),
+            nationality=None if is_client else registration_data.get('nationality'),
             agent_id=agent_uuid,
         )
         user.set_password(password)
         
         # Build data JSONB
-        user_data = {
-            'full_name': registration_data.get('full_name'),
-            'surname': registration_data.get('surname'),
-            'phone': registration_data.get('phone'),
-            'gender': registration_data.get('gender'),
-            'id_number': registration_data.get('id_number'),
-            'next_of_kin': registration_data.get('next_of_kin'),
-            'sa_citizen': registration_data.get('nationality') == 'South Africa'
-        }
-        
-        if user_data['sa_citizen']:
-            user_data['sa_id'] = registration_data.get('id_number')
+        if is_client:
+            user_data = {
+                'full_name': registration_data.get('full_name') or '',
+                'surname': registration_data.get('surname') or '',
+                'phone': registration_data.get('phone') or '',
+                'gender': registration_data.get('gender') or '',
+                'next_of_kin': registration_data.get('next_of_kin') or {},
+            }
         else:
-            user_data['passport_number'] = registration_data.get('id_number')
+            user_data = {
+                'full_name': registration_data.get('full_name'),
+                'surname': registration_data.get('surname'),
+                'phone': registration_data.get('phone'),
+                'gender': registration_data.get('gender'),
+                'id_number': registration_data.get('id_number'),
+                'next_of_kin': registration_data.get('next_of_kin'),
+                'sa_citizen': registration_data.get('nationality') == 'South Africa'
+            }
+
+            if user_data['sa_citizen']:
+                user_data['sa_id'] = registration_data.get('id_number')
+            else:
+                user_data['passport_number'] = registration_data.get('id_number')
 
         def _normalize_driver_services(reg_data):
             raw_driver_services = reg_data.get('driver_services') or []
@@ -245,7 +283,7 @@ class AuthService:
             os.makedirs(upload_folder)
 
         # Map files to user data
-        if 'id_document' in files:
+        if role != 'client' and 'id_document' in files:
             url = cls.handle_file_upload(files['id_document'], 'id', upload_folder)
             user.file_urls = [url] if url else []
         
@@ -312,7 +350,7 @@ class AuthService:
         logger.info(f"User {user.id} committed to DB in register_with_payment_logic")
         
         try:
-            EmailService.send_registration_confirmation(user)
+            cls._send_registration_email(user)
             logger.info("Registration confirmation email sent for user %s", user.id)
         except Exception as e:
             logger.error("Failed to send registration confirmation email for user %s: %s", user.id, e)

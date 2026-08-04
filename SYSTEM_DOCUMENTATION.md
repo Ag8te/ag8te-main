@@ -1,16 +1,16 @@
-# MzansiServe System Documentation
+# AG8TE System Documentation
 
-This document provides a technical overview of the MzansiServe ecosystem, comprising the Backend, Web Frontend, and Mobile Application systems.
+This document provides a technical overview of the AG8TE ecosystem, comprising the Backend, Web Frontend, and Mobile Application systems.
 
 ## 1. System Overview
 
-MzansiServe is a multi-platform service marketplace and business management system. It leverages a modern, distributed architecture to provide high availability and scalability.
+AG8TE is a multi-platform service marketplace and business management system. It leverages a modern, distributed architecture to provide high availability and scalability.
 
 ---
 
 ## 2. Backend System
 
-The backend serves as the core engine of MzansiServe, providing RESTful APIs, business logic, data persistence, and integration with third-party services.
+The backend serves as the core engine of AG8TE, providing RESTful APIs, business logic, data persistence, and integration with third-party services.
 
 ### Core Technologies
 - **Language:** Python 3.x
@@ -76,7 +76,7 @@ The mobile system provides a native experience for users on both iOS and Android
 
 ## 5. Hosting & Infrastructure
 
-The MzansiServe ecosystem is hosted on **Google Cloud Platform (GCP)**, ensuring robust performance and global availability.
+The AG8TE ecosystem is hosted on **Google Cloud Platform (GCP)**, ensuring robust performance and global availability.
 
 ### Hosting Details
 - **Platform:** Google Cloud Platform (GCP).
@@ -84,7 +84,7 @@ The MzansiServe ecosystem is hosted on **Google Cloud Platform (GCP)**, ensuring
 - **Deployment Location:** `us-central1-c` zone.
 - **Orchestration:** **Docker & Docker Compose** (Containerized services for consistency across environments).
 - **Web Server:** **Nginx** (Serving as a high-performance reverse proxy and SSL terminator).
-- **Domain:** `mzansiserve.co.za` (with automated Let's Encrypt SSL management).
+- **Domain:** `ag8te.com` (with automated Let's Encrypt SSL management).
 
 ### Deployment Workflow
 The system utilizes an automated deployment pipeline via a custom `deploy.sh` script that:
