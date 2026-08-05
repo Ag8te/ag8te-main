@@ -6,7 +6,7 @@ services:
     image: postgres:15-alpine
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-ag8te}
-      POSTGRES_USER: ${POSTGRES_USER:-mzansi}
+      POSTGRES_USER: ${POSTGRES_USER:-ag8te}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -15,7 +15,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "pg_isready -U ${POSTGRES_USER:-mzansi} -d ${POSTGRES_DB:-ag8te}",
+          "pg_isready -U ${POSTGRES_USER:-ag8te} -d ${POSTGRES_DB:-ag8te}",
         ]
       interval: 10s
       timeout: 5s
@@ -30,8 +30,8 @@ services:
       - "5000" # Internal only — nginx proxies this
     environment:
       # Database
-      DATABASE_URL: postgresql://${POSTGRES_USER:-mzansi}:${DB_PASSWORD:-changeme}@db:5432/${POSTGRES_DB:-ag8te}
-      POSTGRES_USER: ${POSTGRES_USER:-mzansi}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-ag8te}:${DB_PASSWORD:-changeme}@db:5432/${POSTGRES_DB:-ag8te}
+      POSTGRES_USER: ${POSTGRES_USER:-ag8te}
       POSTGRES_DB: ${POSTGRES_DB:-ag8te}
       # Flask
       SECRET_KEY: ${SECRET_KEY:-dev-secret-key}
@@ -118,7 +118,7 @@ services:
       - "443:443"     # HTTPS
       - "5006:5006"   # Backend API (Flask)
     volumes:
-      - ./nginx_dir/new/nginx.docker.conf:/etc/nginx/nginx.conf:ro
+      - ${NGINX_CONF:-./nginx_dir/new/nginx.docker.conf}:/etc/nginx/nginx.conf:ro
       - ./static:/app/static:ro
       - ./uploads:/app/uploads:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
