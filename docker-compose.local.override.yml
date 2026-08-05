@@ -1,6 +1,6 @@
 # Local Development Override
-# This file is AUTOMATICALLY loaded by Docker Compose when running locally.
-# It makes the local environment "just work" without changing the production config.
+# Use with: docker compose -f docker-compose.yml -f docker-compose.local.override.yml up
+# Keep this file out of the default docker-compose.override.yml name so production does not load it automatically.
 
 services:
   app:
