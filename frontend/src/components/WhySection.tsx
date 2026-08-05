@@ -23,7 +23,7 @@ const FALLBACK: Feature[] = [
   { id: "1", icon: "ShieldCheck", title: "Fully Verified", description: "Every provider is vetted through, Home Affairs, CIPC, and SAPS databases." },
   { id: "2", icon: "Clock", title: "Instant Booking", description: "Book any service in seconds. No long calls, no waiting — just tap and go." },
   { id: "3", icon: "BadgeCheck", title: "Accredited Experts", description: "Professional bodies validate credentials so you don't have to do due diligence." },
-  { id: "4", icon: "Headphones", title: "Dedicated Support", description: "Our Mzansi-based support team is available to help — any time, any issue." },
+  { id: "4", icon: "Headphones", title: "Dedicated Support", description: "Our South Africa-based support team is available to help — any time, any issue." },
 ];
 
 const WhySection = () => {

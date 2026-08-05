@@ -16,7 +16,7 @@ const steps = [
     },
     {
         number: "03",
-        title: "Enjoy Mzansi Quality",
+        title: "Enjoy AG8TE Quality",
         description: "Relax while our verified providers handle the rest with top-tier service.",
         icon: "😊",
     },

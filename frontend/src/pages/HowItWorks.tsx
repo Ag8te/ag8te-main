@@ -193,7 +193,7 @@ const HowItWorks = () => {
                     >
                         <div className="absolute top-0 right-0 w-64 h-64 bg-primary/20 rounded-full blur-3xl -mr-32 -mt-32" />
                         <div className="relative z-10">
-                            <h2 className="text-3xl md:text-5xl font-semibold mb-6">Experience the Mzansi Way</h2>
+                            <h2 className="text-3xl md:text-5xl font-semibold mb-6">Experience the AG8TE Way</h2>
                             <p className="text-slate-400 text-lg mb-10 font-normal">
                                 Join thousands of users who have simplified their lives with our trusted platform.
                             </p>

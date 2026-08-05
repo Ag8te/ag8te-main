@@ -65,7 +65,7 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
--- Name: ad_inquiries; Type: TABLE; Schema: public; Owner: mzansi
+-- Name: ad_inquiries; Type: TABLE; Schema: public; Owner: ag8te
 --
 
 CREATE TABLE public.ad_inquiries (
@@ -79,10 +79,10 @@ CREATE TABLE public.ad_inquiries (
 );
 
 
-ALTER TABLE public.ad_inquiries OWNER TO mzansi;
+ALTER TABLE public.ad_inquiries OWNER TO ag8te;
 
 --
--- Name: adverts; Type: TABLE; Schema: public; Owner: mzansi
+-- Name: adverts; Type: TABLE; Schema: public; Owner: ag8te
 --
 
 CREATE TABLE public.adverts (
@@ -102,10 +102,10 @@ CREATE TABLE public.adverts (
 );
 
 
-ALTER TABLE public.adverts OWNER TO mzansi;
+ALTER TABLE public.adverts OWNER TO ag8te;
 
 --
--- Name: agent_commissions; Type: TABLE; Schema: public; Owner: mzansi
+-- Name: agent_commissions; Type: TABLE; Schema: public; Owner: ag8te
 --
 
 CREATE TABLE public.agent_commissions (
@@ -120,10 +120,10 @@ CREATE TABLE public.agent_commissions (
 );
 
 
-ALTER TABLE public.agent_commissions OWNER TO mzansi;
+ALTER TABLE public.agent_commissions OWNER TO ag8te;
 
 --
--- Name: agents; Type: TABLE; Schema: public; Owner: mzansi
+-- Name: agents; Type: TABLE; Schema: public; Owner: ag8te
 --
 
 CREATE TABLE public.agents (
@@ -139,10 +139,10 @@ CREATE TABLE public.agents (
 );
 
 
-ALTER TABLE public.agents OWNER TO mzansi;
+ALTER TABLE public.agents OWNER TO ag8te;
 
 --
--- Name: alembic_version; Type: TABLE; Schema: public; Owner: mzansi
+-- Name: alembic_version; Type: TABLE; Schema: public; Owner: ag8te
 --
 
 CREATE TABLE public.alembic_version (
@@ -150,10 +150,10 @@ CREATE TABLE public.alembic_version (
 );
 
 
-ALTER TABLE public.alembic_version OWNER TO mzansi;
+ALTER TABLE public.alembic_version OWNER TO ag8te;
 
 --
--- Name: app_settings; Type: TABLE; Schema: public; Owner: mzansi
+-- Name: app_settings; Type: TABLE; Schema: public; Owner: ag8te
 --
 
 CREATE TABLE public.app_settings (
@@ -164,10 +164,10 @@ CREATE TABLE public.app_settings (
 );
 
 
-ALTER TABLE public.app_settings OWNER TO mzansi;
+ALTER TABLE public.app_settings OWNER TO ag8te;
 
 --
--- Name: carousel_items; Type: TABLE; Schema: public; Owner: mzansi
+-- Name: carousel_items; Type: TABLE; Schema: public; Owner: ag8te
 --
 
 CREATE TABLE public.carousel_items (
@@ -186,10 +186,10 @@ CREATE TABLE public.carousel_items (
 );
 
 
-ALTER TABLE public.carousel_items OWNER TO mzansi;
+ALTER TABLE public.carousel_items OWNER TO ag8te;
 
 --
--- Name: chat_messages; Type: TABLE; Schema: public; Owner: mzansi
+-- Name: chat_messages; Type: TABLE; Schema: public; Owner: ag8te
 --
 
 CREATE TABLE public.chat_messages (
@@ -203,10 +203,10 @@ CREATE TABLE public.chat_messages (
 );
 
 
-ALTER TABLE public.chat_messages OWNER TO mzansi;
+ALTER TABLE public.chat_messages OWNER TO ag8te;
 
 --
--- Name: client_ratings; Type: TABLE; Schema: public; Owner: mzansi
+-- Name: client_ratings; Type: TABLE; Schema: public; Owner: ag8te
 --
 
 CREATE TABLE public.client_ratings (
@@ -221,10 +221,10 @@ CREATE TABLE public.client_ratings (
 );
 
 
-ALTER TABLE public.client_ratings OWNER TO mzansi;
+ALTER TABLE public.client_ratings OWNER TO ag8te;
 
 --
--- Name: countries; Type: TABLE; Schema: public; Owner: mzansi
+-- Name: countries; Type: TABLE; Schema: public; Owner: ag8te
 --
 
 CREATE TABLE public.countries (
@@ -237,10 +237,10 @@ CREATE TABLE public.countries (
 );
 
 
-ALTER TABLE public.countries OWNER TO mzansi;
+ALTER TABLE public.countries OWNER TO ag8te;
 
 --
--- Name: delivery_addresses; Type: TABLE; Schema: public; Owner: mzansi
+-- Name: delivery_addresses; Type: TABLE; Schema: public; Owner: ag8te
 --
 
 CREATE TABLE public.delivery_addresses (
@@ -260,10 +260,10 @@ CREATE TABLE public.delivery_addresses (
 );
 
 
-ALTER TABLE public.delivery_addresses OWNER TO mzansi;
+ALTER TABLE public.delivery_addresses OWNER TO ag8te;
 
 --
--- Name: driver_ratings; Type: TABLE; Schema: public; Owner: mzansi
+-- Name: driver_ratings; Type: TABLE; Schema: public; Owner: ag8te
 --
 
 CREATE TABLE public.driver_ratings (
@@ -278,10 +278,10 @@ CREATE TABLE public.driver_ratings (
 );
 
 
-ALTER TABLE public.driver_ratings OWNER TO mzansi;
+ALTER TABLE public.driver_ratings OWNER TO ag8te;
 
 --
--- Name: earnings_recon; Type: TABLE; Schema: public; Owner: mzansi
+-- Name: earnings_recon; Type: TABLE; Schema: public; Owner: ag8te
 --
 
 CREATE TABLE public.earnings_recon (
@@ -296,10 +296,10 @@ CREATE TABLE public.earnings_recon (
 );
 
 
-ALTER TABLE public.earnings_recon OWNER TO mzansi;
+ALTER TABLE public.earnings_recon OWNER TO ag8te;
 
 --
--- Name: email_verification_tokens; Type: TABLE; Schema: public; Owner: mzansi
+-- Name: email_verification_tokens; Type: TABLE; Schema: public; Owner: ag8te
 --
 
 CREATE TABLE public.email_verification_tokens (
@@ -312,10 +312,10 @@ CREATE TABLE public.email_verification_tokens (
 );
 
 
-ALTER TABLE public.email_verification_tokens OWNER TO mzansi;
+ALTER TABLE public.email_verification_tokens OWNER TO ag8te;
 
 --
--- Name: emails; Type: TABLE; Schema: public; Owner: mzansi
+-- Name: emails; Type: TABLE; Schema: public; Owner: ag8te
 --
 
 CREATE TABLE public.emails (
@@ -334,10 +334,10 @@ CREATE TABLE public.emails (
 );
 
 
-ALTER TABLE public.emails OWNER TO mzansi;
+ALTER TABLE public.emails OWNER TO ag8te;
 
 --
--- Name: external_api_logs; Type: TABLE; Schema: public; Owner: mzansi
+-- Name: external_api_logs; Type: TABLE; Schema: public; Owner: ag8te
 --
 
 CREATE TABLE public.external_api_logs (
@@ -353,10 +353,10 @@ CREATE TABLE public.external_api_logs (
 );
 
 
-ALTER TABLE public.external_api_logs OWNER TO mzansi;
+ALTER TABLE public.external_api_logs OWNER TO ag8te;
 
 --
--- Name: faqs; Type: TABLE; Schema: public; Owner: mzansi
+-- Name: faqs; Type: TABLE; Schema: public; Owner: ag8te
 --
 
 CREATE TABLE public.faqs (
@@ -370,10 +370,10 @@ CREATE TABLE public.faqs (
 );
 
 
-ALTER TABLE public.faqs OWNER TO mzansi;
+ALTER TABLE public.faqs OWNER TO ag8te;
 
 --
--- Name: footer_content; Type: TABLE; Schema: public; Owner: mzansi
+-- Name: footer_content; Type: TABLE; Schema: public; Owner: ag8te
 --
 
 CREATE TABLE public.footer_content (
@@ -387,10 +387,10 @@ CREATE TABLE public.footer_content (
 );
 
 
-ALTER TABLE public.footer_content OWNER TO mzansi;
+ALTER TABLE public.footer_content OWNER TO ag8te;
 
 --
--- Name: inventory; Type: TABLE; Schema: public; Owner: mzansi
+-- Name: inventory; Type: TABLE; Schema: public; Owner: ag8te
 --
 
 CREATE TABLE public.inventory (
@@ -403,10 +403,10 @@ CREATE TABLE public.inventory (
 );
 
 
-ALTER TABLE public.inventory OWNER TO mzansi;
+ALTER TABLE public.inventory OWNER TO ag8te;
 
 --
--- Name: landing_features; Type: TABLE; Schema: public; Owner: mzansi
+-- Name: landing_features; Type: TABLE; Schema: public; Owner: ag8te
 --
 
 CREATE TABLE public.landing_features (
@@ -421,10 +421,10 @@ CREATE TABLE public.landing_features (
 );
 
 
-ALTER TABLE public.landing_features OWNER TO mzansi;
+ALTER TABLE public.landing_features OWNER TO ag8te;
 
 --
--- Name: marketplace_ads; Type: TABLE; Schema: public; Owner: mzansi
+-- Name: marketplace_ads; Type: TABLE; Schema: public; Owner: ag8te
 --
 
 CREATE TABLE public.marketplace_ads (
@@ -447,10 +447,10 @@ CREATE TABLE public.marketplace_ads (
 );
 
 
-ALTER TABLE public.marketplace_ads OWNER TO mzansi;
+ALTER TABLE public.marketplace_ads OWNER TO ag8te;
 
 --
--- Name: marketplace_categories; Type: TABLE; Schema: public; Owner: mzansi
+-- Name: marketplace_categories; Type: TABLE; Schema: public; Owner: ag8te
 --
 
 CREATE TABLE public.marketplace_categories (
@@ -463,10 +463,10 @@ CREATE TABLE public.marketplace_categories (
 );
 
 
-ALTER TABLE public.marketplace_categories OWNER TO mzansi;
+ALTER TABLE public.marketplace_categories OWNER TO ag8te;
 
 --
--- Name: notifications; Type: TABLE; Schema: public; Owner: mzansi
+-- Name: notifications; Type: TABLE; Schema: public; Owner: ag8te
 --
 
 CREATE TABLE public.notifications (
@@ -483,10 +483,10 @@ CREATE TABLE public.notifications (
 );
 
 
-ALTER TABLE public.notifications OWNER TO mzansi;
+ALTER TABLE public.notifications OWNER TO ag8te;
 
 --
--- Name: orders; Type: TABLE; Schema: public; Owner: mzansi
+-- Name: orders; Type: TABLE; Schema: public; Owner: ag8te
 --
 
 CREATE TABLE public.orders (
@@ -504,10 +504,10 @@ CREATE TABLE public.orders (
 );
 
 
-ALTER TABLE public.orders OWNER TO mzansi;
+ALTER TABLE public.orders OWNER TO ag8te;
 
 --
--- Name: otp_challenges; Type: TABLE; Schema: public; Owner: mzansi
+-- Name: otp_challenges; Type: TABLE; Schema: public; Owner: ag8te
 --
 
 CREATE TABLE public.otp_challenges (
@@ -530,10 +530,10 @@ CREATE TABLE public.otp_challenges (
 );
 
 
-ALTER TABLE public.otp_challenges OWNER TO mzansi;
+ALTER TABLE public.otp_challenges OWNER TO ag8te;
 
 --
--- Name: panic_alerts; Type: TABLE; Schema: public; Owner: mzansi
+-- Name: panic_alerts; Type: TABLE; Schema: public; Owner: ag8te
 --
 
 CREATE TABLE public.panic_alerts (
@@ -555,10 +555,10 @@ CREATE TABLE public.panic_alerts (
 );
 
 
-ALTER TABLE public.panic_alerts OWNER TO mzansi;
+ALTER TABLE public.panic_alerts OWNER TO ag8te;
 
 --
--- Name: password_reset_tokens; Type: TABLE; Schema: public; Owner: mzansi
+-- Name: password_reset_tokens; Type: TABLE; Schema: public; Owner: ag8te
 --
 
 CREATE TABLE public.password_reset_tokens (
@@ -571,10 +571,10 @@ CREATE TABLE public.password_reset_tokens (
 );
 
 
-ALTER TABLE public.password_reset_tokens OWNER TO mzansi;
+ALTER TABLE public.password_reset_tokens OWNER TO ag8te;
 
 --
--- Name: payments; Type: TABLE; Schema: public; Owner: mzansi
+-- Name: payments; Type: TABLE; Schema: public; Owner: ag8te
 --
 
 CREATE TABLE public.payments (
@@ -592,10 +592,10 @@ CREATE TABLE public.payments (
 );
 
 
-ALTER TABLE public.payments OWNER TO mzansi;
+ALTER TABLE public.payments OWNER TO ag8te;
 
 --
--- Name: pending_profile_updates; Type: TABLE; Schema: public; Owner: mzansi
+-- Name: pending_profile_updates; Type: TABLE; Schema: public; Owner: ag8te
 --
 
 CREATE TABLE public.pending_profile_updates (
@@ -610,10 +610,10 @@ CREATE TABLE public.pending_profile_updates (
 );
 
 
-ALTER TABLE public.pending_profile_updates OWNER TO mzansi;
+ALTER TABLE public.pending_profile_updates OWNER TO ag8te;
 
 --
--- Name: product_images; Type: TABLE; Schema: public; Owner: mzansi
+-- Name: product_images; Type: TABLE; Schema: public; Owner: ag8te
 --
 
 CREATE TABLE public.product_images (
@@ -626,10 +626,10 @@ CREATE TABLE public.product_images (
 );
 
 
-ALTER TABLE public.product_images OWNER TO mzansi;
+ALTER TABLE public.product_images OWNER TO ag8te;
 
 --
--- Name: professional_ratings; Type: TABLE; Schema: public; Owner: mzansi
+-- Name: professional_ratings; Type: TABLE; Schema: public; Owner: ag8te
 --
 
 CREATE TABLE public.professional_ratings (
@@ -644,10 +644,10 @@ CREATE TABLE public.professional_ratings (
 );
 
 
-ALTER TABLE public.professional_ratings OWNER TO mzansi;
+ALTER TABLE public.professional_ratings OWNER TO ag8te;
 
 --
--- Name: provider_ratings; Type: TABLE; Schema: public; Owner: mzansi
+-- Name: provider_ratings; Type: TABLE; Schema: public; Owner: ag8te
 --
 
 CREATE TABLE public.provider_ratings (
@@ -662,10 +662,10 @@ CREATE TABLE public.provider_ratings (
 );
 
 
-ALTER TABLE public.provider_ratings OWNER TO mzansi;
+ALTER TABLE public.provider_ratings OWNER TO ag8te;
 
 --
--- Name: reports; Type: TABLE; Schema: public; Owner: mzansi
+-- Name: reports; Type: TABLE; Schema: public; Owner: ag8te
 --
 
 CREATE TABLE public.reports (
@@ -682,10 +682,10 @@ CREATE TABLE public.reports (
 );
 
 
-ALTER TABLE public.reports OWNER TO mzansi;
+ALTER TABLE public.reports OWNER TO ag8te;
 
 --
--- Name: service_requests; Type: TABLE; Schema: public; Owner: mzansi
+-- Name: service_requests; Type: TABLE; Schema: public; Owner: ag8te
 --
 
 CREATE TABLE public.service_requests (
@@ -713,10 +713,10 @@ CREATE TABLE public.service_requests (
 );
 
 
-ALTER TABLE public.service_requests OWNER TO mzansi;
+ALTER TABLE public.service_requests OWNER TO ag8te;
 
 --
--- Name: service_types; Type: TABLE; Schema: public; Owner: mzansi
+-- Name: service_types; Type: TABLE; Schema: public; Owner: ag8te
 --
 
 CREATE TABLE public.service_types (
@@ -732,10 +732,10 @@ CREATE TABLE public.service_types (
 );
 
 
-ALTER TABLE public.service_types OWNER TO mzansi;
+ALTER TABLE public.service_types OWNER TO ag8te;
 
 --
--- Name: shop_categories; Type: TABLE; Schema: public; Owner: mzansi
+-- Name: shop_categories; Type: TABLE; Schema: public; Owner: ag8te
 --
 
 CREATE TABLE public.shop_categories (
@@ -745,10 +745,10 @@ CREATE TABLE public.shop_categories (
 );
 
 
-ALTER TABLE public.shop_categories OWNER TO mzansi;
+ALTER TABLE public.shop_categories OWNER TO ag8te;
 
 --
--- Name: shop_products; Type: TABLE; Schema: public; Owner: mzansi
+-- Name: shop_products; Type: TABLE; Schema: public; Owner: ag8te
 --
 
 CREATE TABLE public.shop_products (
@@ -773,10 +773,10 @@ CREATE TABLE public.shop_products (
 );
 
 
-ALTER TABLE public.shop_products OWNER TO mzansi;
+ALTER TABLE public.shop_products OWNER TO ag8te;
 
 --
--- Name: shop_subcategories; Type: TABLE; Schema: public; Owner: mzansi
+-- Name: shop_subcategories; Type: TABLE; Schema: public; Owner: ag8te
 --
 
 CREATE TABLE public.shop_subcategories (
@@ -787,10 +787,10 @@ CREATE TABLE public.shop_subcategories (
 );
 
 
-ALTER TABLE public.shop_subcategories OWNER TO mzansi;
+ALTER TABLE public.shop_subcategories OWNER TO ag8te;
 
 --
--- Name: subscription_plans; Type: TABLE; Schema: public; Owner: mzansi
+-- Name: subscription_plans; Type: TABLE; Schema: public; Owner: ag8te
 --
 
 CREATE TABLE public.subscription_plans (
@@ -807,10 +807,10 @@ CREATE TABLE public.subscription_plans (
 );
 
 
-ALTER TABLE public.subscription_plans OWNER TO mzansi;
+ALTER TABLE public.subscription_plans OWNER TO ag8te;
 
 --
--- Name: subscriptions; Type: TABLE; Schema: public; Owner: mzansi
+-- Name: subscriptions; Type: TABLE; Schema: public; Owner: ag8te
 --
 
 CREATE TABLE public.subscriptions (
@@ -829,10 +829,10 @@ CREATE TABLE public.subscriptions (
 );
 
 
-ALTER TABLE public.subscriptions OWNER TO mzansi;
+ALTER TABLE public.subscriptions OWNER TO ag8te;
 
 --
--- Name: testimonials; Type: TABLE; Schema: public; Owner: mzansi
+-- Name: testimonials; Type: TABLE; Schema: public; Owner: ag8te
 --
 
 CREATE TABLE public.testimonials (
@@ -849,10 +849,10 @@ CREATE TABLE public.testimonials (
 );
 
 
-ALTER TABLE public.testimonials OWNER TO mzansi;
+ALTER TABLE public.testimonials OWNER TO ag8te;
 
 --
--- Name: user_selected_services; Type: TABLE; Schema: public; Owner: mzansi
+-- Name: user_selected_services; Type: TABLE; Schema: public; Owner: ag8te
 --
 
 CREATE TABLE public.user_selected_services (
@@ -865,10 +865,10 @@ CREATE TABLE public.user_selected_services (
 );
 
 
-ALTER TABLE public.user_selected_services OWNER TO mzansi;
+ALTER TABLE public.user_selected_services OWNER TO ag8te;
 
 --
--- Name: users; Type: TABLE; Schema: public; Owner: mzansi
+-- Name: users; Type: TABLE; Schema: public; Owner: ag8te
 --
 
 CREATE TABLE public.users (
@@ -900,10 +900,10 @@ CREATE TABLE public.users (
 );
 
 
-ALTER TABLE public.users OWNER TO mzansi;
+ALTER TABLE public.users OWNER TO ag8te;
 
 --
--- Name: vehicle_images; Type: TABLE; Schema: public; Owner: mzansi
+-- Name: vehicle_images; Type: TABLE; Schema: public; Owner: ag8te
 --
 
 CREATE TABLE public.vehicle_images (
@@ -914,10 +914,10 @@ CREATE TABLE public.vehicle_images (
 );
 
 
-ALTER TABLE public.vehicle_images OWNER TO mzansi;
+ALTER TABLE public.vehicle_images OWNER TO ag8te;
 
 --
--- Name: wallet_transactions; Type: TABLE; Schema: public; Owner: mzansi
+-- Name: wallet_transactions; Type: TABLE; Schema: public; Owner: ag8te
 --
 
 CREATE TABLE public.wallet_transactions (
@@ -937,10 +937,10 @@ CREATE TABLE public.wallet_transactions (
 );
 
 
-ALTER TABLE public.wallet_transactions OWNER TO mzansi;
+ALTER TABLE public.wallet_transactions OWNER TO ag8te;
 
 --
--- Name: wallets; Type: TABLE; Schema: public; Owner: mzansi
+-- Name: wallets; Type: TABLE; Schema: public; Owner: ag8te
 --
 
 CREATE TABLE public.wallets (
@@ -954,10 +954,10 @@ CREATE TABLE public.wallets (
 );
 
 
-ALTER TABLE public.wallets OWNER TO mzansi;
+ALTER TABLE public.wallets OWNER TO ag8te;
 
 --
--- Name: withdrawal_requests; Type: TABLE; Schema: public; Owner: mzansi
+-- Name: withdrawal_requests; Type: TABLE; Schema: public; Owner: ag8te
 --
 
 CREATE TABLE public.withdrawal_requests (
@@ -975,10 +975,10 @@ CREATE TABLE public.withdrawal_requests (
 );
 
 
-ALTER TABLE public.withdrawal_requests OWNER TO mzansi;
+ALTER TABLE public.withdrawal_requests OWNER TO ag8te;
 
 --
--- Data for Name: ad_inquiries; Type: TABLE DATA; Schema: public; Owner: mzansi
+-- Data for Name: ad_inquiries; Type: TABLE DATA; Schema: public; Owner: ag8te
 --
 
 COPY public.ad_inquiries (id, full_name, email, company_name, message, status, created_at) FROM stdin;
@@ -986,7 +986,7 @@ COPY public.ad_inquiries (id, full_name, email, company_name, message, status, c
 
 
 --
--- Data for Name: adverts; Type: TABLE DATA; Schema: public; Owner: mzansi
+-- Data for Name: adverts; Type: TABLE DATA; Schema: public; Owner: ag8te
 --
 
 COPY public.adverts (id, user_id, title, image_url, target_url, status, placement_section, start_date, end_date, clicks, impressions, created_at, updated_at) FROM stdin;
@@ -994,7 +994,7 @@ COPY public.adverts (id, user_id, title, image_url, target_url, status, placemen
 
 
 --
--- Data for Name: agent_commissions; Type: TABLE DATA; Schema: public; Owner: mzansi
+-- Data for Name: agent_commissions; Type: TABLE DATA; Schema: public; Owner: ag8te
 --
 
 COPY public.agent_commissions (id, agent_id, recruited_user_id, amount, currency, status, created_at, paid_at) FROM stdin;
@@ -1002,7 +1002,7 @@ COPY public.agent_commissions (id, agent_id, recruited_user_id, amount, currency
 
 
 --
--- Data for Name: agents; Type: TABLE DATA; Schema: public; Owner: mzansi
+-- Data for Name: agents; Type: TABLE DATA; Schema: public; Owner: ag8te
 --
 
 COPY public.agents (id, name, surname, id_number, agent_id, phone, municipality, ward, created_at) FROM stdin;
@@ -1010,7 +1010,7 @@ COPY public.agents (id, name, surname, id_number, agent_id, phone, municipality,
 
 
 --
--- Data for Name: alembic_version; Type: TABLE DATA; Schema: public; Owner: mzansi
+-- Data for Name: alembic_version; Type: TABLE DATA; Schema: public; Owner: ag8te
 --
 
 COPY public.alembic_version (version_num) FROM stdin;
@@ -1019,7 +1019,7 @@ merge_otp_panic_heads
 
 
 --
--- Data for Name: app_settings; Type: TABLE DATA; Schema: public; Owner: mzansi
+-- Data for Name: app_settings; Type: TABLE DATA; Schema: public; Owner: ag8te
 --
 
 COPY public.app_settings (key, value, created_at, updated_at) FROM stdin;
@@ -1029,7 +1029,7 @@ payment_yoco	{"api_url": "https://payments.yoco.com", "enabled": true, "secret_k
 
 
 --
--- Data for Name: carousel_items; Type: TABLE DATA; Schema: public; Owner: mzansi
+-- Data for Name: carousel_items; Type: TABLE DATA; Schema: public; Owner: ag8te
 --
 
 COPY public.carousel_items (id, image_url, cta_link, cta_text, "order", is_active, created_at, updated_at, title, subtitle, badge, cta_color) FROM stdin;
@@ -1037,7 +1037,7 @@ COPY public.carousel_items (id, image_url, cta_link, cta_text, "order", is_activ
 
 
 --
--- Data for Name: chat_messages; Type: TABLE DATA; Schema: public; Owner: mzansi
+-- Data for Name: chat_messages; Type: TABLE DATA; Schema: public; Owner: ag8te
 --
 
 COPY public.chat_messages (id, request_id, sender_id, recipient_id, message, is_read, created_at) FROM stdin;
@@ -1045,7 +1045,7 @@ COPY public.chat_messages (id, request_id, sender_id, recipient_id, message, is_
 
 
 --
--- Data for Name: client_ratings; Type: TABLE DATA; Schema: public; Owner: mzansi
+-- Data for Name: client_ratings; Type: TABLE DATA; Schema: public; Owner: ag8te
 --
 
 COPY public.client_ratings (id, service_request_id, client_id, rater_id, rating, review_text, created_at) FROM stdin;
@@ -1053,7 +1053,7 @@ COPY public.client_ratings (id, service_request_id, client_id, rater_id, rating,
 
 
 --
--- Data for Name: countries; Type: TABLE DATA; Schema: public; Owner: mzansi
+-- Data for Name: countries; Type: TABLE DATA; Schema: public; Owner: ag8te
 --
 
 COPY public.countries (id, name, code, is_active, created_at, updated_at) FROM stdin;
@@ -1061,7 +1061,7 @@ COPY public.countries (id, name, code, is_active, created_at, updated_at) FROM s
 
 
 --
--- Data for Name: delivery_addresses; Type: TABLE DATA; Schema: public; Owner: mzansi
+-- Data for Name: delivery_addresses; Type: TABLE DATA; Schema: public; Owner: ag8te
 --
 
 COPY public.delivery_addresses (id, user_id, street_address, city, province, postal_code, country, unit_number, building_name, delivery_instructions, is_default, created_at, updated_at) FROM stdin;
@@ -1069,7 +1069,7 @@ COPY public.delivery_addresses (id, user_id, street_address, city, province, pos
 
 
 --
--- Data for Name: driver_ratings; Type: TABLE DATA; Schema: public; Owner: mzansi
+-- Data for Name: driver_ratings; Type: TABLE DATA; Schema: public; Owner: ag8te
 --
 
 COPY public.driver_ratings (id, service_request_id, driver_id, requester_id, rating, review_text, created_at) FROM stdin;
@@ -1077,7 +1077,7 @@ COPY public.driver_ratings (id, service_request_id, driver_id, requester_id, rat
 
 
 --
--- Data for Name: earnings_recon; Type: TABLE DATA; Schema: public; Owner: mzansi
+-- Data for Name: earnings_recon; Type: TABLE DATA; Schema: public; Owner: ag8te
 --
 
 COPY public.earnings_recon (id, user_id, period_month, role, earnings_amount, transferred_at, created_at) FROM stdin;
@@ -1085,7 +1085,7 @@ COPY public.earnings_recon (id, user_id, period_month, role, earnings_amount, tr
 
 
 --
--- Data for Name: email_verification_tokens; Type: TABLE DATA; Schema: public; Owner: mzansi
+-- Data for Name: email_verification_tokens; Type: TABLE DATA; Schema: public; Owner: ag8te
 --
 
 COPY public.email_verification_tokens (id, user_id, token, expires_at, used, created_at) FROM stdin;
@@ -1093,7 +1093,7 @@ COPY public.email_verification_tokens (id, user_id, token, expires_at, used, cre
 
 
 --
--- Data for Name: emails; Type: TABLE DATA; Schema: public; Owner: mzansi
+-- Data for Name: emails; Type: TABLE DATA; Schema: public; Owner: ag8te
 --
 
 COPY public.emails (id, recipient, subject, body, body_html, status, sent_at, error_message, metadata, created_at, updated_at) FROM stdin;
@@ -1101,7 +1101,7 @@ COPY public.emails (id, recipient, subject, body, body_html, status, sent_at, er
 
 
 --
--- Data for Name: external_api_logs; Type: TABLE DATA; Schema: public; Owner: mzansi
+-- Data for Name: external_api_logs; Type: TABLE DATA; Schema: public; Owner: ag8te
 --
 
 COPY public.external_api_logs (id, provider, endpoint, method, request_payload, response_payload, status_code, error_message, created_at) FROM stdin;
@@ -1109,7 +1109,7 @@ COPY public.external_api_logs (id, provider, endpoint, method, request_payload, 
 
 
 --
--- Data for Name: faqs; Type: TABLE DATA; Schema: public; Owner: mzansi
+-- Data for Name: faqs; Type: TABLE DATA; Schema: public; Owner: ag8te
 --
 
 COPY public.faqs (id, question, answer, "order", is_active, created_at, updated_at) FROM stdin;
@@ -1117,7 +1117,7 @@ COPY public.faqs (id, question, answer, "order", is_active, created_at, updated_
 
 
 --
--- Data for Name: footer_content; Type: TABLE DATA; Schema: public; Owner: mzansi
+-- Data for Name: footer_content; Type: TABLE DATA; Schema: public; Owner: ag8te
 --
 
 COPY public.footer_content (id, company_name, email, phone, physical_address, created_at, updated_at) FROM stdin;
@@ -1125,7 +1125,7 @@ COPY public.footer_content (id, company_name, email, phone, physical_address, cr
 
 
 --
--- Data for Name: inventory; Type: TABLE DATA; Schema: public; Owner: mzansi
+-- Data for Name: inventory; Type: TABLE DATA; Schema: public; Owner: ag8te
 --
 
 COPY public.inventory (id, product_id, quantity, reserved_quantity, created_at, updated_at) FROM stdin;
@@ -1133,7 +1133,7 @@ COPY public.inventory (id, product_id, quantity, reserved_quantity, created_at, 
 
 
 --
--- Data for Name: landing_features; Type: TABLE DATA; Schema: public; Owner: mzansi
+-- Data for Name: landing_features; Type: TABLE DATA; Schema: public; Owner: ag8te
 --
 
 COPY public.landing_features (id, icon, title, description, "order", is_active, created_at, updated_at) FROM stdin;
@@ -1141,7 +1141,7 @@ COPY public.landing_features (id, icon, title, description, "order", is_active, 
 
 
 --
--- Data for Name: marketplace_ads; Type: TABLE DATA; Schema: public; Owner: mzansi
+-- Data for Name: marketplace_ads; Type: TABLE DATA; Schema: public; Owner: ag8te
 --
 
 COPY public.marketplace_ads (id, user_id, category_id, title, description, price, city, province, status, condition, images, contact_name, contact_phone, contact_email, created_at, updated_at) FROM stdin;
@@ -1149,7 +1149,7 @@ COPY public.marketplace_ads (id, user_id, category_id, title, description, price
 
 
 --
--- Data for Name: marketplace_categories; Type: TABLE DATA; Schema: public; Owner: mzansi
+-- Data for Name: marketplace_categories; Type: TABLE DATA; Schema: public; Owner: ag8te
 --
 
 COPY public.marketplace_categories (id, name, slug, icon, description, created_at) FROM stdin;
@@ -1157,7 +1157,7 @@ COPY public.marketplace_categories (id, name, slug, icon, description, created_a
 
 
 --
--- Data for Name: notifications; Type: TABLE DATA; Schema: public; Owner: mzansi
+-- Data for Name: notifications; Type: TABLE DATA; Schema: public; Owner: ag8te
 --
 
 COPY public.notifications (id, user_id, type, title, body, status, entity_type, entity_id, created_at) FROM stdin;
@@ -1165,7 +1165,7 @@ COPY public.notifications (id, user_id, type, title, body, status, entity_type, 
 
 
 --
--- Data for Name: orders; Type: TABLE DATA; Schema: public; Owner: mzansi
+-- Data for Name: orders; Type: TABLE DATA; Schema: public; Owner: ag8te
 --
 
 COPY public.orders (id, customer_id, customer_email, status, total, items, shipping, payment_id, placed_at, updated_at) FROM stdin;
@@ -1173,7 +1173,7 @@ COPY public.orders (id, customer_id, customer_email, status, total, items, shipp
 
 
 --
--- Data for Name: otp_challenges; Type: TABLE DATA; Schema: public; Owner: mzansi
+-- Data for Name: otp_challenges; Type: TABLE DATA; Schema: public; Owner: ag8te
 --
 
 COPY public.otp_challenges (id, user_id, purpose, channel, identifier, code_hash, firebase_uid, attempts, max_attempts, used, expires_at, verified_at, created_at, metadata) FROM stdin;
@@ -1181,7 +1181,7 @@ COPY public.otp_challenges (id, user_id, purpose, channel, identifier, code_hash
 
 
 --
--- Data for Name: panic_alerts; Type: TABLE DATA; Schema: public; Owner: mzansi
+-- Data for Name: panic_alerts; Type: TABLE DATA; Schema: public; Owner: ag8te
 --
 
 COPY public.panic_alerts (id, user_id, booking_id, latitude, longitude, status, resolved_by_id, resolved_at, resolution_notes, admin_email_sent, next_of_kin_email_sent, armed_response_ref, armed_response_status, created_at, updated_at) FROM stdin;
@@ -1189,7 +1189,7 @@ COPY public.panic_alerts (id, user_id, booking_id, latitude, longitude, status, 
 
 
 --
--- Data for Name: password_reset_tokens; Type: TABLE DATA; Schema: public; Owner: mzansi
+-- Data for Name: password_reset_tokens; Type: TABLE DATA; Schema: public; Owner: ag8te
 --
 
 COPY public.password_reset_tokens (id, user_id, token, expires_at, used, created_at) FROM stdin;
@@ -1197,7 +1197,7 @@ COPY public.password_reset_tokens (id, user_id, token, expires_at, used, created
 
 
 --
--- Data for Name: payments; Type: TABLE DATA; Schema: public; Owner: mzansi
+-- Data for Name: payments; Type: TABLE DATA; Schema: public; Owner: ag8te
 --
 
 COPY public.payments (id, external_id, amount, currency, status, payment_method, payment_provider_id, metadata, created_at, updated_at) FROM stdin;
@@ -1205,7 +1205,7 @@ COPY public.payments (id, external_id, amount, currency, status, payment_method,
 
 
 --
--- Data for Name: pending_profile_updates; Type: TABLE DATA; Schema: public; Owner: mzansi
+-- Data for Name: pending_profile_updates; Type: TABLE DATA; Schema: public; Owner: ag8te
 --
 
 COPY public.pending_profile_updates (id, user_id, payload, status, created_at, reviewed_at, reviewed_by_id, rejection_reason) FROM stdin;
@@ -1213,7 +1213,7 @@ COPY public.pending_profile_updates (id, user_id, payload, status, created_at, r
 
 
 --
--- Data for Name: product_images; Type: TABLE DATA; Schema: public; Owner: mzansi
+-- Data for Name: product_images; Type: TABLE DATA; Schema: public; Owner: ag8te
 --
 
 COPY public.product_images (id, product_id, image_url, is_primary, "order", created_at) FROM stdin;
@@ -1221,7 +1221,7 @@ COPY public.product_images (id, product_id, image_url, is_primary, "order", crea
 
 
 --
--- Data for Name: professional_ratings; Type: TABLE DATA; Schema: public; Owner: mzansi
+-- Data for Name: professional_ratings; Type: TABLE DATA; Schema: public; Owner: ag8te
 --
 
 COPY public.professional_ratings (id, service_request_id, professional_id, requester_id, rating, review_text, created_at) FROM stdin;
@@ -1229,7 +1229,7 @@ COPY public.professional_ratings (id, service_request_id, professional_id, reque
 
 
 --
--- Data for Name: provider_ratings; Type: TABLE DATA; Schema: public; Owner: mzansi
+-- Data for Name: provider_ratings; Type: TABLE DATA; Schema: public; Owner: ag8te
 --
 
 COPY public.provider_ratings (id, service_request_id, provider_id, requester_id, rating, review_text, created_at) FROM stdin;
@@ -1237,7 +1237,7 @@ COPY public.provider_ratings (id, service_request_id, provider_id, requester_id,
 
 
 --
--- Data for Name: reports; Type: TABLE DATA; Schema: public; Owner: mzansi
+-- Data for Name: reports; Type: TABLE DATA; Schema: public; Owner: ag8te
 --
 
 COPY public.reports (id, reporter_id, reported_user_id, service_request_id, reason, description, status, created_at, resolved_at, admin_notes) FROM stdin;
@@ -1245,7 +1245,7 @@ COPY public.reports (id, reporter_id, reported_user_id, service_request_id, reas
 
 
 --
--- Data for Name: service_requests; Type: TABLE DATA; Schema: public; Owner: mzansi
+-- Data for Name: service_requests; Type: TABLE DATA; Schema: public; Owner: ag8te
 --
 
 COPY public.service_requests (id, request_type, status, requester_id, provider_id, scheduled_date, scheduled_time, location_data, distance_km, details, payment_status, payment_amount, payment_currency, bid_amount, quote_amount, cancellation_charge, created_at, updated_at) FROM stdin;
@@ -1253,7 +1253,7 @@ COPY public.service_requests (id, request_type, status, requester_id, provider_i
 
 
 --
--- Data for Name: service_types; Type: TABLE DATA; Schema: public; Owner: mzansi
+-- Data for Name: service_types; Type: TABLE DATA; Schema: public; Owner: ag8te
 --
 
 COPY public.service_types (id, name, description, category, is_active, "order", created_at, updated_at) FROM stdin;
@@ -1261,7 +1261,7 @@ COPY public.service_types (id, name, description, category, is_active, "order", 
 
 
 --
--- Data for Name: shop_categories; Type: TABLE DATA; Schema: public; Owner: mzansi
+-- Data for Name: shop_categories; Type: TABLE DATA; Schema: public; Owner: ag8te
 --
 
 COPY public.shop_categories (id, title, created_at) FROM stdin;
@@ -1269,7 +1269,7 @@ COPY public.shop_categories (id, title, created_at) FROM stdin;
 
 
 --
--- Data for Name: shop_products; Type: TABLE DATA; Schema: public; Owner: mzansi
+-- Data for Name: shop_products; Type: TABLE DATA; Schema: public; Owner: ag8te
 --
 
 COPY public.shop_products (id, name, description, price, category_id, in_stock, image_url, created_at, updated_at, status, subcategory_id, product_type, attributes, variations, grouped_products, external_url, button_text) FROM stdin;
@@ -1277,7 +1277,7 @@ COPY public.shop_products (id, name, description, price, category_id, in_stock, 
 
 
 --
--- Data for Name: shop_subcategories; Type: TABLE DATA; Schema: public; Owner: mzansi
+-- Data for Name: shop_subcategories; Type: TABLE DATA; Schema: public; Owner: ag8te
 --
 
 COPY public.shop_subcategories (id, category_id, title, created_at) FROM stdin;
@@ -1285,7 +1285,7 @@ COPY public.shop_subcategories (id, category_id, title, created_at) FROM stdin;
 
 
 --
--- Data for Name: subscription_plans; Type: TABLE DATA; Schema: public; Owner: mzansi
+-- Data for Name: subscription_plans; Type: TABLE DATA; Schema: public; Owner: ag8te
 --
 
 COPY public.subscription_plans (id, name, description, price, currency, "interval", paypal_plan_id, is_active, created_at, updated_at) FROM stdin;
@@ -1293,7 +1293,7 @@ COPY public.subscription_plans (id, name, description, price, currency, "interva
 
 
 --
--- Data for Name: subscriptions; Type: TABLE DATA; Schema: public; Owner: mzansi
+-- Data for Name: subscriptions; Type: TABLE DATA; Schema: public; Owner: ag8te
 --
 
 COPY public.subscriptions (id, user_id, plan_id, provider, provider_subscription_id, status, current_period_start, current_period_end, cancel_at_period_end, metadata, created_at, updated_at) FROM stdin;
@@ -1301,7 +1301,7 @@ COPY public.subscriptions (id, user_id, plan_id, provider, provider_subscription
 
 
 --
--- Data for Name: testimonials; Type: TABLE DATA; Schema: public; Owner: mzansi
+-- Data for Name: testimonials; Type: TABLE DATA; Schema: public; Owner: ag8te
 --
 
 COPY public.testimonials (id, name, role, avatar_url, rating, text, "order", is_active, created_at, updated_at) FROM stdin;
@@ -1309,7 +1309,7 @@ COPY public.testimonials (id, name, role, avatar_url, rating, text, "order", is_
 
 
 --
--- Data for Name: user_selected_services; Type: TABLE DATA; Schema: public; Owner: mzansi
+-- Data for Name: user_selected_services; Type: TABLE DATA; Schema: public; Owner: ag8te
 --
 
 COPY public.user_selected_services (id, user_id, service_type_id, personalized_description, created_at, updated_at) FROM stdin;
@@ -1317,7 +1317,7 @@ COPY public.user_selected_services (id, user_id, service_type_id, personalized_d
 
 
 --
--- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: mzansi
+-- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: ag8te
 --
 
 COPY public.users (id, email, password_hash, role, is_admin, is_paid, is_approved, is_active, email_verified, tracking_number, data, file_urls, id_verification_status, id_rejection_reason, created_at, updated_at, nationality, profile_image_url, agent_id, aura_id, aura_status, registration_rejection_reason, registration_review_status) FROM stdin;
@@ -1326,7 +1326,7 @@ f00fe5db-cdde-497b-a4d4-082b2efe363e	ntshabelengt@gmail.com	$2b$12$KfXdLJTadgRdP
 
 
 --
--- Data for Name: vehicle_images; Type: TABLE DATA; Schema: public; Owner: mzansi
+-- Data for Name: vehicle_images; Type: TABLE DATA; Schema: public; Owner: ag8te
 --
 
 COPY public.vehicle_images (id, user_id, car_index, image_url) FROM stdin;
@@ -1334,7 +1334,7 @@ COPY public.vehicle_images (id, user_id, car_index, image_url) FROM stdin;
 
 
 --
--- Data for Name: wallet_transactions; Type: TABLE DATA; Schema: public; Owner: mzansi
+-- Data for Name: wallet_transactions; Type: TABLE DATA; Schema: public; Owner: ag8te
 --
 
 COPY public.wallet_transactions (id, wallet_id, user_id, transaction_type, amount, currency, balance_before, balance_after, external_id, description, metadata, created_at) FROM stdin;
@@ -1342,7 +1342,7 @@ COPY public.wallet_transactions (id, wallet_id, user_id, transaction_type, amoun
 
 
 --
--- Data for Name: wallets; Type: TABLE DATA; Schema: public; Owner: mzansi
+-- Data for Name: wallets; Type: TABLE DATA; Schema: public; Owner: ag8te
 --
 
 COPY public.wallets (id, user_id, balance, currency, created_at, updated_at) FROM stdin;
@@ -1351,7 +1351,7 @@ COPY public.wallets (id, user_id, balance, currency, created_at, updated_at) FRO
 
 
 --
--- Data for Name: withdrawal_requests; Type: TABLE DATA; Schema: public; Owner: mzansi
+-- Data for Name: withdrawal_requests; Type: TABLE DATA; Schema: public; Owner: ag8te
 --
 
 COPY public.withdrawal_requests (id, user_id, amount, status, requested_at, processed_at, admin_notes, created_at, updated_at, banking_details) FROM stdin;
@@ -1359,7 +1359,7 @@ COPY public.withdrawal_requests (id, user_id, amount, status, requested_at, proc
 
 
 --
--- Name: ad_inquiries ad_inquiries_pkey; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: ad_inquiries ad_inquiries_pkey; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.ad_inquiries
@@ -1367,7 +1367,7 @@ ALTER TABLE ONLY public.ad_inquiries
 
 
 --
--- Name: adverts adverts_pkey; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: adverts adverts_pkey; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.adverts
@@ -1375,7 +1375,7 @@ ALTER TABLE ONLY public.adverts
 
 
 --
--- Name: agent_commissions agent_commissions_pkey; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: agent_commissions agent_commissions_pkey; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.agent_commissions
@@ -1383,7 +1383,7 @@ ALTER TABLE ONLY public.agent_commissions
 
 
 --
--- Name: agents agents_pkey; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: agents agents_pkey; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.agents
@@ -1391,7 +1391,7 @@ ALTER TABLE ONLY public.agents
 
 
 --
--- Name: alembic_version alembic_version_pkc; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: alembic_version alembic_version_pkc; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.alembic_version
@@ -1399,7 +1399,7 @@ ALTER TABLE ONLY public.alembic_version
 
 
 --
--- Name: app_settings app_settings_pkey; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: app_settings app_settings_pkey; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.app_settings
@@ -1407,7 +1407,7 @@ ALTER TABLE ONLY public.app_settings
 
 
 --
--- Name: carousel_items carousel_items_pkey; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: carousel_items carousel_items_pkey; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.carousel_items
@@ -1415,7 +1415,7 @@ ALTER TABLE ONLY public.carousel_items
 
 
 --
--- Name: chat_messages chat_messages_pkey; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: chat_messages chat_messages_pkey; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.chat_messages
@@ -1423,7 +1423,7 @@ ALTER TABLE ONLY public.chat_messages
 
 
 --
--- Name: client_ratings client_ratings_pkey; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: client_ratings client_ratings_pkey; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.client_ratings
@@ -1431,7 +1431,7 @@ ALTER TABLE ONLY public.client_ratings
 
 
 --
--- Name: countries countries_code_key; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: countries countries_code_key; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.countries
@@ -1439,7 +1439,7 @@ ALTER TABLE ONLY public.countries
 
 
 --
--- Name: countries countries_name_key; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: countries countries_name_key; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.countries
@@ -1447,7 +1447,7 @@ ALTER TABLE ONLY public.countries
 
 
 --
--- Name: countries countries_pkey; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: countries countries_pkey; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.countries
@@ -1455,7 +1455,7 @@ ALTER TABLE ONLY public.countries
 
 
 --
--- Name: delivery_addresses delivery_addresses_pkey; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: delivery_addresses delivery_addresses_pkey; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.delivery_addresses
@@ -1463,7 +1463,7 @@ ALTER TABLE ONLY public.delivery_addresses
 
 
 --
--- Name: driver_ratings driver_ratings_pkey; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: driver_ratings driver_ratings_pkey; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.driver_ratings
@@ -1471,7 +1471,7 @@ ALTER TABLE ONLY public.driver_ratings
 
 
 --
--- Name: earnings_recon earnings_recon_pkey; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: earnings_recon earnings_recon_pkey; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.earnings_recon
@@ -1479,7 +1479,7 @@ ALTER TABLE ONLY public.earnings_recon
 
 
 --
--- Name: email_verification_tokens email_verification_tokens_pkey; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: email_verification_tokens email_verification_tokens_pkey; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.email_verification_tokens
@@ -1487,7 +1487,7 @@ ALTER TABLE ONLY public.email_verification_tokens
 
 
 --
--- Name: email_verification_tokens email_verification_tokens_token_key; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: email_verification_tokens email_verification_tokens_token_key; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.email_verification_tokens
@@ -1495,7 +1495,7 @@ ALTER TABLE ONLY public.email_verification_tokens
 
 
 --
--- Name: emails emails_pkey; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: emails emails_pkey; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.emails
@@ -1503,7 +1503,7 @@ ALTER TABLE ONLY public.emails
 
 
 --
--- Name: external_api_logs external_api_logs_pkey; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: external_api_logs external_api_logs_pkey; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.external_api_logs
@@ -1511,7 +1511,7 @@ ALTER TABLE ONLY public.external_api_logs
 
 
 --
--- Name: faqs faqs_pkey; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: faqs faqs_pkey; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.faqs
@@ -1519,7 +1519,7 @@ ALTER TABLE ONLY public.faqs
 
 
 --
--- Name: footer_content footer_content_pkey; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: footer_content footer_content_pkey; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.footer_content
@@ -1527,7 +1527,7 @@ ALTER TABLE ONLY public.footer_content
 
 
 --
--- Name: inventory inventory_pkey; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: inventory inventory_pkey; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.inventory
@@ -1535,7 +1535,7 @@ ALTER TABLE ONLY public.inventory
 
 
 --
--- Name: inventory inventory_product_id_key; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: inventory inventory_product_id_key; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.inventory
@@ -1543,7 +1543,7 @@ ALTER TABLE ONLY public.inventory
 
 
 --
--- Name: landing_features landing_features_pkey; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: landing_features landing_features_pkey; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.landing_features
@@ -1551,7 +1551,7 @@ ALTER TABLE ONLY public.landing_features
 
 
 --
--- Name: marketplace_ads marketplace_ads_pkey; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: marketplace_ads marketplace_ads_pkey; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.marketplace_ads
@@ -1559,7 +1559,7 @@ ALTER TABLE ONLY public.marketplace_ads
 
 
 --
--- Name: marketplace_categories marketplace_categories_name_key; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: marketplace_categories marketplace_categories_name_key; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.marketplace_categories
@@ -1567,7 +1567,7 @@ ALTER TABLE ONLY public.marketplace_categories
 
 
 --
--- Name: marketplace_categories marketplace_categories_pkey; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: marketplace_categories marketplace_categories_pkey; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.marketplace_categories
@@ -1575,7 +1575,7 @@ ALTER TABLE ONLY public.marketplace_categories
 
 
 --
--- Name: marketplace_categories marketplace_categories_slug_key; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: marketplace_categories marketplace_categories_slug_key; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.marketplace_categories
@@ -1583,7 +1583,7 @@ ALTER TABLE ONLY public.marketplace_categories
 
 
 --
--- Name: notifications notifications_pkey; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: notifications notifications_pkey; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.notifications
@@ -1591,7 +1591,7 @@ ALTER TABLE ONLY public.notifications
 
 
 --
--- Name: orders orders_pkey; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: orders orders_pkey; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.orders
@@ -1599,7 +1599,7 @@ ALTER TABLE ONLY public.orders
 
 
 --
--- Name: otp_challenges otp_challenges_pkey; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: otp_challenges otp_challenges_pkey; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.otp_challenges
@@ -1607,7 +1607,7 @@ ALTER TABLE ONLY public.otp_challenges
 
 
 --
--- Name: panic_alerts panic_alerts_pkey; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: panic_alerts panic_alerts_pkey; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.panic_alerts
@@ -1615,7 +1615,7 @@ ALTER TABLE ONLY public.panic_alerts
 
 
 --
--- Name: password_reset_tokens password_reset_tokens_pkey; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: password_reset_tokens password_reset_tokens_pkey; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.password_reset_tokens
@@ -1623,7 +1623,7 @@ ALTER TABLE ONLY public.password_reset_tokens
 
 
 --
--- Name: password_reset_tokens password_reset_tokens_token_key; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: password_reset_tokens password_reset_tokens_token_key; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.password_reset_tokens
@@ -1631,7 +1631,7 @@ ALTER TABLE ONLY public.password_reset_tokens
 
 
 --
--- Name: payments payments_external_id_key; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: payments payments_external_id_key; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.payments
@@ -1639,7 +1639,7 @@ ALTER TABLE ONLY public.payments
 
 
 --
--- Name: payments payments_pkey; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: payments payments_pkey; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.payments
@@ -1647,7 +1647,7 @@ ALTER TABLE ONLY public.payments
 
 
 --
--- Name: pending_profile_updates pending_profile_updates_pkey; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: pending_profile_updates pending_profile_updates_pkey; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.pending_profile_updates
@@ -1655,7 +1655,7 @@ ALTER TABLE ONLY public.pending_profile_updates
 
 
 --
--- Name: product_images product_images_pkey; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: product_images product_images_pkey; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.product_images
@@ -1663,7 +1663,7 @@ ALTER TABLE ONLY public.product_images
 
 
 --
--- Name: professional_ratings professional_ratings_pkey; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: professional_ratings professional_ratings_pkey; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.professional_ratings
@@ -1671,7 +1671,7 @@ ALTER TABLE ONLY public.professional_ratings
 
 
 --
--- Name: provider_ratings provider_ratings_pkey; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: provider_ratings provider_ratings_pkey; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.provider_ratings
@@ -1679,7 +1679,7 @@ ALTER TABLE ONLY public.provider_ratings
 
 
 --
--- Name: reports reports_pkey; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: reports reports_pkey; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.reports
@@ -1687,7 +1687,7 @@ ALTER TABLE ONLY public.reports
 
 
 --
--- Name: service_requests service_requests_pkey; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: service_requests service_requests_pkey; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.service_requests
@@ -1695,7 +1695,7 @@ ALTER TABLE ONLY public.service_requests
 
 
 --
--- Name: service_types service_types_name_key; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: service_types service_types_name_key; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.service_types
@@ -1703,7 +1703,7 @@ ALTER TABLE ONLY public.service_types
 
 
 --
--- Name: service_types service_types_pkey; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: service_types service_types_pkey; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.service_types
@@ -1711,7 +1711,7 @@ ALTER TABLE ONLY public.service_types
 
 
 --
--- Name: shop_categories shop_categories_pkey; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: shop_categories shop_categories_pkey; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.shop_categories
@@ -1719,7 +1719,7 @@ ALTER TABLE ONLY public.shop_categories
 
 
 --
--- Name: shop_products shop_products_pkey; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: shop_products shop_products_pkey; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.shop_products
@@ -1727,7 +1727,7 @@ ALTER TABLE ONLY public.shop_products
 
 
 --
--- Name: shop_subcategories shop_subcategories_pkey; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: shop_subcategories shop_subcategories_pkey; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.shop_subcategories
@@ -1735,7 +1735,7 @@ ALTER TABLE ONLY public.shop_subcategories
 
 
 --
--- Name: subscription_plans subscription_plans_paypal_plan_id_key; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: subscription_plans subscription_plans_paypal_plan_id_key; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.subscription_plans
@@ -1743,7 +1743,7 @@ ALTER TABLE ONLY public.subscription_plans
 
 
 --
--- Name: subscription_plans subscription_plans_pkey; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: subscription_plans subscription_plans_pkey; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.subscription_plans
@@ -1751,7 +1751,7 @@ ALTER TABLE ONLY public.subscription_plans
 
 
 --
--- Name: subscriptions subscriptions_pkey; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: subscriptions subscriptions_pkey; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.subscriptions
@@ -1759,7 +1759,7 @@ ALTER TABLE ONLY public.subscriptions
 
 
 --
--- Name: subscriptions subscriptions_provider_subscription_id_key; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: subscriptions subscriptions_provider_subscription_id_key; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.subscriptions
@@ -1767,7 +1767,7 @@ ALTER TABLE ONLY public.subscriptions
 
 
 --
--- Name: testimonials testimonials_pkey; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: testimonials testimonials_pkey; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.testimonials
@@ -1775,7 +1775,7 @@ ALTER TABLE ONLY public.testimonials
 
 
 --
--- Name: user_selected_services unique_user_service; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: user_selected_services unique_user_service; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.user_selected_services
@@ -1783,7 +1783,7 @@ ALTER TABLE ONLY public.user_selected_services
 
 
 --
--- Name: earnings_recon uq_earnings_recon_user_period; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: earnings_recon uq_earnings_recon_user_period; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.earnings_recon
@@ -1791,7 +1791,7 @@ ALTER TABLE ONLY public.earnings_recon
 
 
 --
--- Name: users uq_user_email_role; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: users uq_user_email_role; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.users
@@ -1799,7 +1799,7 @@ ALTER TABLE ONLY public.users
 
 
 --
--- Name: user_selected_services user_selected_services_pkey; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: user_selected_services user_selected_services_pkey; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.user_selected_services
@@ -1807,7 +1807,7 @@ ALTER TABLE ONLY public.user_selected_services
 
 
 --
--- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.users
@@ -1815,7 +1815,7 @@ ALTER TABLE ONLY public.users
 
 
 --
--- Name: users users_tracking_number_key; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: users users_tracking_number_key; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.users
@@ -1823,7 +1823,7 @@ ALTER TABLE ONLY public.users
 
 
 --
--- Name: vehicle_images vehicle_images_pkey; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: vehicle_images vehicle_images_pkey; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.vehicle_images
@@ -1831,7 +1831,7 @@ ALTER TABLE ONLY public.vehicle_images
 
 
 --
--- Name: wallet_transactions wallet_transactions_pkey; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: wallet_transactions wallet_transactions_pkey; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.wallet_transactions
@@ -1839,7 +1839,7 @@ ALTER TABLE ONLY public.wallet_transactions
 
 
 --
--- Name: wallets wallets_pkey; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: wallets wallets_pkey; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.wallets
@@ -1847,7 +1847,7 @@ ALTER TABLE ONLY public.wallets
 
 
 --
--- Name: wallets wallets_user_id_key; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: wallets wallets_user_id_key; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.wallets
@@ -1855,7 +1855,7 @@ ALTER TABLE ONLY public.wallets
 
 
 --
--- Name: withdrawal_requests withdrawal_requests_pkey; Type: CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: withdrawal_requests withdrawal_requests_pkey; Type: CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.withdrawal_requests
@@ -1863,63 +1863,63 @@ ALTER TABLE ONLY public.withdrawal_requests
 
 
 --
--- Name: idx_otp_challenges_identifier; Type: INDEX; Schema: public; Owner: mzansi
+-- Name: idx_otp_challenges_identifier; Type: INDEX; Schema: public; Owner: ag8te
 --
 
 CREATE INDEX idx_otp_challenges_identifier ON public.otp_challenges USING btree (identifier);
 
 
 --
--- Name: idx_otp_challenges_user_purpose; Type: INDEX; Schema: public; Owner: mzansi
+-- Name: idx_otp_challenges_user_purpose; Type: INDEX; Schema: public; Owner: ag8te
 --
 
 CREATE INDEX idx_otp_challenges_user_purpose ON public.otp_challenges USING btree (user_id, purpose);
 
 
 --
--- Name: ix_agents_agent_id; Type: INDEX; Schema: public; Owner: mzansi
+-- Name: ix_agents_agent_id; Type: INDEX; Schema: public; Owner: ag8te
 --
 
 CREATE UNIQUE INDEX ix_agents_agent_id ON public.agents USING btree (agent_id);
 
 
 --
--- Name: ix_panic_alerts_created_at; Type: INDEX; Schema: public; Owner: mzansi
+-- Name: ix_panic_alerts_created_at; Type: INDEX; Schema: public; Owner: ag8te
 --
 
 CREATE INDEX ix_panic_alerts_created_at ON public.panic_alerts USING btree (created_at);
 
 
 --
--- Name: ix_panic_alerts_status; Type: INDEX; Schema: public; Owner: mzansi
+-- Name: ix_panic_alerts_status; Type: INDEX; Schema: public; Owner: ag8te
 --
 
 CREATE INDEX ix_panic_alerts_status ON public.panic_alerts USING btree (status);
 
 
 --
--- Name: ix_panic_alerts_user_id; Type: INDEX; Schema: public; Owner: mzansi
+-- Name: ix_panic_alerts_user_id; Type: INDEX; Schema: public; Owner: ag8te
 --
 
 CREATE INDEX ix_panic_alerts_user_id ON public.panic_alerts USING btree (user_id);
 
 
 --
--- Name: ix_pending_profile_updates_user_id; Type: INDEX; Schema: public; Owner: mzansi
+-- Name: ix_pending_profile_updates_user_id; Type: INDEX; Schema: public; Owner: ag8te
 --
 
 CREATE INDEX ix_pending_profile_updates_user_id ON public.pending_profile_updates USING btree (user_id);
 
 
 --
--- Name: ix_vehicle_images_user_id; Type: INDEX; Schema: public; Owner: mzansi
+-- Name: ix_vehicle_images_user_id; Type: INDEX; Schema: public; Owner: ag8te
 --
 
 CREATE INDEX ix_vehicle_images_user_id ON public.vehicle_images USING btree (user_id);
 
 
 --
--- Name: adverts adverts_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: adverts adverts_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.adverts
@@ -1927,7 +1927,7 @@ ALTER TABLE ONLY public.adverts
 
 
 --
--- Name: agent_commissions agent_commissions_agent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: agent_commissions agent_commissions_agent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.agent_commissions
@@ -1935,7 +1935,7 @@ ALTER TABLE ONLY public.agent_commissions
 
 
 --
--- Name: agent_commissions agent_commissions_recruited_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: agent_commissions agent_commissions_recruited_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.agent_commissions
@@ -1943,7 +1943,7 @@ ALTER TABLE ONLY public.agent_commissions
 
 
 --
--- Name: chat_messages chat_messages_recipient_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: chat_messages chat_messages_recipient_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.chat_messages
@@ -1951,7 +1951,7 @@ ALTER TABLE ONLY public.chat_messages
 
 
 --
--- Name: chat_messages chat_messages_request_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: chat_messages chat_messages_request_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.chat_messages
@@ -1959,7 +1959,7 @@ ALTER TABLE ONLY public.chat_messages
 
 
 --
--- Name: chat_messages chat_messages_sender_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: chat_messages chat_messages_sender_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.chat_messages
@@ -1967,7 +1967,7 @@ ALTER TABLE ONLY public.chat_messages
 
 
 --
--- Name: client_ratings client_ratings_client_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: client_ratings client_ratings_client_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.client_ratings
@@ -1975,7 +1975,7 @@ ALTER TABLE ONLY public.client_ratings
 
 
 --
--- Name: client_ratings client_ratings_rater_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: client_ratings client_ratings_rater_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.client_ratings
@@ -1983,7 +1983,7 @@ ALTER TABLE ONLY public.client_ratings
 
 
 --
--- Name: client_ratings client_ratings_service_request_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: client_ratings client_ratings_service_request_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.client_ratings
@@ -1991,7 +1991,7 @@ ALTER TABLE ONLY public.client_ratings
 
 
 --
--- Name: delivery_addresses delivery_addresses_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: delivery_addresses delivery_addresses_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.delivery_addresses
@@ -1999,7 +1999,7 @@ ALTER TABLE ONLY public.delivery_addresses
 
 
 --
--- Name: driver_ratings driver_ratings_driver_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: driver_ratings driver_ratings_driver_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.driver_ratings
@@ -2007,7 +2007,7 @@ ALTER TABLE ONLY public.driver_ratings
 
 
 --
--- Name: driver_ratings driver_ratings_requester_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: driver_ratings driver_ratings_requester_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.driver_ratings
@@ -2015,7 +2015,7 @@ ALTER TABLE ONLY public.driver_ratings
 
 
 --
--- Name: driver_ratings driver_ratings_service_request_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: driver_ratings driver_ratings_service_request_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.driver_ratings
@@ -2023,7 +2023,7 @@ ALTER TABLE ONLY public.driver_ratings
 
 
 --
--- Name: earnings_recon earnings_recon_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: earnings_recon earnings_recon_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.earnings_recon
@@ -2031,7 +2031,7 @@ ALTER TABLE ONLY public.earnings_recon
 
 
 --
--- Name: email_verification_tokens email_verification_tokens_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: email_verification_tokens email_verification_tokens_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.email_verification_tokens
@@ -2039,7 +2039,7 @@ ALTER TABLE ONLY public.email_verification_tokens
 
 
 --
--- Name: inventory inventory_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: inventory inventory_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.inventory
@@ -2047,7 +2047,7 @@ ALTER TABLE ONLY public.inventory
 
 
 --
--- Name: marketplace_ads marketplace_ads_category_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: marketplace_ads marketplace_ads_category_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.marketplace_ads
@@ -2055,7 +2055,7 @@ ALTER TABLE ONLY public.marketplace_ads
 
 
 --
--- Name: marketplace_ads marketplace_ads_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: marketplace_ads marketplace_ads_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.marketplace_ads
@@ -2063,7 +2063,7 @@ ALTER TABLE ONLY public.marketplace_ads
 
 
 --
--- Name: notifications notifications_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: notifications notifications_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.notifications
@@ -2071,7 +2071,7 @@ ALTER TABLE ONLY public.notifications
 
 
 --
--- Name: orders orders_customer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: orders orders_customer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.orders
@@ -2079,7 +2079,7 @@ ALTER TABLE ONLY public.orders
 
 
 --
--- Name: otp_challenges otp_challenges_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: otp_challenges otp_challenges_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.otp_challenges
@@ -2087,7 +2087,7 @@ ALTER TABLE ONLY public.otp_challenges
 
 
 --
--- Name: panic_alerts panic_alerts_booking_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: panic_alerts panic_alerts_booking_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.panic_alerts
@@ -2095,7 +2095,7 @@ ALTER TABLE ONLY public.panic_alerts
 
 
 --
--- Name: panic_alerts panic_alerts_resolved_by_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: panic_alerts panic_alerts_resolved_by_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.panic_alerts
@@ -2103,7 +2103,7 @@ ALTER TABLE ONLY public.panic_alerts
 
 
 --
--- Name: panic_alerts panic_alerts_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: panic_alerts panic_alerts_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.panic_alerts
@@ -2111,7 +2111,7 @@ ALTER TABLE ONLY public.panic_alerts
 
 
 --
--- Name: password_reset_tokens password_reset_tokens_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: password_reset_tokens password_reset_tokens_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.password_reset_tokens
@@ -2119,7 +2119,7 @@ ALTER TABLE ONLY public.password_reset_tokens
 
 
 --
--- Name: pending_profile_updates pending_profile_updates_reviewed_by_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: pending_profile_updates pending_profile_updates_reviewed_by_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.pending_profile_updates
@@ -2127,7 +2127,7 @@ ALTER TABLE ONLY public.pending_profile_updates
 
 
 --
--- Name: pending_profile_updates pending_profile_updates_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: pending_profile_updates pending_profile_updates_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.pending_profile_updates
@@ -2135,7 +2135,7 @@ ALTER TABLE ONLY public.pending_profile_updates
 
 
 --
--- Name: product_images product_images_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: product_images product_images_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.product_images
@@ -2143,7 +2143,7 @@ ALTER TABLE ONLY public.product_images
 
 
 --
--- Name: professional_ratings professional_ratings_professional_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: professional_ratings professional_ratings_professional_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.professional_ratings
@@ -2151,7 +2151,7 @@ ALTER TABLE ONLY public.professional_ratings
 
 
 --
--- Name: professional_ratings professional_ratings_requester_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: professional_ratings professional_ratings_requester_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.professional_ratings
@@ -2159,7 +2159,7 @@ ALTER TABLE ONLY public.professional_ratings
 
 
 --
--- Name: professional_ratings professional_ratings_service_request_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: professional_ratings professional_ratings_service_request_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.professional_ratings
@@ -2167,7 +2167,7 @@ ALTER TABLE ONLY public.professional_ratings
 
 
 --
--- Name: provider_ratings provider_ratings_provider_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: provider_ratings provider_ratings_provider_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.provider_ratings
@@ -2175,7 +2175,7 @@ ALTER TABLE ONLY public.provider_ratings
 
 
 --
--- Name: provider_ratings provider_ratings_requester_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: provider_ratings provider_ratings_requester_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.provider_ratings
@@ -2183,7 +2183,7 @@ ALTER TABLE ONLY public.provider_ratings
 
 
 --
--- Name: provider_ratings provider_ratings_service_request_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: provider_ratings provider_ratings_service_request_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.provider_ratings
@@ -2191,7 +2191,7 @@ ALTER TABLE ONLY public.provider_ratings
 
 
 --
--- Name: reports reports_reported_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: reports reports_reported_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.reports
@@ -2199,7 +2199,7 @@ ALTER TABLE ONLY public.reports
 
 
 --
--- Name: reports reports_reporter_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: reports reports_reporter_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.reports
@@ -2207,7 +2207,7 @@ ALTER TABLE ONLY public.reports
 
 
 --
--- Name: reports reports_service_request_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: reports reports_service_request_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.reports
@@ -2215,7 +2215,7 @@ ALTER TABLE ONLY public.reports
 
 
 --
--- Name: service_requests service_requests_provider_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: service_requests service_requests_provider_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.service_requests
@@ -2223,7 +2223,7 @@ ALTER TABLE ONLY public.service_requests
 
 
 --
--- Name: service_requests service_requests_requester_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: service_requests service_requests_requester_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.service_requests
@@ -2231,7 +2231,7 @@ ALTER TABLE ONLY public.service_requests
 
 
 --
--- Name: shop_products shop_products_category_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: shop_products shop_products_category_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.shop_products
@@ -2239,7 +2239,7 @@ ALTER TABLE ONLY public.shop_products
 
 
 --
--- Name: shop_products shop_products_subcategory_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: shop_products shop_products_subcategory_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.shop_products
@@ -2247,7 +2247,7 @@ ALTER TABLE ONLY public.shop_products
 
 
 --
--- Name: shop_subcategories shop_subcategories_category_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: shop_subcategories shop_subcategories_category_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.shop_subcategories
@@ -2255,7 +2255,7 @@ ALTER TABLE ONLY public.shop_subcategories
 
 
 --
--- Name: subscriptions subscriptions_plan_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: subscriptions subscriptions_plan_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.subscriptions
@@ -2263,7 +2263,7 @@ ALTER TABLE ONLY public.subscriptions
 
 
 --
--- Name: subscriptions subscriptions_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: subscriptions subscriptions_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.subscriptions
@@ -2271,7 +2271,7 @@ ALTER TABLE ONLY public.subscriptions
 
 
 --
--- Name: user_selected_services user_selected_services_service_type_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: user_selected_services user_selected_services_service_type_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.user_selected_services
@@ -2279,7 +2279,7 @@ ALTER TABLE ONLY public.user_selected_services
 
 
 --
--- Name: user_selected_services user_selected_services_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: user_selected_services user_selected_services_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.user_selected_services
@@ -2287,7 +2287,7 @@ ALTER TABLE ONLY public.user_selected_services
 
 
 --
--- Name: users users_agent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: users users_agent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.users
@@ -2295,7 +2295,7 @@ ALTER TABLE ONLY public.users
 
 
 --
--- Name: vehicle_images vehicle_images_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: vehicle_images vehicle_images_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.vehicle_images
@@ -2303,7 +2303,7 @@ ALTER TABLE ONLY public.vehicle_images
 
 
 --
--- Name: wallet_transactions wallet_transactions_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: wallet_transactions wallet_transactions_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.wallet_transactions
@@ -2311,7 +2311,7 @@ ALTER TABLE ONLY public.wallet_transactions
 
 
 --
--- Name: wallet_transactions wallet_transactions_wallet_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: wallet_transactions wallet_transactions_wallet_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.wallet_transactions
@@ -2319,7 +2319,7 @@ ALTER TABLE ONLY public.wallet_transactions
 
 
 --
--- Name: wallets wallets_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: wallets wallets_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.wallets
@@ -2327,7 +2327,7 @@ ALTER TABLE ONLY public.wallets
 
 
 --
--- Name: withdrawal_requests withdrawal_requests_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mzansi
+-- Name: withdrawal_requests withdrawal_requests_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ag8te
 --
 
 ALTER TABLE ONLY public.withdrawal_requests

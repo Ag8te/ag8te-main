@@ -139,7 +139,7 @@ def seed_all():
          'From cleaning to events, DSTV to repairs — trusted providers at your door.',
          'Get a Service',  '/services',    'bg-gradient-gold shadow-glow-gold',     'hero-services.jpg'),
         (4, 'Shop',        'Buy & Sell\nLocally with Ease',
-         'Discover products from local sellers. A ads built for Mzansi.',
+         'Discover products from local sellers. An e-Shop built for South Africa.',
          'Start Shopping', '/shop',        'bg-sa-red shadow-lg',                  'hero-shop.jpg'),
     ]
     banners_added: list = []
@@ -170,7 +170,7 @@ def seed_all():
         ('ShieldCheck', 'Fully Verified',    'Every provider is vetted through SARS, Home Affairs, CIPC, and SAPS databases.', 1),
         ('Clock',       'Instant Booking',   'Book any service in seconds. No long calls, no waiting — just tap and go.',        2),
         ('BadgeCheck',  'Accredited Experts',"Professional bodies validate credentials so you don't have to do due diligence.", 3),
-        ('Headphones',  'Dedicated Support', 'Our Mzansi-based support team is available to help — any time, any issue.',       4),
+        ('Headphones',  'Dedicated Support', 'Our South Africa-based support team is available to help — any time, any issue.',       4),
     ]
     features_added: list = []
     for icon, title, desc, order in features:

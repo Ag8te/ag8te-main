@@ -69,6 +69,23 @@ const normalizeProductLocations = (value: unknown): string[] => {
   return [];
 };
 
+const getPrimaryImageUrl = (product: any): string | null => {
+  const images = Array.isArray(product.images) ? [...product.images] : [];
+  images.sort((a, b) => {
+    if (a?.is_primary && !b?.is_primary) return -1;
+    if (!a?.is_primary && b?.is_primary) return 1;
+    return Number(a?.order ?? 0) - Number(b?.order ?? 0);
+  });
+
+  return images.find((img) => img?.image_url)?.image_url || product.image_url || null;
+};
+
+const getProductCardDescription = (description?: string | null) => {
+  const text = (description || "").trim().replace(/\s+/g, " ");
+  if (!text) return "";
+  return text.length > 120 ? `${text.slice(0, 117).trimEnd()}...` : text;
+};
+
 const getCategoryIcon = (categoryName: string, iconKey?: string) => {
   if (iconKey && iconMap[iconKey]) {
     return iconMap[iconKey];
@@ -210,7 +227,7 @@ export default function Shop() {
 
     products.forEach((p: any) => {
       if (p.status === "inactive") return;
-      const firstImg = p.images?.[0]?.image_url || p.image_url;
+      const firstImg = getPrimaryImageUrl(p);
       const imgSrc = firstImg ? getImageUrl(firstImg) : null;
       const price = typeof p.price === "string" ? parseFloat(p.price) : p.price;
       items.push({
@@ -223,7 +240,7 @@ export default function Shop() {
         category_id: p.category?.id || p.category_id,
         seller: p.seller_name || "AG8TE",
         locations: normalizeProductLocations(p.locations),
-        location: normalizeProductLocations(p.locations).join(", ") || "Mzansi",
+        location: normalizeProductLocations(p.locations).join(", ") || "South Africa",
         date: p.created_at,
         raw: p,
       });
@@ -240,7 +257,7 @@ export default function Shop() {
         category: ad.category_name || "Ads",
         category_id: ad.category_id || ad.category_slug || ad.category_name, // fallback for matching
         seller: ad.user?.name || "User",
-        location: ad.city || ad.province || "Mzansi",
+        location: ad.city || ad.province || "South Africa",
         date: ad.created_at,
         raw: ad,
       });
@@ -474,11 +491,11 @@ export default function Shop() {
               animate={{ opacity: 1, y: 0 }}
             >
               <Badge className="mb-4 bg-primary/10 text-primary border-none text-xs font-bold px-3 py-1">
-                <Sparkles className="w-3 h-3 mr-1" /> THE MZANSI SHOP
+                <Sparkles className="w-3 h-3 mr-1" /> THE AG8TE SHOP
               </Badge>
               <h1 className="text-4xl md:text-6xl font-black text-[#1e293b] mb-6 tracking-tight">
                 Shop Premium Deals in{" "}
-                <span className="text-primary italic">Mzansi</span>
+                <span className="text-primary italic">AG8TE</span>
               </h1>
               <p className="text-slate-500 text-lg mb-8 max-w-2xl mx-auto">
                 Discover the best local items curated and sold exclusively by
@@ -779,7 +796,7 @@ export default function Shop() {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 whileHover={{ y: -5 }}
-                className={`group bg-white border border-slate-100 rounded-[2rem] overflow-hidden transition-all hover:shadow-2xl hover:shadow-slate-200 cursor-pointer ${viewMode === "list" ? "flex h-48 sm:h-auto sm:min-h-[12rem] flex-row" : "flex flex-col h-[22rem]"}`}
+                className={`group bg-white border border-slate-100 rounded-[2rem] overflow-hidden transition-all hover:shadow-2xl hover:shadow-slate-200 cursor-pointer ${viewMode === "list" ? "flex h-48 sm:h-auto sm:min-h-[12rem] flex-row" : item.item_type === "shop" ? "flex min-h-[38rem] flex-col" : "flex h-[22rem] flex-col"}`}
                 onClick={() => handleItemClick(item)}
               >
                 <div
@@ -794,10 +811,14 @@ export default function Shop() {
                     className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-110 bg-slate-100"
                     onError={(e) => {
                       const t = e.currentTarget as HTMLImageElement;
-                      t.style.display = "none";
-                      (t.nextElementSibling as HTMLElement)?.classList.remove(
-                        "hidden",
-                      );
+                      if (!t.src.includes("product-placeholder")) {
+                        t.src = productPlaceholder;
+                      } else {
+                        t.style.display = "none";
+                        (t.nextElementSibling as HTMLElement)?.classList.remove(
+                          "hidden",
+                        );
+                      }
                     }}
                   />
                   <div
@@ -906,9 +927,9 @@ export default function Shop() {
                             : "POA"}
                     </div>
                   </div>
-                  {item.raw?.description && (
-                    <p className="text-slate-400 text-xs mt-1 line-clamp-3 leading-relaxed">
-                      {item.raw.description}
+                  {getProductCardDescription(item.raw?.description) && (
+                    <p className="mt-1 min-h-[2.5rem] text-xs leading-5 text-slate-400 line-clamp-2">
+                      {getProductCardDescription(item.raw?.description)}
                     </p>
                   )}
                   {item.item_type === "shop" &&

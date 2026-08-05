@@ -18,7 +18,7 @@ const values = [
   { icon: ShieldCheck, title: "Trust & Verification", description: "Every provider vetted through SARS, Home Affairs, CIPC, and SAPS databases." },
   { icon: Clock, title: "Instant Access", description: "Book services in seconds — no long calls, no waiting, just tap and go." },
   { icon: BadgeCheck, title: "Quality Guaranteed", description: "Professional bodies validate every credential on our platform." },
-  { icon: Headphones, title: "Local Support", description: "Our Mzansi-based team is available to help with any issue, anytime." },
+  { icon: Headphones, title: "Local Support", description: "Our South Africa-based team is available to help with any issue, anytime." },
 ];
 
 const About = () => {
@@ -37,7 +37,7 @@ const About = () => {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
             <span className="inline-block mb-3 text-xs font-bold uppercase tracking-[0.2em] text-primary">Our Story</span>
             <h1 className="text-3xl md:text-5xl lg:text-6xl font-semibold text-[#222222] mb-6 tracking-tight">
-              Mzansi's Most Trusted <br className="hidden md:block" />
+              AG8TE's Most Trusted <br className="hidden md:block" />
               <span className="text-primary underline decoration-primary/10 decoration-8 underline-offset-8">Service Hub</span>
             </h1>
             <p className="text-lg md:text-xl text-slate-500 font-normal leading-relaxed max-w-3xl mx-auto">

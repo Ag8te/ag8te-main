@@ -90,7 +90,7 @@ export default function History() {
                     </View>
                     <View style={{ flex: 1, marginLeft: SPACING.md }}>
                         <Typography variant="body" weight="bold">
-                            Order from {item.shop_name || 'MzansiStore'}
+                            Order from {item.shop_name || 'AG8TE Store'}
                         </Typography>
                         <Typography variant="caption" color={COLORS.gray[500]} style={{ marginTop: 2 }}>
                             {item.items?.length || 0} items
