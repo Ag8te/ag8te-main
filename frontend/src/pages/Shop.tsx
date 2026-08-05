@@ -80,6 +80,12 @@ const getPrimaryImageUrl = (product: any): string | null => {
   return images.find((img) => img?.image_url)?.image_url || product.image_url || null;
 };
 
+const getProductCardDescription = (description?: string | null) => {
+  const text = (description || "").trim().replace(/\s+/g, " ");
+  if (!text) return "";
+  return text.length > 120 ? `${text.slice(0, 117).trimEnd()}...` : text;
+};
+
 const getCategoryIcon = (categoryName: string, iconKey?: string) => {
   if (iconKey && iconMap[iconKey]) {
     return iconMap[iconKey];
@@ -790,7 +796,7 @@ export default function Shop() {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 whileHover={{ y: -5 }}
-                className={`group bg-white border border-slate-100 rounded-[2rem] overflow-hidden transition-all hover:shadow-2xl hover:shadow-slate-200 cursor-pointer ${viewMode === "list" ? "flex h-48 sm:h-auto sm:min-h-[12rem] flex-row" : "flex flex-col h-[22rem]"}`}
+                className={`group bg-white border border-slate-100 rounded-[2rem] overflow-hidden transition-all hover:shadow-2xl hover:shadow-slate-200 cursor-pointer ${viewMode === "list" ? "flex h-48 sm:h-auto sm:min-h-[12rem] flex-row" : item.item_type === "shop" ? "flex min-h-[38rem] flex-col" : "flex h-[22rem] flex-col"}`}
                 onClick={() => handleItemClick(item)}
               >
                 <div
@@ -921,9 +927,9 @@ export default function Shop() {
                             : "POA"}
                     </div>
                   </div>
-                  {item.raw?.description && (
-                    <p className="text-slate-400 text-xs mt-1 line-clamp-2 leading-relaxed">
-                      {item.raw.description}
+                  {getProductCardDescription(item.raw?.description) && (
+                    <p className="mt-1 min-h-[2.5rem] text-xs leading-5 text-slate-400 line-clamp-2">
+                      {getProductCardDescription(item.raw?.description)}
                     </p>
                   )}
                   {item.item_type === "shop" &&
