@@ -14,3 +14,4 @@ User-agent: *
 Allow: /
 
 Sitemap: https://ag8te.com/sitemap.xml
+Sitemap: https://ag8te.co.za/sitemap.xml
