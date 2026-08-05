@@ -69,6 +69,17 @@ const normalizeProductLocations = (value: unknown): string[] => {
   return [];
 };
 
+const getPrimaryImageUrl = (product: any): string | null => {
+  const images = Array.isArray(product.images) ? [...product.images] : [];
+  images.sort((a, b) => {
+    if (a?.is_primary && !b?.is_primary) return -1;
+    if (!a?.is_primary && b?.is_primary) return 1;
+    return Number(a?.order ?? 0) - Number(b?.order ?? 0);
+  });
+
+  return images.find((img) => img?.image_url)?.image_url || product.image_url || null;
+};
+
 const getCategoryIcon = (categoryName: string, iconKey?: string) => {
   if (iconKey && iconMap[iconKey]) {
     return iconMap[iconKey];
@@ -210,7 +221,7 @@ export default function Shop() {
 
     products.forEach((p: any) => {
       if (p.status === "inactive") return;
-      const firstImg = p.images?.[0]?.image_url || p.image_url;
+      const firstImg = getPrimaryImageUrl(p);
       const imgSrc = firstImg ? getImageUrl(firstImg) : null;
       const price = typeof p.price === "string" ? parseFloat(p.price) : p.price;
       items.push({
@@ -794,10 +805,14 @@ export default function Shop() {
                     className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-110 bg-slate-100"
                     onError={(e) => {
                       const t = e.currentTarget as HTMLImageElement;
-                      t.style.display = "none";
-                      (t.nextElementSibling as HTMLElement)?.classList.remove(
-                        "hidden",
-                      );
+                      if (!t.src.includes("product-placeholder")) {
+                        t.src = productPlaceholder;
+                      } else {
+                        t.style.display = "none";
+                        (t.nextElementSibling as HTMLElement)?.classList.remove(
+                          "hidden",
+                        );
+                      }
                     }}
                   />
                   <div
@@ -907,7 +922,7 @@ export default function Shop() {
                     </div>
                   </div>
                   {item.raw?.description && (
-                    <p className="text-slate-400 text-xs mt-1 line-clamp-3 leading-relaxed">
+                    <p className="text-slate-400 text-xs mt-1 line-clamp-2 leading-relaxed">
                       {item.raw.description}
                     </p>
                   )}
