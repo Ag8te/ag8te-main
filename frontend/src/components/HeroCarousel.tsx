@@ -79,7 +79,7 @@ const fallbackSlides: SlideData[] = [
     order: 4,
     badge: "Shop",
     title: "Buy & Sell\nLocally with Ease",
-    subtitle: "Discover products from local sellers. A marketplace built for Mzansi.",
+    subtitle: "Discover products from local sellers. A marketplace built for South Africa.",
     ctaColor: "bg-sa-red shadow-lg",
     learnMore: "/shop",
   },

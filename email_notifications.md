@@ -30,7 +30,7 @@ Your account is now active, and you can start exploring:
 
 Login anytime here: {{login_link}} or directly from the ag8te mobile app, www.AG8TE.com or www.AG8TE .com
 
-Thank you for choosing AG8TE — made for Mzansi, built for you 🇿🇦
+Thank you for choosing AG8TE — made for South Africa, built for you 🇿🇦
 
 Kind regards,
 AG8TE Team

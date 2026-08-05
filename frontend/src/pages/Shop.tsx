@@ -234,7 +234,7 @@ export default function Shop() {
         category_id: p.category?.id || p.category_id,
         seller: p.seller_name || "AG8TE",
         locations: normalizeProductLocations(p.locations),
-        location: normalizeProductLocations(p.locations).join(", ") || "Mzansi",
+        location: normalizeProductLocations(p.locations).join(", ") || "South Africa",
         date: p.created_at,
         raw: p,
       });
@@ -251,7 +251,7 @@ export default function Shop() {
         category: ad.category_name || "Ads",
         category_id: ad.category_id || ad.category_slug || ad.category_name, // fallback for matching
         seller: ad.user?.name || "User",
-        location: ad.city || ad.province || "Mzansi",
+        location: ad.city || ad.province || "South Africa",
         date: ad.created_at,
         raw: ad,
       });
@@ -485,11 +485,11 @@ export default function Shop() {
               animate={{ opacity: 1, y: 0 }}
             >
               <Badge className="mb-4 bg-primary/10 text-primary border-none text-xs font-bold px-3 py-1">
-                <Sparkles className="w-3 h-3 mr-1" /> THE MZANSI SHOP
+                <Sparkles className="w-3 h-3 mr-1" /> THE AG8TE SHOP
               </Badge>
               <h1 className="text-4xl md:text-6xl font-black text-[#1e293b] mb-6 tracking-tight">
                 Shop Premium Deals in{" "}
-                <span className="text-primary italic">Mzansi</span>
+                <span className="text-primary italic">AG8TE</span>
               </h1>
               <p className="text-slate-500 text-lg mb-8 max-w-2xl mx-auto">
                 Discover the best local items curated and sold exclusively by

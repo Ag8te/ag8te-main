@@ -344,7 +344,7 @@ Your account is now active, and you can start exploring:
 
 Login anytime here: {login_url} or directly from the AG8TE mobile app, www.ag8te.com or www.ag8te.co.za
 
-Thank you for choosing AG8TE - made for Mzansi, built for you
+Thank you for choosing AG8TE - made for South Africa, built for you
 
 Kind regards,
 AG8TE Team"""
@@ -359,7 +359,7 @@ AG8TE Team"""
     <li>Secure payments</li>
 </ul>
 <p>Login anytime here: <a href="{login_url}">{login_url}</a> or directly from the AG8TE mobile app, <a href="https://www.ag8te.com">www.ag8te.com</a> or <a href="https://www.ag8te.co.za">www.ag8te.co.za</a></p>
-<p>Thank you for choosing AG8TE - made for Mzansi, built for you</p>
+<p>Thank you for choosing AG8TE - made for South Africa, built for you</p>
 <p>Kind regards,<br>AG8TE Team</p>
 </body></html>"""
         else:

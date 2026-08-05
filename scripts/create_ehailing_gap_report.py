@@ -204,7 +204,7 @@ if LOGO_PATH.exists():
 p = doc.add_paragraph()
 p.alignment = WD_ALIGN_PARAGRAPH.CENTER
 p.paragraph_format.space_after = Pt(4)
-add_run(p, "MZansiServe E-Hailing Platform", bold=True, color=NAVY, size=22)
+add_run(p, "AG8TE E-Hailing Platform", bold=True, color=NAVY, size=22)
 
 p = doc.add_paragraph()
 p.alignment = WD_ALIGN_PARAGRAPH.CENTER

@@ -118,7 +118,7 @@ services:
     build: .
     ports: ["5000:5000"]
     environment:
-      - DATABASE_URL=postgresql://mzansi:${DB_PASSWORD:-changeme}@db:5432/ag8te
+      - DATABASE_URL=postgresql://ag8te:${DB_PASSWORD:-changeme}@db:5432/ag8te
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key}
       - JWT_SECRET_KEY=${JWT_SECRET_KEY:-jwt-secret-key}
       - FLASK_ENV=development
@@ -144,13 +144,13 @@ services:
     ports: ["5432:5432"]
     environment:
       - POSTGRES_DB=ag8te
-      - POSTGRES_USER=mzansi
+      - POSTGRES_USER=ag8te
       - POSTGRES_PASSWORD=${DB_PASSWORD:-changeme}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U mzansi"]
+      test: ["CMD-SHELL", "pg_isready -U ag8te"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -543,8 +543,8 @@ volumes:
 - [ ] Implement Forgot Password Recovery
 
 **Service Integration:**
-- [ ] Implement email service (`/home/charles/Documents/projects/mzansi-serve/services/email`)
-- [ ] Implement payment service (`/home/charles/Documents/projects/mzansi-serve/services/yoco-checkout-service`)
+- [ ] Implement email service (`/home/charles/Documents/projects/ag8te/services/email`)
+- [ ] Implement payment service (`/home/charles/Documents/projects/ag8te/services/yoco-checkout-service`)
 - [ ] Implement payment processing
 - [ ] Implement admin endpoints
 
@@ -1349,7 +1349,7 @@ services:
     image: postgres:15-alpine
     environment:
       POSTGRES_DB: ag8te
-      POSTGRES_USER: mzansi
+      POSTGRES_USER: ag8te
       POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
     ports:
       - "5432:5432"
@@ -1357,7 +1357,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U mzansi"]
+      test: ["CMD-SHELL", "pg_isready -U ag8te"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -1369,7 +1369,7 @@ services:
     ports:
       - "5000:5000"
     environment:
-      DATABASE_URL: postgresql://mzansi:${DB_PASSWORD:-changeme}@db:5432/ag8te
+      DATABASE_URL: postgresql://ag8te:${DB_PASSWORD:-changeme}@db:5432/ag8te
       SECRET_KEY: ${SECRET_KEY:-dev-secret-key}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:-jwt-secret-key}
       FLASK_ENV: ${FLASK_ENV:-development}
@@ -1467,7 +1467,7 @@ def request():
 #### Backend (.env)
 ```bash
 # Database
-DATABASE_URL=postgresql://mzansi:password@db:5432/ag8te
+DATABASE_URL=postgresql://ag8te:password@db:5432/ag8te
 
 # Flask
 SECRET_KEY=your-secret-key-here
@@ -1677,8 +1677,8 @@ privacy policy
   - [ ] If "rejected" user can see "reasons" field.
 - [ ] Implement Password Reset/Update
 - [ ] Implement Forgot Password Recovery 
-- [ ] Implement email service (/home/charles/Documents/projects/mzansi-serve/services/email)
-- [ ] Implement payment service (/home/charles/Documents/projects/mzansi-serve/services/yoco-checkout-service)
+- [ ] Implement email service (/home/charles/Documents/projects/ag8te/services/email)
+- [ ] Implement payment service (/home/charles/Documents/projects/ag8te/services/yoco-checkout-service)
 - [ ] Implement payment processing
 - [ ] Implement admin endpoints
 - [ ] Implement service request features

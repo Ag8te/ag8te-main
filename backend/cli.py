@@ -1256,7 +1256,7 @@ def seed_banners(clear):
             'order': 4,
             'badge': 'Shop',
             'title': 'Buy & Sell\nLocally with Ease',
-            'subtitle': 'Discover products from local sellers. A ads built for Mzansi.',
+            'subtitle': 'Discover products from local sellers. An e-Shop built for South Africa.',
             'cta_text': 'Start Shopping',
             'cta_link': '/shop',
             'cta_color': 'bg-sa-red shadow-lg',
@@ -1324,7 +1324,7 @@ def seed_landing_content(clear):
         {'icon': 'ShieldCheck', 'title': 'Fully Verified', 'description': 'Every provider is vetted through SARS, Home Affairs, CIPC, and SAPS databases.', 'order': 1},
         {'icon': 'Clock', 'title': 'Instant Booking', 'description': 'Book any service in seconds. No long calls, no waiting — just tap and go.', 'order': 2},
         {'icon': 'BadgeCheck', 'title': 'Accredited Experts', 'description': 'Professional bodies validate credentials so you don\'t have to do due diligence.', 'order': 3},
-        {'icon': 'Headphones', 'title': 'Dedicated Support', 'description': 'Our Mzansi-based support team is available to help — any time, any issue.', 'order': 4},
+        {'icon': 'Headphones', 'title': 'Dedicated Support', 'description': 'Our South Africa-based support team is available to help — any time, any issue.', 'order': 4},
     ]
     feat_created = 0
     for fdata in features_data:

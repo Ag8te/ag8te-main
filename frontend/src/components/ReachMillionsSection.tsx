@@ -139,7 +139,7 @@ const ReachMillionsSection = () => {
                     overflowWrap: 'break-word',
                   }}
                 >
-                  mzansi<Box component="span" sx={{ color: '#222222' }}>cover</Box>
+                  ag8te<Box component="span" sx={{ color: '#222222' }}>cover</Box>
                 </Typography>
                 <Typography
                   variant="body1"

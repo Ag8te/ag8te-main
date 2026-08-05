@@ -472,7 +472,7 @@ const Transport = () => {
           <h1 className="text-3xl md:text-4xl font-bold text-[#222222] tracking-tight leading-tight">
             Where would you like to go?
           </h1>
-          <p className="mt-2 text-lg text-slate-500 font-normal max-w-2xl mx-auto">Safe, reliable, and convenient city travel across Mzansi.</p>
+          <p className="mt-2 text-lg text-slate-500 font-normal max-w-2xl mx-auto">Safe, reliable, and convenient city travel across South Africa.</p>
         </div>
       </section>
 

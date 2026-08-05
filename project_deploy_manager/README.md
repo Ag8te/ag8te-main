@@ -1692,7 +1692,7 @@ python git_install_remote.py 102.215.92.41 root 'YOUR_PASSWORD'
 
 python docker_compose_install_remote.py 102.215.92.41 root 'YOUR_PASSWORD'
 
-python git_clone_remote.py 102.215.92.41 root 'YOUR_PASSWORD' https://github.com/Jalusi-Tech/mzansi-serve /home/project --pac-token YOUR_GITHUB_TOKEN
+python git_clone_remote.py 102.215.92.41 root 'YOUR_PASSWORD' https://github.com/Ag8te/ag8te-main /home/project --pac-token YOUR_GITHUB_TOKEN
 
 python copy_env_remote.py 102.215.92.41 root 'YOUR_PASSWORD' ../.env.prod /home/project
 

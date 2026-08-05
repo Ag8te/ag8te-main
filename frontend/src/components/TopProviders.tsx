@@ -20,7 +20,7 @@ interface Provider {
 
 const FALLBACK_PROVIDERS = [
     {
-        name: "Mzansi Professional",
+        name: "AG8TE Professional",
         role_display: "Verified Expert",
         location: "Gauteng, ZA",
         avg_rating: 5.0,
@@ -69,14 +69,14 @@ export const TopProviders = () => {
                 {/* Header */}
                 <div className="mb-3 sm:hidden">
                     <h2 className="text-base font-bold text-[#222222]">
-                        Mzansi's <span className="text-primary">Top Rated</span>
+                        AG8TE's <span className="text-primary">Top Rated</span>
                     </h2>
                 </div>
 
                 <div className="hidden sm:flex flex-col md:flex-row md:items-end justify-between mb-6 gap-6">
                     <div className="max-w-2xl">
                         <h2 className="text-3xl md:text-4xl font-semibold text-[#222222] mb-3">
-                            Mzansi's <span className="text-primary">Top Rated</span>
+                            AG8TE's <span className="text-primary">Top Rated</span>
                         </h2>
                         <p className="text-lg md:text-xl text-slate-600 font-normal">
                             Meet the highest-rated professionals and service providers on our platform.

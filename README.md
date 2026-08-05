@@ -93,7 +93,7 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
 # Set environment variables (see env.example for full list)
-export DATABASE_URL=postgresql://mzansi:changeme@localhost:5432/ag8te
+export DATABASE_URL=postgresql://ag8te:changeme@localhost:5432/ag8te
 export SECRET_KEY=dev-secret-key
 export JWT_SECRET_KEY=jwt-secret-key
 export GOOGLE_MAPS_API_KEY=your-google-maps-api-key
