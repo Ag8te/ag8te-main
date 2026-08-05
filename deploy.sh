@@ -6,7 +6,7 @@
 set -e
 
 # ─── Configuration ────────────────────────────────────────────────────────────
-ZONE="us-central1-c"
+ZONE="us-central1-a"
 INSTANCE="ag8teprod"
 PROJECT="white-caster-270410"
 REMOTE_DIR="/opt/ag8te"
