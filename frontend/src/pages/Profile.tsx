@@ -30,6 +30,7 @@ const Profile = () => {
     const [photoLoading, setPhotoLoading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const isProvider = ['driver', 'professional', 'service-provider'].includes(user?.role || "");
+    const isClient = user?.role === "client";
     const isDriver = user?.role === "driver";
     const isProfessional = ["professional", "service-provider"].includes(user?.role || "");
     const [submitted, setSubmitted] = useState(false);
@@ -143,11 +144,16 @@ const Profile = () => {
     setLoading(true);
 
     try {
-        const cleanedData = {
+        const cleanedData: any = {
+       full_name: formData.full_name,
+       surname: formData.surname,
        phone: formData.phone,
+       gender: formData.gender,
        next_of_kin: formData.next_of_kin,
-      availability: formData.availability   //ADDED THIS
      };
+     if (isProvider) {
+        cleanedData.availability = formData.availability;
+     }
         const res = await apiFetch('/api/profile', {
             method: 'PATCH',
             data: cleanedData
@@ -156,8 +162,8 @@ const Profile = () => {
         if (res.success) {
             setSubmitted(true);
             toast({
-                title: "Submitted",
-                description: "Your changes are pending admin approval"
+                title: isClient ? "Profile saved" : "Submitted",
+                description: isClient ? "Your client profile has been updated." : "Your changes are pending admin approval"
             });
         }
 
@@ -264,7 +270,7 @@ const ToggleSwitch = ({ enabled, onToggle }: { enabled: boolean; onToggle: () =>
             <section className="py-12 flex-1">
                 <div className="container mx-auto px-6 max-w-5xl">
 
-    {submitted && (
+    {submitted && !isClient && (
     <div className="bg-yellow-100 text-yellow-800 p-4 rounded-xl mb-4">
         Your changes are pending admin approval.
     </div>
@@ -292,8 +298,8 @@ const ToggleSwitch = ({ enabled, onToggle }: { enabled: boolean; onToggle: () =>
                                             value={formData.full_name}
                                             onChange={handleInputChange}
                                             placeholder="John"
-                                            disabled
-                                            className="bg-slate-100 cursor-not-allowed"
+                                            disabled={!isClient}
+                                            className={isClient ? "h-14 rounded-2xl bg-slate-50/50 border-slate-100 focus:bg-white transition-all font-semibold" : "bg-slate-100 cursor-not-allowed"}
                                         />
                                     </div>
                                     <div className="space-y-2">
@@ -303,8 +309,8 @@ const ToggleSwitch = ({ enabled, onToggle }: { enabled: boolean; onToggle: () =>
                                             value={formData.surname}
                                             onChange={handleInputChange}
                                             placeholder="Doe"
-                                            disabled
-                                            className="bg-slate-100 cursor-not-allowed"
+                                            disabled={!isClient}
+                                            className={isClient ? "h-14 rounded-2xl bg-slate-50/50 border-slate-100 focus:bg-white transition-all font-semibold" : "bg-slate-100 cursor-not-allowed"}
                                         />
                                     </div>
                                     <div className="space-y-2">
@@ -332,8 +338,8 @@ const ToggleSwitch = ({ enabled, onToggle }: { enabled: boolean; onToggle: () =>
                                             name="gender"
                                             value={formData.gender}
                                             onChange={handleInputChange}
-                                             disabled
-                                            className="bg-slate-100 cursor-not-allowed"
+                                             disabled={!isClient}
+                                            className={isClient ? "h-14 rounded-2xl bg-slate-50/50 border border-slate-100 px-4 focus:bg-white transition-all font-semibold" : "bg-slate-100 cursor-not-allowed"}
                                         >
                                             <option value="">Select Gender</option>
                                             <option value="male">Male</option>
@@ -510,15 +516,23 @@ const ToggleSwitch = ({ enabled, onToggle }: { enabled: boolean; onToggle: () =>
                                 <h3 className="text-lg font-bold text-[#222222] mb-6">Account Status</h3>
 
                                 <div className="space-y-5">
+                                    {!isClient && (
                                     <div className="flex items-center justify-between py-3 border-b border-slate-50">
                                         <div className="flex items-center gap-3">
-                                            <div className="h-8 w-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-500">
-                                                <CheckCircle2 size={16} />
+                                            <div className={cn(
+                                                "h-8 w-8 rounded-lg flex items-center justify-center",
+                                                user?.email_verified ? "bg-emerald-50 text-emerald-500" : "bg-amber-50 text-amber-500"
+                                            )}>
+                                                {user?.email_verified ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
                                             </div>
                                             <span className="text-sm font-semibold text-slate-600">Email Verified</span>
                                         </div>
-                                        <span className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                                        <span className={cn(
+                                            "h-2 w-2 rounded-full",
+                                            user?.email_verified ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]"
+                                        )} />
                                     </div>
+                                    )}
 
                                     <div className="flex items-center justify-between py-3 border-b border-slate-50">
                                         <div className="flex items-center gap-3">
@@ -554,8 +568,8 @@ const ToggleSwitch = ({ enabled, onToggle }: { enabled: boolean; onToggle: () =>
                                 </div>
 
                                 <div className="mt-10 space-y-4">
-                                   <Button type="submit" disabled={submitted || loading}>
-                                         {submitted ? "Pending Approval" : "Save Changes"}
+                                   <Button type="submit" disabled={(!isClient && submitted) || loading}>
+                                         {submitted && !isClient ? "Pending Approval" : "Save Changes"}
                                     </Button>
 
                                     {user?.role !== 'client' && (

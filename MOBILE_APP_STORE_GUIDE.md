@@ -1,4 +1,4 @@
-# MzansiServe Mobile App Store Guide
+# AG8TE Mobile App Store Guide
 
 This project now includes a Capacitor mobile shell around the existing React frontend so it can be prepared for:
 
@@ -8,26 +8,26 @@ This project now includes a Capacitor mobile shell around the existing React fro
 
 ## What Is Already Done
 
-- Capacitor is installed in [frontend/package.json](/Users/bingodedingo/Desktop/mzansiserve-main/frontend/package.json)
-- Capacitor config exists in [frontend/capacitor.config.ts](/Users/bingodedingo/Desktop/mzansiserve-main/frontend/capacitor.config.ts)
+- Capacitor is installed in [frontend/package.json](/Users/bingodedingo/Desktop/ag8te-main/frontend/package.json)
+- Capacitor config exists in [frontend/capacitor.config.ts](/Users/bingodedingo/Desktop/ag8te-main/frontend/capacitor.config.ts)
 - Native projects were created in:
-  - [frontend/android](/Users/bingodedingo/Desktop/mzansiserve-main/frontend/android)
-  - [frontend/ios](/Users/bingodedingo/Desktop/mzansiserve-main/frontend/ios)
-- Native-safe geolocation is wired through [frontend/src/lib/native.ts](/Users/bingodedingo/Desktop/mzansiserve-main/frontend/src/lib/native.ts)
+  - [frontend/android](/Users/bingodedingo/Desktop/ag8te-main/frontend/android)
+  - [frontend/ios](/Users/bingodedingo/Desktop/ag8te-main/frontend/ios)
+- Native-safe geolocation is wired through [frontend/src/lib/native.ts](/Users/bingodedingo/Desktop/ag8te-main/frontend/src/lib/native.ts)
 - Driver location sync and shared location lookup now use the native-safe helper
 - Google web sign-in is hidden inside native app builds to avoid broken social login flows and Apple review risk
-- Native builds default to the live API at `https://mzansiserve.co.za` if `VITE_API_URL` is not set
+- Native builds default to the live API at `https://ag8te.com` if `VITE_API_URL` is not set
 - Store download buttons now use environment-based URLs instead of pretending the listings already exist
-- Branded native assets are generated from [frontend/src/assets/logo.jpeg](/Users/bingodedingo/Desktop/mzansiserve-main/frontend/src/assets/logo.jpeg) via [frontend/scripts/generate_mobile_assets.py](/Users/bingodedingo/Desktop/mzansiserve-main/frontend/scripts/generate_mobile_assets.py)
-- Yoco payment returns now support the native app URL scheme `co.za.mzansiserve.app://app`
-- Android release signing placeholders are ready in [frontend/android/app/build.gradle](/Users/bingodedingo/Desktop/mzansiserve-main/frontend/android/app/build.gradle) and [frontend/android/keystore.properties.example](/Users/bingodedingo/Desktop/mzansiserve-main/frontend/android/keystore.properties.example)
+- Branded native assets are generated from [frontend/src/assets/logo.jpeg](/Users/bingodedingo/Desktop/ag8te-main/frontend/src/assets/logo.jpeg) via [frontend/scripts/generate_mobile_assets.py](/Users/bingodedingo/Desktop/ag8te-main/frontend/scripts/generate_mobile_assets.py)
+- Yoco payment returns now support the native app URL scheme `co.za.ag8te.app://app`
+- Android release signing placeholders are ready in [frontend/android/app/build.gradle](/Users/bingodedingo/Desktop/ag8te-main/frontend/android/app/build.gradle) and [frontend/android/keystore.properties.example](/Users/bingodedingo/Desktop/ag8te-main/frontend/android/keystore.properties.example)
 - Google Play and Huawei AppGallery release commands create store-labelled artifacts under `frontend/store-builds/<store>`
-- iOS URL scheme and privacy usage strings are configured in [frontend/ios/App/App/Info.plist](/Users/bingodedingo/Desktop/mzansiserve-main/frontend/ios/App/App/Info.plist)
-- An iOS signing template exists at [frontend/ios/App/StoreConfig.xcconfig.example](/Users/bingodedingo/Desktop/mzansiserve-main/frontend/ios/App/StoreConfig.xcconfig.example)
+- iOS URL scheme and privacy usage strings are configured in [frontend/ios/App/App/Info.plist](/Users/bingodedingo/Desktop/ag8te-main/frontend/ios/App/App/Info.plist)
+- An iOS signing template exists at [frontend/ios/App/StoreConfig.xcconfig.example](/Users/bingodedingo/Desktop/ag8te-main/frontend/ios/App/StoreConfig.xcconfig.example)
 
 ## Build Commands
 
-From [frontend](/Users/bingodedingo/Desktop/mzansiserve-main/frontend):
+From [frontend](/Users/bingodedingo/Desktop/ag8te-main/frontend):
 
 ```bash
 npm run mobile:assets
@@ -73,39 +73,40 @@ deployed `main` branch to:
 
 It is triggered after a successful `./deploy.sh --branch main` deployment.
 Production rollout remains manual. Complete the one-time credential setup in
-[MOBILE_RELEASE_AUTOMATION.md](/Users/bingodedingo/Desktop/mzansiserve-main/MOBILE_RELEASE_AUTOMATION.md)
+[MOBILE_RELEASE_AUTOMATION.md](/Users/bingodedingo/Desktop/ag8te-main/MOBILE_RELEASE_AUTOMATION.md)
 before enabling the workflow.
 
 Mobile versions are tracked in
-[mobile-version.json](/Users/bingodedingo/Desktop/mzansiserve-main/mobile-version.json),
+[mobile-version.json](/Users/bingodedingo/Desktop/ag8te-main/mobile-version.json),
 with release history in
-[CHANGELOG.md](/Users/bingodedingo/Desktop/mzansiserve-main/CHANGELOG.md).
+[CHANGELOG.md](/Users/bingodedingo/Desktop/ag8te-main/CHANGELOG.md).
 
 ## App Assets
 
 Regenerate branded icons and splash assets any time the logo changes:
 
 ```bash
-cd /Users/bingodedingo/Desktop/mzansiserve-main/frontend
+cd /Users/bingodedingo/Desktop/ag8te-main/frontend
 npm run mobile:assets
 ```
 
 This updates:
 
-- Android launcher icons and splash images in [frontend/android/app/src/main/res](/Users/bingodedingo/Desktop/mzansiserve-main/frontend/android/app/src/main/res)
-- iOS app icon and splash images in [frontend/ios/App/App/Assets.xcassets](/Users/bingodedingo/Desktop/mzansiserve-main/frontend/ios/App/App/Assets.xcassets)
-- master preview assets in [frontend/src/assets/mobile](/Users/bingodedingo/Desktop/mzansiserve-main/frontend/src/assets/mobile)
+- Android launcher icons and splash images in [frontend/android/app/src/main/res](/Users/bingodedingo/Desktop/ag8te-main/frontend/android/app/src/main/res)
+- iOS app icon and splash images in [frontend/ios/App/App/Assets.xcassets](/Users/bingodedingo/Desktop/ag8te-main/frontend/ios/App/App/Assets.xcassets)
+- master preview assets in [frontend/src/assets/mobile](/Users/bingodedingo/Desktop/ag8te-main/frontend/src/assets/mobile)
+- the 512×512 Play Console listing icon at [frontend/src/assets/mobile/app-icon-google-play-512.png](/Users/bingodedingo/Desktop/ag8te-main/frontend/src/assets/mobile/app-icon-google-play-512.png)
 
 ## Environment Variables
 
 Add these for mobile release builds:
 
 ```env
-VITE_API_URL=https://mzansiserve.co.za
+VITE_API_URL=https://ag8te.com
 VITE_GOOGLE_MAPS_API_KEY=your_google_maps_key
 VITE_GOOGLE_CLIENT_ID=your_web_google_client_id
-VITE_PUBLIC_FRONTEND_URL=https://mzansiserve.co.za
-VITE_MOBILE_APP_URL=co.za.mzansiserve.app://app
+VITE_PUBLIC_FRONTEND_URL=https://ag8te.com
+VITE_MOBILE_APP_URL=co.za.ag8te.app://app
 
 VITE_APPLE_APP_STORE_URL=
 VITE_GOOGLE_PLAY_URL=
@@ -121,7 +122,7 @@ Notes:
 Add this to backend runtime config for payment callbacks:
 
 ```env
-MOBILE_APP_URL=co.za.mzansiserve.app://app
+MOBILE_APP_URL=co.za.ag8te.app://app
 ```
 
 ## Google Play
@@ -129,25 +130,27 @@ MOBILE_APP_URL=co.za.mzansiserve.app://app
 Open the Android project:
 
 ```bash
-cd /Users/bingodedingo/Desktop/mzansiserve-main/frontend
+cd /Users/bingodedingo/Desktop/ag8te-main/frontend
 npm run cap:open:android
 ```
 
 Then in Android Studio:
 
 1. let Gradle finish syncing
-2. create `frontend/android/keystore.properties` from [frontend/android/keystore.properties.example](/Users/bingodedingo/Desktop/mzansiserve-main/frontend/android/keystore.properties.example)
+2. create `frontend/android/keystore.properties` from [frontend/android/keystore.properties.example](/Users/bingodedingo/Desktop/ag8te-main/frontend/android/keystore.properties.example)
 3. place your release keystore at the `storeFile` path you choose
 4. build a signed release bundle
 5. upload the release artifact to Play Console
 
+To replace the legacy brain image on the store listing, open **Grow users → Store presence → Main store listing** in Play Console and upload [app-icon-google-play-512.png](/Users/bingodedingo/Desktop/ag8te-main/frontend/src/assets/mobile/app-icon-google-play-512.png) as the app icon.
+
 Release build notes:
 
-- `versionCode` and `versionName` are ready in [frontend/android/app/build.gradle](/Users/bingodedingo/Desktop/mzansiserve-main/frontend/android/app/build.gradle)
+- `versionCode` and `versionName` are ready in [frontend/android/app/build.gradle](/Users/bingodedingo/Desktop/ag8te-main/frontend/android/app/build.gradle)
 - the native app scheme is already wired into the manifest
-- the one-command release script now blocks store builds if [frontend/android/keystore.properties](/Users/bingodedingo/Desktop/mzansiserve-main/frontend/android/keystore.properties) is missing, so you do not accidentally upload a debug-signed artifact
+- the one-command release script now blocks store builds if [frontend/android/keystore.properties](/Users/bingodedingo/Desktop/ag8te-main/frontend/android/keystore.properties) is missing, so you do not accidentally upload a debug-signed artifact
 - if you only want a compile-only local release build, you can still run `STRICT_SIGNING=0 npm run android:bundle:release`
-- the verified local bundle path is [frontend/android/app/build/outputs/bundle/release/app-release.aab](/Users/bingodedingo/Desktop/mzansiserve-main/frontend/android/app/build/outputs/bundle/release/app-release.aab)
+- the verified local bundle path is [frontend/android/app/build/outputs/bundle/release/app-release.aab](/Users/bingodedingo/Desktop/ag8te-main/frontend/android/app/build/outputs/bundle/release/app-release.aab)
 - override the release version at build time like this:
 
 ```bash
@@ -173,14 +176,14 @@ Important official references:
 Open the iOS project:
 
 ```bash
-cd /Users/bingodedingo/Desktop/mzansiserve-main/frontend
+cd /Users/bingodedingo/Desktop/ag8te-main/frontend
 npm run cap:open:ios
 ```
 
 Then in Xcode:
 
 1. select your Apple Developer team
-2. copy [frontend/ios/App/StoreConfig.xcconfig.example](/Users/bingodedingo/Desktop/mzansiserve-main/frontend/ios/App/StoreConfig.xcconfig.example) into your own local config if you want a tracked template for bundle/version settings
+2. copy [frontend/ios/App/StoreConfig.xcconfig.example](/Users/bingodedingo/Desktop/ag8te-main/frontend/ios/App/StoreConfig.xcconfig.example) into your own local config if you want a tracked template for bundle/version settings
 3. set the bundle identifier and signing
 4. archive the app
 5. upload it through Xcode / App Store Connect
@@ -196,7 +199,7 @@ sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
 
 Project note:
 
-- this Capacitor setup currently opens as [frontend/ios/App/App.xcodeproj](/Users/bingodedingo/Desktop/mzansiserve-main/frontend/ios/App/App.xcodeproj)
+- this Capacitor setup currently opens as [frontend/ios/App/App.xcodeproj](/Users/bingodedingo/Desktop/ag8te-main/frontend/ios/App/App.xcodeproj)
 - if a top-level `App.xcworkspace` is added later by CocoaPods or another native dependency, use that instead
 - if Xcode opens but there are no simulator devices available yet, install the iOS platform/runtime from `Xcode > Settings > Components` before trying simulator builds or archives
 
@@ -224,16 +227,18 @@ That means the first Huawei release may work, but it is not yet a fully Huawei-n
 Recommended path:
 
 1. use the Android project as the AppGallery base
-2. create the AppGallery listing using package name `co.za.mzansiserve.app`
-3. build a Huawei-labelled artifact
-4. upload the APK or App Bundle to AppGallery Connect
-5. test the full flow on a Huawei device
-6. if maps or auth are inconsistent, add Huawei-specific replacements later
+2. create the AppGallery listing using package name `co.za.ag8te.app`
+3. add the release signing certificate SHA-256 fingerprint to the AppGallery Connect app
+4. enable **Location Kit** for that app in **HMS API Services > API Library**
+5. build the Huawei flavor
+6. upload the APK or App Bundle to AppGallery Connect
+7. test the full flow on a Huawei device
+8. if maps or auth are inconsistent, add Huawei-specific replacements later
 
 Build commands:
 
 ```bash
-cd /Users/bingodedingo/Desktop/mzansiserve-main/frontend
+cd /Users/bingodedingo/Desktop/ag8te-main/frontend
 APP_VERSION_NAME=1.0.1 APP_VERSION_CODE=2 npm run huawei:bundle:release
 APP_VERSION_NAME=1.0.1 APP_VERSION_CODE=2 npm run huawei:assemble:release
 ```
@@ -246,10 +251,20 @@ frontend/store-builds/huawei/
 
 Use the same signing key as Google Play unless you intentionally want separate store signing. Keeping one package name and one signing identity makes payment callbacks, deep links, and future cross-store updates simpler.
 
+The Android project uses store-specific product flavors:
+
+- `huaweiRelease` registers the local Capacitor `Geolocation` bridge backed by Huawei Location Kit `6.12.0.300`
+- `googleRelease` retains `@capacitor/geolocation` and Google Play Services Location
+- the release scripts select the correct flavor from `STORE_CHANNEL`; do not detect Huawei support from the phone manufacturer name
+- `npx cap sync android` regenerates Capacitor dependencies, so `npm run cap:android` runs `scripts/configure_android_store_flavors.mjs` immediately afterward to restore the store-specific split
+
+Huawei Location Kit authorization is tied to the AppGallery Connect package and signing certificate. If AppGallery Connect provides an `agconnect-services.json` file while enabling the service, place it in the location specified by the current Huawei console instructions before the device-validation build.
+
 Current Huawei readiness notes:
 
 - native builds hide Google web sign-in
-- there are no native Google Play Services dependencies in the Capacitor shell
+- Huawei builds use Huawei Location Kit and exclude Google Play Services Location
+- Google Play builds keep the standard Google-backed Capacitor geolocation implementation
 - map screens still use Google Maps in the web UI, so a real Huawei device test is required before submission
 - AppGallery requires listing information such as app name, package name, category, screenshots, release countries/regions, and privacy policy URL
 

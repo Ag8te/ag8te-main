@@ -5,6 +5,10 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { apiFetch, API_BASE_URL, getImageUrl } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import heroTransport from "@/assets/hero-transport.jpg";
+import heroProfessionals from "@/assets/hero-professionals.jpg";
+import heroServices from "@/assets/hero-services.jpg";
+import heroShop from "@/assets/hero-shop.jpg";
 
 // Mapping logical badge/types to appropriate Lucide icons
 const iconMap: Record<string, any> = {
@@ -30,8 +34,59 @@ interface SlideData {
   learnMore?: string;
 }
 
+const fallbackSlides: SlideData[] = [
+  {
+    id: "fallback-transport",
+    image_url: heroTransport,
+    cta_link: "/transport",
+    cta_text: "Book a Ride",
+    order: 1,
+    badge: "Transport",
+    title: "Reliable Rides,\nAnytime, Anywhere",
+    subtitle: "Book verified drivers across South Africa. Safe, affordable, and at your fingertips.",
+    ctaColor: "bg-gradient-purple shadow-glow-purple",
+    learnMore: "/transport",
+  },
+  {
+    id: "fallback-professionals",
+    image_url: heroProfessionals,
+    cta_link: "/professionals",
+    cta_text: "Find an Expert",
+    order: 2,
+    badge: "Professionals",
+    title: "Expert Help,\nOne Click Away",
+    subtitle: "Hire accredited lawyers, doctors, accountants, engineers and more — all verified.",
+    ctaColor: "bg-sa-blue shadow-lg",
+    learnMore: "/professionals",
+  },
+  {
+    id: "fallback-services",
+    image_url: heroServices,
+    cta_link: "/services",
+    cta_text: "Get a Service",
+    order: 3,
+    badge: "Services",
+    title: "Home & Garden\nServices on Demand",
+    subtitle: "From cleaning to events, DSTV to repairs — trusted service providers at your door.",
+    ctaColor: "bg-gradient-gold shadow-glow-gold",
+    learnMore: "/services",
+  },
+  {
+    id: "fallback-shop",
+    image_url: heroShop,
+    cta_link: "/shop",
+    cta_text: "Start Shopping",
+    order: 4,
+    badge: "Shop",
+    title: "Buy & Sell\nLocally with Ease",
+    subtitle: "Discover products from local sellers. A marketplace built for South Africa.",
+    ctaColor: "bg-sa-red shadow-lg",
+    learnMore: "/shop",
+  },
+];
+
 const HeroCarousel = () => {
-  const [slides, setSlides] = useState<SlideData[]>([]);
+  const [slides, setSlides] = useState<SlideData[]>(fallbackSlides);
   const [current, setCurrent] = useState(0);
   const [direction, setDirection] = useState(1);
   const navigate = useNavigate();
@@ -58,13 +113,14 @@ const HeroCarousel = () => {
             return {
               ...item,
               badge: item.badge || "Highlight",
-              title: item.title || "MzansiServe\nMarketplace",
+              title: item.title || "AG8TE\nMarketplace",
               subtitle: item.subtitle || "Connecting South Africa to reliable services and products.",
               ctaColor: item.cta_color || defaultColor,
               learnMore: item.cta_link || "/"
             };
           });
           setSlides(enrichedSlides);
+          setCurrent(0);
         }
       } catch (err) {
         console.error("Failed to load carousel slides:", err);
@@ -80,14 +136,14 @@ const HeroCarousel = () => {
   }, [next, slides.length]);
 
   if (slides.length === 0) {
-    return <div className="h-[640px] w-full bg-slate-900 animate-pulse sm:h-[700px] lg:h-[850px]" />;
+    return <div className="mobile-app-hero-loading h-[640px] w-full bg-slate-900 animate-pulse sm:h-[700px] lg:h-[850px]" />;
   }
 
   const slide = slides[current];
   const IconComponent = iconMap[slide.badge || "Shop"] || ShoppingBag;
 
   return (
-    <section id="home" className="relative h-[720px] w-full overflow-hidden sm:h-[760px] lg:h-[850px]">
+    <section id="home" className="mobile-app-hero relative h-[450px] w-full overflow-hidden sm:h-[450px] lg:h-[850px]">
       {/* Background images */}
       <AnimatePresence mode="wait">
         <motion.div
@@ -108,7 +164,7 @@ const HeroCarousel = () => {
       </AnimatePresence>
 
       {/* Content */}
-      <div className="relative z-10 flex h-full items-center pb-24 pt-6 sm:pb-28 lg:pb-40 lg:pt-0">
+      <div className="mobile-app-hero-content relative z-10 flex h-full items-center pb-24 pt-6 sm:pb-28 lg:pb-40 lg:pt-0">
         <div className="container mx-auto px-6 sm:px-8 lg:px-12">
           <AnimatePresence mode="wait">
             <motion.div
@@ -169,7 +225,7 @@ const HeroCarousel = () => {
       {slides.length > 1 && (
         <>
           {/* Navigation controls - Refined Minimal Style */}
-          <div className="absolute bottom-6 left-6 right-6 z-20 flex items-center justify-between gap-4 sm:bottom-10 sm:left-auto sm:right-8 lg:bottom-32 lg:right-12">
+          <div className="mobile-app-hero-controls absolute bottom-6 left-6 right-6 z-20 flex items-center justify-between gap-4 sm:bottom-10 sm:left-auto sm:right-8 lg:bottom-32 lg:right-12">
             <div className="flex gap-2 sm:mr-4">
               {slides.map((_, idx) => (
                 <button

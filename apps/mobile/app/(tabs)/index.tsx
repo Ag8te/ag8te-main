@@ -3,7 +3,7 @@ import { View, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, Imag
 import { useAuth } from '../../contexts/AuthContext';
 import { Link, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Search, Bell, TrendingUp, Star, MapPin, ChevronRight, ShoppingBag, Briefcase, Zap, Car, Users } from 'lucide-react-native';
+import { Bell, Star, MapPin, ChevronRight, ShoppingBag, Briefcase, Car, Wrench, Tag } from 'lucide-react-native';
 import { useQuery } from '@tanstack/react-query';
 import apiClient, { getImageUrl } from '../../api/client';
 import { COLORS, SPACING, SIZES } from '../../constants/Theme';
@@ -12,6 +12,7 @@ import { Card } from '../../components/UI/Card';
 import { Button } from '../../components/UI/Button';
 
 const { width } = Dimensions.get('window');
+const HERO_CARD_HEIGHT = width < 380 ? 196 : 216;
 
 export default function Home() {
   const { user } = useAuth();
@@ -112,22 +113,22 @@ export default function Home() {
                     color={COLORS.white}
                     weight="bold"
                     numberOfLines={2}
-                    style={{ marginBottom: 6, textShadowColor: 'rgba(0,0,0,0.6)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 6 }}
+                    style={styles.heroTitle}
                   >
-                    {slide.title || 'MzansiServe\nMarketplace'}
+                    {slide.title || 'AG8TE\nMarketplace'}
                   </Typography>
                   <Typography
                     variant="label"
                     color={'rgba(255,255,255,0.85)'}
                     numberOfLines={2}
-                    style={{ marginBottom: 16 }}
+                    style={styles.heroSubtitle}
                   >
                     {slide.subtitle || 'Connecting South Africa to reliable services.'}
                   </Typography>
                   <Button
                     title={slide.cta_text || "Book a Ride"}
                     variant="secondary"
-                    size="md"
+                    size="sm"
                     fullWidth={true}
                     style={styles.heroButton}
                     onPress={() => router.push(slide.cta_link || '/services')}
@@ -165,18 +166,18 @@ export default function Home() {
 
       <View style={styles.categoryGrid}>
         {[
-          { icon: <Car />, label: 'Book a Ride', color: '#F0FDF4', iconColor: '#16A34A', href: '/book/ride' },
+          { icon: <Car />, label: 'Cab Rides', color: '#F0FDF4', iconColor: '#16A34A', href: '/book/ride' },
+          { icon: <Wrench />, label: 'Service Providers', color: '#EEF2FF', iconColor: COLORS.primary, href: '/(tabs)/services' },
+          { icon: <Briefcase />, label: 'Professionals', color: '#FFFBEB', iconColor: '#D97706', href: '/(tabs)/professionals' },
           { icon: <ShoppingBag />, label: 'Shop', color: '#ECFDF5', iconColor: COLORS.secondary, href: '/(tabs)/shop' },
-          { icon: <Briefcase />, label: 'Services', color: '#EEF2FF', iconColor: COLORS.primary, href: '/(tabs)/services' },
-          { icon: <Users />, label: 'Professionals', color: '#FFFBEB', iconColor: '#D97706', href: '/(tabs)/professionals' },
-          { icon: <TrendingUp />, label: 'Trending', color: '#FEF2F2', iconColor: COLORS.error, href: '/(tabs)/shop?filter=trending' },
+          { icon: <Tag />, label: 'Advertisements', color: '#FEF2F2', iconColor: COLORS.error, href: '/(tabs)/shop?filter=ads' },
         ].map((item, index) => (
           <Link key={index} href={item.href as any} asChild>
             <TouchableOpacity style={styles.categoryCard}>
               <View style={[styles.categoryIcon, { backgroundColor: item.color }]}>
                 {React.cloneElement(item.icon, { color: item.iconColor, size: 24 })}
               </View>
-              <Typography variant="label" align="center" style={{ marginTop: 8 }}>
+              <Typography variant="label" align="center" numberOfLines={2} style={styles.categoryLabel}>
                 {item.label}
               </Typography>
             </TouchableOpacity>
@@ -314,11 +315,11 @@ const styles = StyleSheet.create({
     borderColor: COLORS.white,
   },
   heroWrapper: {
-    paddingVertical: SPACING.lg,
+    paddingVertical: SPACING.md,
     backgroundColor: 'transparent',
   },
   heroCard: {
-    height: 260,
+    height: HERO_CARD_HEIGHT,
     backgroundColor: COLORS.primary,
     marginRight: SPACING.md,
     borderRadius: SIZES.radius.xl,
@@ -328,8 +329,8 @@ const styles = StyleSheet.create({
   },
   heroGradient: {
     flex: 1,
-    padding: SPACING.lg,
-    paddingBottom: SPACING.xl,
+    padding: SPACING.md,
+    paddingBottom: SPACING.lg,
     justifyContent: 'flex-end',
   },
   heroContent: {
@@ -346,20 +347,32 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.4)',
     overflow: 'hidden',
   },
+  heroTitle: {
+    fontSize: width < 380 ? 20 : 22,
+    lineHeight: width < 380 ? 24 : 26,
+    marginBottom: 4,
+    textShadowColor: 'rgba(0,0,0,0.6)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 6,
+  },
+  heroSubtitle: {
+    marginBottom: 10,
+    lineHeight: 18,
+  },
   badgeText: {
     fontSize: 10,
     letterSpacing: 1,
   },
   heroButton: {
     borderRadius: 4,
-    marginTop: 8,
+    marginTop: 4,
     alignSelf: 'stretch',
   },
   paginationContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: SPACING.md,
+    marginTop: SPACING.sm,
   },
   paginationDot: {
     width: 8,
@@ -382,21 +395,25 @@ const styles = StyleSheet.create({
   },
   categoryGrid: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     paddingHorizontal: SPACING.md,
     justifyContent: 'space-between',
   },
   categoryCard: {
-    width: (width - SPACING.lg * 2 - SPACING.md * 4) / 4,
+    width: (width - SPACING.md * 2 - SPACING.xs * 10) / 5,
     alignItems: 'center',
     marginHorizontal: SPACING.xs,
   },
   categoryIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: SIZES.radius.md,
+    width: 52,
+    height: 52,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  categoryLabel: {
+    marginTop: 8,
+    maxWidth: 72,
+    lineHeight: 14,
   },
   horizontalScroll: {
     paddingLeft: SPACING.lg,

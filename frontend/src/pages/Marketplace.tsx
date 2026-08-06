@@ -19,6 +19,7 @@ import {
     Pagination, PaginationContent, PaginationItem,
     PaginationLink, PaginationNext, PaginationPrevious
 } from "@/components/ui/pagination";
+import productPlaceholder from "@/assets/product-placeholder.svg";
 
 // --- Icons Mapping ---
 const iconMap: Record<string, any> = {
@@ -112,10 +113,10 @@ const ads = () => {
                             animate={{ opacity: 1, y: 0 }}
                         >
                             <Badge className="mb-4 bg-primary/10 text-primary border-none text-xs font-bold px-3 py-1">
-                                <Sparkles className="w-3 h-3 mr-1" /> MZANSI ads
+                                <Sparkles className="w-3 h-3 mr-1" /> AG8TE e-Shop
                             </Badge>
                             <h1 className="text-4xl md:text-6xl font-black text-[#1e293b] mb-6 tracking-tight">
-                                Buy & Sell in <span className="text-primary italic">Mzansi</span>
+                                Buy & Sell in <span className="text-primary italic">AG8TE</span>
                             </h1>
                             <p className="text-slate-500 text-lg mb-8 max-w-2xl mx-auto">
                                 The safest way to discover local deals. Everything from cars to electronics, verified by our community.
@@ -234,7 +235,7 @@ const ads = () => {
                             >
                                 <div className={`relative ${viewMode === 'list' ? "w-64 shrink-0" : "aspect-[4/3]"}`}>
                                     <img
-                                        src={ad.images?.[0] || "https://images.unsplash.com/photo-1549421263-5ec394a5ad4c?q=80&w=800&fm=jpg&fit=crop"}
+                                        src={ad.images?.[0] || productPlaceholder}
                                         alt={ad.title}
                                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                                     />

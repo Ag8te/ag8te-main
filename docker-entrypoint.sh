@@ -4,7 +4,7 @@ set -e
 # Use environment variables for database connection (with defaults)
 DB_HOST="${DB_HOST:-db}"
 DB_USER="${POSTGRES_USER:-mzansi}"
-DB_NAME="${POSTGRES_DB:-mzansiserve}"
+DB_NAME="${POSTGRES_DB:-ag8te}"
 
 # Wait for database to be ready
 echo "Waiting for database to be ready..."

@@ -1,9 +1,9 @@
-# MzansiServe Technical Specification: Flask Migration
+# AG8TE Technical Specification: Flask Migration
 
 ## Document Information
 - **Version**: 1.0
 - **Date**: 2024
-- **Purpose**: Technical specification for migrating MzansiServe from Node/Supabase to Flask/PostgreSQL/Docker architecture
+- **Purpose**: Technical specification for migrating AG8TE from Node/Supabase to Flask/PostgreSQL/Docker architecture
 - **Status**: Draft
 
 ---
@@ -24,7 +24,7 @@
 ## Executive Summary
 
 ### Project Overview
-MzansiServe is a service ads platform connecting users with vetted service providers (cabs, professionals, service providers). The platform includes user registration, service request management, payment processing, e-commerce shop, and admin dashboards.
+AG8TE is a service ads platform connecting users with vetted service providers (cabs, professionals, service providers). The platform includes user registration, service request management, payment processing, e-commerce shop, and admin dashboards.
 
 ### Migration Goals
 - **Convert** from Node.js/Express backend to fullstack Flask (Python) with server-side rendering
@@ -118,7 +118,7 @@ services:
     build: .
     ports: ["5000:5000"]
     environment:
-      - DATABASE_URL=postgresql://mzansi:${DB_PASSWORD:-changeme}@db:5432/mzansiserve
+      - DATABASE_URL=postgresql://ag8te:${DB_PASSWORD:-changeme}@db:5432/ag8te
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key}
       - JWT_SECRET_KEY=${JWT_SECRET_KEY:-jwt-secret-key}
       - FLASK_ENV=development
@@ -143,14 +143,14 @@ services:
     image: postgres:15-alpine
     ports: ["5432:5432"]
     environment:
-      - POSTGRES_DB=mzansiserve
-      - POSTGRES_USER=mzansi
+      - POSTGRES_DB=ag8te
+      - POSTGRES_USER=ag8te
       - POSTGRES_PASSWORD=${DB_PASSWORD:-changeme}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U mzansi"]
+      test: ["CMD-SHELL", "pg_isready -U ag8te"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -543,8 +543,8 @@ volumes:
 - [ ] Implement Forgot Password Recovery
 
 **Service Integration:**
-- [ ] Implement email service (`/home/charles/Documents/projects/mzansi-serve/services/email`)
-- [ ] Implement payment service (`/home/charles/Documents/projects/mzansi-serve/services/yoco-checkout-service`)
+- [ ] Implement email service (`/home/charles/Documents/projects/ag8te/services/email`)
+- [ ] Implement payment service (`/home/charles/Documents/projects/ag8te/services/yoco-checkout-service`)
 - [ ] Implement payment processing
 - [ ] Implement admin endpoints
 
@@ -783,7 +783,7 @@ CREATE INDEX idx_notifications_status ON notifications(status);
 
 ### Base URL
 - Development: `http://localhost:5000/api` (or relative `/api` since same origin)
-- Production: `https://mzansiserve.co.za/api` (or relative `/api` since same origin)
+- Production: `https://ag8te.com/api` (or relative `/api` since same origin)
 
 **Note**: Since Flask serves both API and frontend from the same origin, the frontend can use relative URLs (`/api/*`) which simplifies CORS and eliminates cross-origin issues.
 
@@ -1348,8 +1348,8 @@ services:
   db:
     image: postgres:15-alpine
     environment:
-      POSTGRES_DB: mzansiserve
-      POSTGRES_USER: mzansi
+      POSTGRES_DB: ag8te
+      POSTGRES_USER: ag8te
       POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
     ports:
       - "5432:5432"
@@ -1357,7 +1357,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U mzansi"]
+      test: ["CMD-SHELL", "pg_isready -U ag8te"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -1369,7 +1369,7 @@ services:
     ports:
       - "5000:5000"
     environment:
-      DATABASE_URL: postgresql://mzansi:${DB_PASSWORD:-changeme}@db:5432/mzansiserve
+      DATABASE_URL: postgresql://ag8te:${DB_PASSWORD:-changeme}@db:5432/ag8te
       SECRET_KEY: ${SECRET_KEY:-dev-secret-key}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:-jwt-secret-key}
       FLASK_ENV: ${FLASK_ENV:-development}
@@ -1382,7 +1382,7 @@ services:
       PAYPAL_SECRET: ${PAYPAL_SECRET}
       PAYPAL_BASE_URL: ${PAYPAL_BASE_URL:-https://api-m.sandbox.paypal.com}
       YOCO_SECRET_KEY: ${YOCO_SECRET_KEY}
-      DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL:-noreply@mzansiserve.co.za}
+      DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL:-noreply@ag8te.com}
     depends_on:
       db:
         condition: service_healthy
@@ -1467,7 +1467,7 @@ def request():
 #### Backend (.env)
 ```bash
 # Database
-DATABASE_URL=postgresql://mzansi:password@db:5432/mzansiserve
+DATABASE_URL=postgresql://ag8te:password@db:5432/ag8te
 
 # Flask
 SECRET_KEY=your-secret-key-here
@@ -1480,7 +1480,7 @@ SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=your-email@gmail.com
 SMTP_PASSWORD=your-app-password
-DEFAULT_FROM_EMAIL=noreply@mzansiserve.co.za
+DEFAULT_FROM_EMAIL=noreply@ag8te.com
 
 # Payments
 PAYPAL_CLIENT_ID=your-paypal-client-id
@@ -1677,8 +1677,8 @@ privacy policy
   - [ ] If "rejected" user can see "reasons" field.
 - [ ] Implement Password Reset/Update
 - [ ] Implement Forgot Password Recovery 
-- [ ] Implement email service (/home/charles/Documents/projects/mzansi-serve/services/email)
-- [ ] Implement payment service (/home/charles/Documents/projects/mzansi-serve/services/yoco-checkout-service)
+- [ ] Implement email service (/home/charles/Documents/projects/ag8te/services/email)
+- [ ] Implement payment service (/home/charles/Documents/projects/ag8te/services/yoco-checkout-service)
 - [ ] Implement payment processing
 - [ ] Implement admin endpoints
 - [ ] Implement service request features

@@ -78,17 +78,20 @@ const isFutureOrTodayDate = (value: string) => {
   return parsed >= today;
 };
 
+const isClientForm = (form?: FormFields) => form?.role === "client";
+
 // ─── Field-level validators ───────────────────────────────────────────────────
 const validators: Partial<Record<keyof FormFields, (v: string, form?: FormFields) => string>> = {
  //added name validation and surname validation also email for a valid email address
-  name: (v) =>!v.trim() ? "First name is required" : !/^[A-Za-z\s'-]+$/.test(v) ? "Name must contain only letters": "",
-  surname: (v) => !v.trim() ? "Surname is required" : !/^[A-Za-z\s'-]+$/.test(v) ? "Surname must contain only letters" : "",
+  name: (v, f) => isClientForm(f) ? "" : !v.trim() ? "First name is required" : !/^[A-Za-z\s'-]+$/.test(v) ? "Name must contain only letters": "",
+  surname: (v, f) => isClientForm(f) ? "" : !v.trim() ? "Surname is required" : !/^[A-Za-z\s'-]+$/.test(v) ? "Surname must contain only letters" : "",
   email: (v) => !v.trim() ? "Email is required" : !emailRegex.test(v) ? "Enter a valid email address" : "",
   password: (v) => !v ? "Password is required" : v.length < 8 ? "Password must be at least 8 characters" : "",
   confirmPassword: (v, f) => !v ? "Please confirm your password" : v !== f?.password ? "Passwords do not match" : "",
-  phone: (v) => !v.trim() ? "Phone number is required" : !phoneRegex.test(v) ? "Use only digits, spaces or +" : "",
+  phone: (v, f) => isClientForm(f) ? "" : !v.trim() ? "Phone number is required" : !phoneRegex.test(v) ? "Use only digits, spaces or +" : "",
   //Full SA ID check including date validation
   id_number: (v, f) => {
+  if (isClientForm(f)) return "";
   if (!v.trim()) return "ID / Passport number is required";
 
   // ─── SOUTH AFRICA LOGIC ───
@@ -149,11 +152,11 @@ const validators: Partial<Record<keyof FormFields, (v: string, form?: FormFields
 
   return "";
 },
-  gender: (v) => !v ? "Please select your gender" : "",
-  nokName: (v) => !v.trim() ? "Next of Kin full name is required" : "",
+  gender: (v, f) => isClientForm(f) ? "" : !v ? "Please select your gender" : "",
+  nokName: (v, f) => isClientForm(f) ? "" : !v.trim() ? "Next of Kin full name is required" : "",
   nokPhone: (v) => v.trim() && !phoneRegex.test(v) ? "Use only digits, spaces or +" : "",
   role: (v) => !v ? "Please select a role to register as" : "",
-  nationality: (v) => !v ? "Please select your nationality" : "",
+  nationality: (v, f) => isClientForm(f) ? "" : !v ? "Please select your nationality" : "",
   nokEmail: (v) => v.trim() && !emailRegex.test(v) ? "Enter a valid email address" : "",
   carMake: (v, f) =>
   f?.role === "driver" && !v.trim() ? "Car make is required" : "",
@@ -358,7 +361,7 @@ operatingAreas: "",
   const [loading, setLoading] = useState(false);
   const [legalModal, setLegalModal] = useState<"terms" | "privacy" | null>(null);
   const [legalReviewed, setLegalReviewed] = useState<{ terms: boolean; privacy: boolean }>({ terms: false, privacy: false });
-  const { register } = useAuth();
+  const { register, setUser } = useAuth();
   const { toast } = useToast();
   const termsConsentRef = useRef<HTMLButtonElement | null>(null);
 
@@ -501,8 +504,8 @@ operatingAreas: "",
       const msg = validators[field]!(form[field], form);
       if (msg) errors[field] = msg;
     });
-    // nokPhone/nokEmail — at least one required
-    if (!form.nokPhone.trim() && !form.nokEmail.trim()) {
+    // nokPhone/nokEmail — at least one required for provider registrations
+    if (form.role !== "client" && !form.nokPhone.trim() && !form.nokEmail.trim()) {
       errors.nokPhone = "Provide at least a phone or email for next of kin";
     }
     setFieldErrors(errors);
@@ -639,8 +642,8 @@ const removeCarImage = (index: number) => {
 
     // File-level checks (shown in top banner — not per-field)
     if (!form.role) { setServerError("Please select a role to register as"); return; }
-    if (!files.profile_photo) { setServerError("Profile photo is required"); return; }
-    if (!files.id_document) { setServerError("ID document is required"); return; }
+    if (form.role !== "client" && !files.profile_photo) { setServerError("Profile photo is required"); return; }
+    if (form.role !== "client" && !files.id_document) { setServerError("ID document is required"); return; }
     if (form.role === "driver" && (!files.proof_of_residence || !files.drivers_license || !files.prdp_document || !files.vehicle_disk_document)) {
       setServerError("Drivers need Proof of Residence, Driver's License, PrDP, and Vehicle Disk documents"); return;
     }
@@ -705,11 +708,11 @@ const removeCarImage = (index: number) => {
         provider_services: form.role === 'service-provider' ? payloadServices : [],
         professions_offered: selectedProfessions,
       }));
-      if (files.profile_photo) formData.append("profile_photo", files.profile_photo);
+      if (form.role !== "client" && files.profile_photo) formData.append("profile_photo", files.profile_photo);
       carImages.forEach((file) => {
         formData.append("car_images", file);
       });
-      if (files.id_document) formData.append("id_document", files.id_document);
+      if (form.role !== "client" && files.id_document) formData.append("id_document", files.id_document);
       if (files.proof_of_residence) formData.append("proof_of_residence", files.proof_of_residence);
       if (files.drivers_license) formData.append("drivers_license", files.drivers_license);
       if (files.prdp_document) formData.append("prdp_document", files.prdp_document);
@@ -727,7 +730,17 @@ const removeCarImage = (index: number) => {
         }
 
         localStorage.removeItem(REGISTRATION_DRAFT_KEY);
-        toast({ title: "Registration Complete", description: "Your account has been created successfully." });
+        if (form.role !== "client") {
+          if (result.data?.token) localStorage.setItem("token", result.data.token);
+          if (result.data?.user) setUser(result.data.user);
+          localStorage.removeItem("registrationPaymentUser");
+        }
+        toast({
+          title: "Registration Complete",
+          description: form.role === "client"
+            ? "Please check your email to confirm your registration and complete your optional profile."
+            : "Your account has been created successfully."
+        });
         setIsSubmitted(true);
       } else {
         setServerError(result.error || "Registration failed");
@@ -835,7 +848,9 @@ const removeCarImage = (index: number) => {
                   Registration Complete
                 </h1>
                 <p className="text-slate-600 text-base mb-8">
-                  Your account has been created successfully. You can now sign in and start using MzansiServe.
+                  {form.role === "client"
+                    ? "Your account has been created successfully. We sent you an email link to confirm your registration and open your client profile."
+                    : "Your account has been created successfully. You can now sign in and start using AG8TE."}
                 </p>
                 <div className="space-y-3">
                   <Button asChild className="w-full h-14 rounded-2xl bg-primary hover:bg-primary/90 text-white font-bold text-base shadow-xl shadow-primary/10 transition-all active:scale-[0.98]">
@@ -877,7 +892,7 @@ const removeCarImage = (index: number) => {
           {/* Header */}
           <div className="mb-10 text-center">
             <h1 className="text-3xl font-bold text-[#222222] tracking-tight mb-3">Create your account</h1>
-            <p className="text-slate-600 text-base font-normal">Join the MzansiServe community today.</p>
+            <p className="text-slate-600 text-base font-normal">Join the AG8TE community today.</p>
           </div>
 
           <Card className="bg-white border border-slate-100 rounded-[32px] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.08)] overflow-hidden">
@@ -985,6 +1000,7 @@ const removeCarImage = (index: number) => {
                 </section>
 
                 {/* ── Personal Information ── */}
+                {form.role !== "client" && (
                 <section className="space-y-5 pt-6 border-t border-slate-50">
                   <p className={sectionLabel}>Personal Information</p>
                   <div className="grid gap-5 sm:grid-cols-2">
@@ -1079,8 +1095,10 @@ const removeCarImage = (index: number) => {
                     </div>
                   </div>
                 </section>
+                )}
 
                 {/* ── Next of Kin ── */}
+                {form.role !== "client" && (
                 <section className="space-y-5 pt-6 border-t border-slate-50">
                   <div>
                     <p className={sectionLabel}>Next of Kin</p>
@@ -1117,6 +1135,7 @@ const removeCarImage = (index: number) => {
                     </div>
                   </div>
                 </section>
+                )}
 
                 {/* ── Professional Info (conditional) ── */}
                 <AnimatePresence>
@@ -1482,6 +1501,7 @@ const removeCarImage = (index: number) => {
 </AnimatePresence>
 
                 {/* ── Verification Documents ── */}
+                {form.role !== "client" && (
                 <section className="space-y-5 pt-6 border-t border-slate-50">
                   <p className={sectionLabel}><ShieldCheck className="w-4 h-4" /> Verification Documents</p>
                   <div className="grid gap-6 sm:grid-cols-2">
@@ -1505,6 +1525,7 @@ const removeCarImage = (index: number) => {
                     )}
                   </div>
                 </section>
+                )}
 
                 {/* ── Terms & Submit ── */}
                 <section className="pt-6 border-t border-slate-50 space-y-6">
@@ -1535,9 +1556,9 @@ const removeCarImage = (index: number) => {
 
                   {form.role && form.role !== "client" && (
                     <div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-4">
-                      <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2">Registration Payment</p>
+                      <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2">Registration Fee</p>
                       <p className="text-sm text-slate-600">
-                        Drivers, professionals, and service providers complete registration with a once-off Yoco payment of <span className="font-bold text-[#222222]">R100.00</span>.
+                        Drivers, professionals, and service providers can register for <span className="font-bold text-[#222222]">R0.00</span> while the registration fee is temporarily free.
                       </p>
                     </div>
                   )}

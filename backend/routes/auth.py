@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import uuid
+from datetime import datetime, timezone
 
 from flask import Blueprint, request, current_app, jsonify
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
@@ -20,7 +21,7 @@ from backend.services.email_service import EmailService
 from backend.services.wallet_service import WalletService
 from backend.services.payment_service import PaymentService
 from backend.services.agent_service import AgentService
-from backend.services.auth_service import AuthService
+from backend.services.auth_service import AuthService, MAX_FAILED_LOGIN_ATTEMPTS, REGISTRATION_FEE_AMOUNT, REGISTRATION_FEE_REQUIRED
 from backend.services.otp_service import OtpService, SENSITIVE_SMS_PURPOSES
 from backend.utils.url import (
     append_query_params,
@@ -32,13 +33,19 @@ from backend.utils.url import (
 bp = Blueprint('auth', __name__)
 logger = logging.getLogger(__name__)
 
-REGISTRATION_FEE_AMOUNT = 10000  # R100.00 in cents
-
-
 def _create_registration_checkout_for_user(user, provider='yoco'):
     """Create a one-time Yoco checkout for non-client registration."""
     if user.role == 'client':
         raise ValueError("Clients do not require registration payment.")
+    if not REGISTRATION_FEE_REQUIRED:
+        user.is_paid = True
+        db.session.commit()
+        return {
+            'redirect_url': None,
+            'checkout_id': None,
+            'external_id': None,
+            'payment_required': False,
+        }
 
     provider_name = (provider or 'yoco').strip().lower()
     if provider_name != 'yoco':
@@ -81,11 +88,12 @@ class LoginSchema(Schema):
     email = fields.Email(required=True)
     password = fields.Str(required=True)
     role = fields.Str(validate=validate.OneOf(['client', 'driver', 'professional', 'service-provider', 'agent']))
+    # Accepted for compatibility with older clients, but intentionally ignored.
     trusted_device_token = fields.Str()
 
 class ForgotPasswordSchema(Schema):
     email = fields.Email(required=True)
-    role = fields.Str(validate=validate.OneOf(['client', 'driver', 'professional', 'service-provider']))
+    role = fields.Str(validate=validate.OneOf(['client', 'driver', 'professional', 'service-provider', 'agent', 'admin']))
 
 class ResetPasswordSchema(Schema):
     token = fields.Str(required=True)
@@ -162,24 +170,47 @@ def login():
         
         if error == "INVALID_CREDENTIALS":
             return error_response('INVALID_CREDENTIALS', 'Invalid email, password, or role combination', None, 401)
+        if error == "PASSWORD_RESET_REQUIRED":
+            return error_response(
+                'PASSWORD_RESET_REQUIRED',
+                'Too many unsuccessful login attempts. Please reset your password before trying again.',
+                None,
+                423
+            )
         if error == "ACCOUNT_INACTIVE":
             return error_response('ACCOUNT_INACTIVE', 'Account is inactive', None, 403)
         if error == "PAYMENT_REQUIRED":
             checkout_result = _create_registration_checkout_for_user(user, provider='yoco')
+            if not checkout_result.get('payment_required', True):
+                challenge = OtpService.create_email_login_challenge(user)
+                return success_response({
+                    'user': user.to_dict(),
+                    'otp_required': True,
+                    'challenge_id': str(challenge.id),
+                    'channel': 'email',
+                    'expires_at': challenge.expires_at.isoformat() if challenge.expires_at else None
+                }, 'Login OTP sent')
             return success_response({
                 'user': user.to_dict(),
                 **checkout_result,
                 'payment_required': True,
                 'message': 'Registration payment is still pending. Redirecting to Yoco.'
             }, 'Registration payment required.', 200)
-        trusted_device_token = (request.json or {}).get('trusted_device_token')
-        if OtpService.is_trusted_login_device(user, trusted_device_token):
+
+        huawei_review_email = (current_app.config.get('HUAWEI_REVIEW_EMAIL') or '').strip().lower()
+        if (
+            huawei_review_email
+            and user.role == 'client'
+            and str(user.email).strip().lower() == huawei_review_email
+        ):
             access_token = create_access_token(identity=str(user.id))
+            logger.info("login: Huawei reviewer OTP bypass user_id=%s", user.id)
             return success_response({
                 'user': user.to_dict(),
                 'token': access_token,
-                'otp_skipped': True
+                'otp_required': False
             }, 'Login successful')
+
         challenge = OtpService.create_email_login_challenge(user)
         return success_response({
             'user': user.to_dict(),
@@ -215,9 +246,7 @@ def verify_login_otp():
         access_token = create_access_token(identity=str(user.id))
         return success_response({
             'user': user.to_dict(),
-            'token': access_token,
-            'trusted_device_token': OtpService.create_trusted_login_device_token(user),
-            'trusted_device_expires_days': current_app.config.get('OTP_TRUSTED_DEVICE_DAYS', 7)
+            'token': access_token
         }, 'Login successful')
     except ValidationError as e:
         return error_response('VALIDATION_ERROR', 'Invalid input data', e.messages, 400)
@@ -372,14 +401,16 @@ def google_login():
                 # Create wallet
                 WalletService.get_or_create_wallet(user.id)
             
-            # Login successful
-            access_token = create_access_token(identity=str(user.id))
-            logger.info("google_login: success user_id=%s", user.id)
-            
+            challenge = OtpService.create_email_login_challenge(user)
+            logger.info("google_login: OTP challenge created user_id=%s", user.id)
+
             return success_response({
                 'user': user.to_dict(),
-                'token': access_token
-            }, 'Google login successful')
+                'otp_required': True,
+                'challenge_id': str(challenge.id),
+                'channel': 'email',
+                'expires_at': challenge.expires_at.isoformat() if challenge.expires_at else None
+            }, 'Login OTP sent')
 
         except ValueError:
             # Invalid token
@@ -403,7 +434,31 @@ def admin_login():
         schema = AdminLoginSchema()
         data = schema.load(request.json)
         user = User.query.filter_by(email=data['email'], role='admin').first()
-        if not user or not user.check_password(data['password']):
+        if not user:
+            logger.warning("admin_login: invalid credentials")
+            return error_response('INVALID_CREDENTIALS', 'Invalid email or password', None, 401)
+        if user.password_reset_required:
+            logger.warning("admin_login: password reset required user_id=%s", user.id)
+            return error_response(
+                'PASSWORD_RESET_REQUIRED',
+                'Too many unsuccessful login attempts. Please reset your password before trying again.',
+                None,
+                423
+            )
+        if not user.check_password(data['password']):
+            user.login_failed_attempts = (user.login_failed_attempts or 0) + 1
+            if user.login_failed_attempts >= MAX_FAILED_LOGIN_ATTEMPTS:
+                user.password_reset_required = True
+                user.password_reset_required_at = datetime.now(timezone.utc)
+                db.session.commit()
+                logger.warning("admin_login: password reset required user_id=%s", user.id)
+                return error_response(
+                    'PASSWORD_RESET_REQUIRED',
+                    'Too many unsuccessful login attempts. Please reset your password before trying again.',
+                    None,
+                    423
+                )
+            db.session.commit()
             logger.warning("admin_login: invalid credentials")
             return error_response('INVALID_CREDENTIALS', 'Invalid email or password', None, 401)
         if not user.is_active:
@@ -412,6 +467,11 @@ def admin_login():
         if not user.is_admin:
             logger.warning("admin_login: not admin user_id=%s", user.id)
             return error_response('FORBIDDEN', 'Not an admin account', None, 403)
+        if user.login_failed_attempts or user.password_reset_required:
+            user.login_failed_attempts = 0
+            user.password_reset_required = False
+            user.password_reset_required_at = None
+            db.session.commit()
         access_token = create_access_token(identity=str(user.id))
         logger.info("admin_login: success user_id=%s", user.id)
         return success_response({
@@ -553,6 +613,12 @@ def initiate_registration_payment():
             return error_response('ALREADY_PAID', 'Registration fee already paid', None, 400)
 
         checkout_result = _create_registration_checkout_for_user(user, provider=provider)
+        if not checkout_result.get('payment_required', True):
+            return success_response({
+                'user': user.to_dict(),
+                'payment_required': False,
+                'message': 'Registration is currently free. No payment is required.'
+            })
 
         logger.info("initiate_registration_payment: success user_id=%s external_id=%s", user.id, checkout_result['external_id'])
         return success_response(checkout_result)
@@ -642,17 +708,26 @@ def register_with_payment():
                 **checkout_result,
                 'message': 'Your registration already exists and payment is still pending. Redirecting to Yoco.'
             }, 'Existing unpaid registration found. Redirecting to payment.', 200)
+        if error == "EXISTING_FREE_USER":
+            access_token = create_access_token(identity=str(user.id))
+            return success_response({
+                'user': user.to_dict(),
+                'token': access_token,
+                'payment_required': False,
+                'message': 'Registration completed successfully. No registration fee is required.'
+            }, 'Registration completed successfully.', 200)
         if error == "INVALID_AGENT":
             return error_response('INVALID_FIELDS', 'Invalid agent code format.', None, 400)
         if error:
             return error_response('REGISTRATION_FAILED', error, None, 400)
 
-        if user.role == 'client':
+        if user.role == 'client' or not REGISTRATION_FEE_REQUIRED:
             access_token = create_access_token(identity=str(user.id))
             return success_response({
                 'user': user.to_dict(),
                 'token': access_token,
-                'message': 'Registration completed successfully.'
+                'payment_required': False,
+                'message': 'Registration completed successfully. No registration fee is required.'
             }, 'Registration completed successfully.', 201)
 
         checkout_result = _create_registration_checkout_for_user(user, provider='yoco')

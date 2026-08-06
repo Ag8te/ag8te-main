@@ -174,7 +174,7 @@ const Navbar = () => {
   return (
     <header
       className={cn(
-        "native-safe-top sticky top-0 left-0 right-0 z-50 border-b border-slate-100 bg-white py-[10px] shadow-sm transition-all duration-300 lg:fixed",
+        "native-safe-top mobile-app-header sticky top-0 left-0 right-0 z-50 border-b border-slate-100 bg-white py-[10px] shadow-sm transition-all duration-300 lg:fixed",
       )}
     >
       <nav className="container mx-auto flex items-center justify-between gap-4 px-6 lg:grid lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:items-center">
@@ -182,20 +182,20 @@ const Navbar = () => {
         {/* ── Logo ─────────────────────────────────────────────────────────── */}
         <button
           onClick={() => navigate("/")}
-          className="group flex shrink-0 items-center gap-2"
+          className="brand-link group flex min-w-0 shrink-0 items-center gap-2"
         >
-          <div className="flex h-12 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-white/80 bg-white shadow-md transition-all group-hover:shadow-lg lg:h-14 lg:w-16">
+          <div className="brand-logo flex h-12 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-white/80 bg-white shadow-md transition-all group-hover:shadow-lg lg:h-14 lg:w-16">
             <img
               src={logo}
-              alt="MzansiServe"
-              className="h-full w-full object-cover"
+              alt="AG8TE"
+              className="h-full w-full object-contain"
             />
           </div>
           <span className={cn(
-            "text-[16px] font-semibold tracking-tight transition-colors lg:text-[17px]",
+            "brand-name min-w-0 truncate text-[16px] font-semibold tracking-tight transition-colors lg:text-[17px]",
             isTransparent ? "text-white" : "text-[#222222]"
           )}>
-            MzansiServe
+            AG8TE
           </span>
         </button>
 
@@ -505,6 +505,24 @@ const Navbar = () => {
               )}
             </div>
           )}
+          <CartDrawer>
+            <button
+              className={cn(
+                "relative flex h-9 w-9 items-center justify-center rounded-full border transition-colors",
+                isTransparent
+                  ? "text-white border-white/30 hover:bg-white/10"
+                  : "text-[#222222] border-slate-200 hover:bg-slate-50",
+              )}
+              aria-label={`Open cart${count > 0 ? `, ${count} item${count === 1 ? "" : "s"}` : ""}`}
+            >
+              <ShoppingCart className="h-4 w-4" />
+              {count > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold leading-none text-white">
+                  {count > 99 ? "99+" : count}
+                </span>
+              )}
+            </button>
+          </CartDrawer>
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
             className={cn(

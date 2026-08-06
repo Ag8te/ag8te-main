@@ -1,8 +1,9 @@
 import type { CapacitorConfig } from '@capacitor/cli';
+import { KeyboardResize, KeyboardStyle } from '@capacitor/keyboard';
 
 const config: CapacitorConfig = {
-  appId: 'co.za.mzansiserve.app',
-  appName: 'MzansiServe',
+  appId: 'co.za.ag8te.app',
+  appName: 'AG8TE',
   webDir: 'dist',
   bundledWebRuntime: false,
   ios: {
@@ -14,10 +15,11 @@ const config: CapacitorConfig = {
       backgroundColor: "#ffffff",
       showSpinner: false,
     },
-    StatusBar: {
-      overlaysWebView: false,
-      style: "LIGHT",
-      backgroundColor: "#ffffff",
+    Keyboard: {
+      resize: KeyboardResize.Body,
+      style: KeyboardStyle.Light,
+      resizeOnFullScreen: true,
+      autoBackdropColor: "auto",
     },
   },
 };

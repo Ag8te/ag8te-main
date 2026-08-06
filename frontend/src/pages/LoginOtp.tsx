@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { AlertCircle, ArrowLeft, Loader2, RefreshCw } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -9,7 +9,6 @@ import { apiFetch } from "@/lib/api";
 import { buildRegistrationPaymentUrl, requiresRegistrationPayment } from "@/lib/registration-payment";
 
 const PENDING_OTP_KEY = "pendingLoginOtp";
-const LOGIN_TRUSTED_DEVICE_KEY = "loginTrustedDeviceToken";
 
 interface PendingLoginOtp {
   challengeId: string;
@@ -44,6 +43,7 @@ const LoginOtp = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
+  const verifyInFlight = useRef(false);
   const { setUser } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -74,13 +74,14 @@ const LoginOtp = () => {
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!pendingOtp) return;
+    if (!pendingOtp || verifyInFlight.current) return;
 
     if (!/^\d{6}$/.test(otpCode.trim())) {
       setError("Enter the 6-digit verification code");
       return;
     }
 
+    verifyInFlight.current = true;
     setLoading(true);
     setError("");
     try {
@@ -92,9 +93,6 @@ const LoginOtp = () => {
       if (result.success) {
         localStorage.setItem("token", result.data.token);
         localStorage.setItem("user", JSON.stringify(result.data.user));
-        if (result.data?.trusted_device_token) {
-          localStorage.setItem(LOGIN_TRUSTED_DEVICE_KEY, result.data.trusted_device_token);
-        }
         setUser(result.data.user);
         toast({ title: "Welcome back!", description: "You've been logged in successfully." });
         navigateByRole(result.data.user);
@@ -104,6 +102,7 @@ const LoginOtp = () => {
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Could not verify the code");
     } finally {
+      verifyInFlight.current = false;
       setLoading(false);
     }
   };

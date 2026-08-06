@@ -383,11 +383,11 @@ python nginx_check_install_remote.py 102.215.92.41 root 'YOUR_PASSWORD'
 python nginx_install_remote.py 102.215.92.41 root 'YOUR_PASSWORD' -v
 
 # === DNS (local) ===
-python dns_lookup_local.py mzansiserve.co.za 
-python dns_lookup_local.py mzansiserve.co.za  --type A --short
+python dns_lookup_local.py ag8te.com 
+python dns_lookup_local.py ag8te.com  --type A --short
 
 # === DNS (remote) ===
-python dns_lookup_remote.py 102.215.92.41 root 'YOUR_PASSWORD' mzansiserve.co.za --type A --short
+python dns_lookup_remote.py 102.215.92.41 root 'YOUR_PASSWORD' ag8te.com --type A --short
 python dns_lookup_remote.py 102.215.92.41 root 'YOUR_PASSWORD' example.com --type A --short
 python nginx_start_remote.py 102.215.92.41 root 'YOUR_PASSWORD'
 python nginx_restart_remote.py 102.215.92.41 root 'YOUR_PASSWORD'
@@ -525,7 +525,7 @@ fi
 **Manual SSH (for interactive test):**
 
 ```bash
-ssh root@server.mzansiserve.co.za
+ssh root@server.ag8te.com
 ```
 
 ### Use as a module
@@ -1692,7 +1692,7 @@ python git_install_remote.py 102.215.92.41 root 'YOUR_PASSWORD'
 
 python docker_compose_install_remote.py 102.215.92.41 root 'YOUR_PASSWORD'
 
-python git_clone_remote.py 102.215.92.41 root 'YOUR_PASSWORD' https://github.com/Jalusi-Tech/mzansi-serve /home/project --pac-token YOUR_GITHUB_TOKEN
+python git_clone_remote.py 102.215.92.41 root 'YOUR_PASSWORD' https://github.com/Ag8te/ag8te-main /home/project --pac-token YOUR_GITHUB_TOKEN
 
 python copy_env_remote.py 102.215.92.41 root 'YOUR_PASSWORD' ../.env.prod /home/project
 
@@ -1702,7 +1702,7 @@ python docker_compose_up_build_remote.py 102.215.92.41 root 'YOUR_PASSWORD' /hom
 
 python docker_compose_logs_follow_stream_remote.py 102.215.92.41 root 'YOUR_PASSWORD' /home/project
 
-python dns_lookup_remote.py 102.215.92.41 root 'YOUR_PASSWORD' mzansiserve.co.za
+python dns_lookup_remote.py 102.215.92.41 root 'YOUR_PASSWORD' ag8te.com
 
 python nginx_check_install_remote.py 102.215.92.41 root 'YOUR_PASSWORD'
 
@@ -1719,7 +1719,7 @@ python nginx_deploy_nginx_conf_file_remote.py 102.215.92.41 root 'YOUR_PASSWORD'
 python nginx_deploy_nginx_conf_file_remote.py 102.215.92.41 root 'YOUR_PASSWORD' ../nginx_dir/new/nginx.http.conf
 people being dumped and shimmy exposing them on work groups
 
-python nginx_run_certbot_remote.py 102.215.92.41 root 'YOUR_PASSWORD' mzansiserve.co.za www.mzansiserve.co.za --email info@mzansiserve.co.za --agree-tos --non-interactive
+python nginx_run_certbot_remote.py 102.215.92.41 root 'YOUR_PASSWORD' ag8te.com www.ag8te.com ag8te.co.za www.ag8te.co.za mzansiserve.co.za www.mzansiserve.co.za --email info@ag8te.com --agree-tos --non-interactive
 
 python nginx_deploy_nginx_conf_file_remote.py 102.215.92.41 root 'YOUR_PASSWORD' ../nginx_dir/new/nginx.https.conf
 
@@ -1734,7 +1734,7 @@ python docker_compose_list_containers_remote.py 102.215.92.41 root 'YOUR_PASSWOR
 python docker_compose_run_setup_scripts_remote.py 102.215.92.41 root 'YOUR_PASSWORD' /home/project
 
 # With admin user (optional):
-python docker_compose_run_setup_scripts_remote.py 102.215.92.41 root 'YOUR_PASSWORD' /home/project --admin-email info@mzansiserve.co.za --admin-password 'tsebiessecret' --admin-name "tsebie"
+python docker_compose_run_setup_scripts_remote.py 102.215.92.41 root 'YOUR_PASSWORD' /home/project --admin-email info@ag8te.com --admin-password 'tsebiessecret' --admin-name "tsebie"
 
 # Streams remote git pull output to the console
 python git_pull_update_remote.py 102.215.92.41 root 'YOUR_PASSWORD' /home/project

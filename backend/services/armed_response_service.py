@@ -51,7 +51,7 @@ def register_user(user) -> str | None:
             headers={"Authorization": f"Bearer {token}"},
             json={
                 "email": user.email,
-                "returnUrl": "https://mzansiserve.co.za",
+                "returnUrl": "https://ag8te.com",
                 "customerReferenceId": str(user.id),
             },
             timeout=10,

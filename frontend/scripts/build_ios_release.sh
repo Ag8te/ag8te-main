@@ -5,7 +5,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FRONTEND_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 IOS_DIR="${FRONTEND_DIR}/ios/App"
-ARCHIVE_PATH="${IOS_DIR}/output/MzansiServe.xcarchive"
+ARCHIVE_PATH="${IOS_DIR}/output/AG8TE.xcarchive"
 EXPORT_DIR="${IOS_DIR}/output/export"
 STORE_OUTPUT_DIR="${FRONTEND_DIR}/store-builds/apple"
 
@@ -64,6 +64,6 @@ if [[ -z "${IPA_PATH}" ]]; then
   exit 1
 fi
 
-FINAL_OUTPUT="${STORE_OUTPUT_DIR}/mzansiserve-apple-${APP_VERSION_NAME}-${APP_VERSION_CODE}.ipa"
+FINAL_OUTPUT="${STORE_OUTPUT_DIR}/ag8te-apple-${APP_VERSION_NAME}-${APP_VERSION_CODE}.ipa"
 cp "${IPA_PATH}" "${FINAL_OUTPUT}"
 echo "iOS IPA ready at ${FINAL_OUTPUT}"

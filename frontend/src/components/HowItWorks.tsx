@@ -16,7 +16,7 @@ const steps = [
     },
     {
         number: "03",
-        title: "Enjoy Mzansi Quality",
+        title: "Enjoy AG8TE Quality",
         description: "Relax while our verified providers handle the rest with top-tier service.",
         icon: "😊",
     },
@@ -24,7 +24,7 @@ const steps = [
 
 export const HowItWorks = () => {
     return (
-        <section className="py-12 bg-white relative">
+        <section className="mobile-app-how-section bg-white relative">
             {/* Subtle dot pattern */}
             <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width=\'6\' height=\'6\' viewBox=\'0 0 6 6\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'%23E5E7EB\' fill-opacity=\'0.4\'%3E%3Cpath d=\'M5 0h1L0 6V5zM6 5v1H5z\'/%3E%3C/g%3E%3C/svg%3E')] opacity-50" />
 
@@ -33,12 +33,12 @@ export const HowItWorks = () => {
                 <h2 className="text-3xl md:text-4xl font-semibold text-center mb-2 text-[#222222]">
                     Simple Steps to <span className="text-primary">Your Service</span>
                 </h2>
-                <p className="text-lg text-slate-600 font-normal text-center mb-10 max-w-xl mx-auto">
+                <p className="mobile-app-how-copy text-lg text-slate-600 font-normal text-center mb-10 max-w-xl mx-auto">
                     We've made finding and booking quality South African services as easy as three steps.
                 </p>
 
                 <div className="relative">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 relative">
+                    <div className="mobile-app-how-grid grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 relative">
                         {/* Connecting line */}
                         <div
                             className="hidden md:block absolute h-1 bg-primary/20 z-0"

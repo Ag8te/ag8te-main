@@ -913,6 +913,7 @@ def create_product():
             button_text = (
                 form.get("button_text", "Buy Product").strip() or "Buy Product"
             )
+            locations = ShopProduct.normalize_locations(form.get("locations", ""))
             _shipping_provided, shipping_profile = _extract_product_shipping_profile(form)
 
             image_files = request.files.getlist("image_files")
@@ -933,6 +934,7 @@ def create_product():
             button_text = (
                 data.get("button_text", "Buy Product").strip() or "Buy Product"
             )
+            locations = ShopProduct.normalize_locations(data.get("locations", []))
             _shipping_provided, shipping_profile = _extract_product_shipping_profile(data)
 
             image_files = []
@@ -992,6 +994,7 @@ def create_product():
             grouped_products=grouped_products,
             external_url=external_url,
             button_text=button_text,
+            locations=locations,
             image_url=image_url,  # Legacy field, kept for backward compatibility
             status="active",
             in_stock=True,
@@ -1110,6 +1113,8 @@ def update_product(product_id):
                 product.button_text = (
                     form.get("button_text", "Buy Product").strip() or "Buy Product"
                 )
+            if "locations" in form:
+                product.locations = ShopProduct.normalize_locations(form.get("locations", ""))
 
             if parsed_attributes is not None or shipping_provided:
                 base_attributes = (
@@ -1258,6 +1263,8 @@ def update_product(product_id):
                 product.button_text = (
                     data.get("button_text", "Buy Product").strip() or "Buy Product"
                 )
+            if "locations" in data:
+                product.locations = ShopProduct.normalize_locations(data.get("locations", []))
 
             if parsed_attributes is not None or shipping_provided:
                 base_attributes = (
@@ -2612,7 +2619,7 @@ def get_footer_admin():
     try:
         footer = FooterContent.query.get(1)
         if not footer:
-            footer = FooterContent(id=1, company_name="MzansiServe")
+            footer = FooterContent(id=1, company_name="AG8TE")
             db.session.add(footer)
             db.session.commit()
         return success_response(footer.to_dict())
@@ -2628,7 +2635,7 @@ def update_footer():
     try:
         footer = FooterContent.query.get(1)
         if not footer:
-            footer = FooterContent(id=1, company_name="MzansiServe")
+            footer = FooterContent(id=1, company_name="AG8TE")
             db.session.add(footer)
             db.session.flush()
         data = request.get_json(silent=True) or {}

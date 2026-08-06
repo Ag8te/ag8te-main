@@ -91,12 +91,12 @@ class PayPalProvider(PaymentProvider):
                     "currency_code": currency,
                     "value": decimal_amount
                 },
-                "description": metadata.get('description', 'MzansiServe Payment') if metadata else 'MzansiServe Payment'
+                "description": metadata.get('description', 'AG8TE Payment') if metadata else 'AG8TE Payment'
             }],
             "application_context": {
                 "return_url": success_url or f"{current_app.config.get('FRONTEND_URL')}/api/payments/paypal-callback?status=success&external_id={external_id}",
                 "cancel_url": cancel_url or f"{current_app.config.get('FRONTEND_URL')}/api/payments/paypal-callback?status=cancel&external_id={external_id}",
-                "brand_name": "MzansiServe",
+                "brand_name": "AG8TE",
                 "user_action": "PAY_NOW"
             }
         }
@@ -186,7 +186,7 @@ class PayPalProvider(PaymentProvider):
             "application_context": {
                 "return_url": success_url,
                 "cancel_url": cancel_url,
-                "brand_name": "MzansiServe",
+                "brand_name": "AG8TE",
                 "user_action": "SUBSCRIBE_NOW"
             },
             "custom_id": f"sub_{user_id}_{datetime.utcnow().timestamp()}",

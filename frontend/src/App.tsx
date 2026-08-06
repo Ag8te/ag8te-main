@@ -12,8 +12,10 @@ import { CartProvider } from "@/contexts/CartContext";
 import PrivateRoute from "@/components/PrivateRoute";
 import PaymentGate from "@/components/PaymentGate";
 import ScrollToTop from "@/components/ScrollToTop";
+import SeoManager from "@/components/SeoManager";
 import {
   configureNativeChrome,
+  configureNativeKeyboard,
   isNativeApp,
   resolveAppReturnPath,
 } from "@/lib/native";
@@ -70,6 +72,7 @@ const RouteFallback = () => (
 const NativeAppBoot = () => {
   useEffect(() => {
     configureNativeChrome();
+    configureNativeKeyboard();
   }, []);
 
   return null;
@@ -134,6 +137,7 @@ const App = () => (
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <NativeAppLinkHandler />
           <ScrollToTop />
+          <SeoManager />
           <AuthProvider>
             <CartProvider>
               <Suspense fallback={<RouteFallback />}>

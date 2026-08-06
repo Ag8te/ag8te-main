@@ -1,7 +1,24 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
+import { View, Text, StyleSheet } from 'react-native';
 import { Home, Briefcase, ShoppingBag, User, Users } from 'lucide-react-native';
 import { COLORS, SIZES } from '../../constants/Theme';
+import { useCart } from '../../contexts/CartContext';
+
+const CartTabIcon = ({ color, size }: { color: string; size: number }) => {
+  const { itemCount } = useCart();
+
+  return (
+    <View style={styles.cartIconWrapper}>
+      <ShoppingBag color={color} size={size + 2} strokeWidth={2.5} />
+      {itemCount > 0 && (
+        <View style={styles.cartBadge}>
+          <Text style={styles.cartBadgeText}>{itemCount > 99 ? '99+' : itemCount}</Text>
+        </View>
+      )}
+    </View>
+  );
+};
 
 export default function TabLayout() {
   return (
@@ -60,7 +77,7 @@ export default function TabLayout() {
         name="shop"
         options={{
           title: 'Shop',
-          tabBarIcon: ({ color, size }) => <ShoppingBag color={color} size={size + 2} strokeWidth={2.5} />,
+          tabBarIcon: ({ color, size }) => <CartTabIcon color={color} size={size} />,
         }}
       />
       <Tabs.Screen
@@ -73,3 +90,32 @@ export default function TabLayout() {
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  cartIconWrapper: {
+    width: 30,
+    height: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cartBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -8,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    paddingHorizontal: 4,
+    backgroundColor: COLORS.error,
+    borderWidth: 2,
+    borderColor: COLORS.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cartBadgeText: {
+    color: COLORS.white,
+    fontSize: 9,
+    fontWeight: '800',
+    lineHeight: 12,
+  },
+});

@@ -32,7 +32,7 @@ jest.mock('expo-constants', () => ({
 }));
 
 jest.mock('expo-linking', () => ({
-  createURL: jest.fn().mockReturnValue('mzansiserve://'),
+  createURL: jest.fn().mockReturnValue('ag8te://'),
   parse: jest.fn().mockReturnValue({}),
 }));
 

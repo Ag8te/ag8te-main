@@ -15,7 +15,7 @@ const LoginRequiredModal = ({
     isOpen,
     onClose,
     title = "Sign in to continue",
-    description = "Create a free account or log in to access this feature and enjoy the full MzansiServe experience.",
+    description = "Create a free account or log in to access this feature and enjoy the full AG8TE experience.",
 }: LoginRequiredModalProps) => {
     const navigate = useNavigate();
 

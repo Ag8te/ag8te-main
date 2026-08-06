@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Mail, AlertCircle, Loader2, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,8 @@ const ForgotPassword = () => {
     const [error, setError] = useState("");
     const { toast } = useToast();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const role = searchParams.get("role") || "";
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -27,7 +29,7 @@ const ForgotPassword = () => {
         try {
             const result = await apiFetch("/api/auth/forgot-password", {
                 method: "POST",
-                data: { email },
+                data: { email, ...(role ? { role } : {}) },
             });
 
             if (result.success) {

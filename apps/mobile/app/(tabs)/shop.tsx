@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, FlatList, ActivityIndicator, Image, TouchableOpacity, Dimensions, ScrollView } from 'react-native';
+import { View, StyleSheet, FlatList, ActivityIndicator, Image, TouchableOpacity, Dimensions, ScrollView, GestureResponderEvent } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import apiClient from '../../api/client';
+import apiClient, { getImageUrl } from '../../api/client';
 import { useCart } from '../../contexts/CartContext';
-import { Search, ShoppingBag, Plus, Filter, Heart } from 'lucide-react-native';
+import { Search, ShoppingBag, Plus, Filter, Heart, MapPin } from 'lucide-react-native';
 import { COLORS, SPACING, SIZES, SHADOWS } from '../../constants/Theme';
 import { Typography } from '../../components/UI/Typography';
 import { Card } from '../../components/UI/Card';
@@ -14,6 +14,31 @@ import { Button } from '../../components/UI/Button';
 const { width } = Dimensions.get('window');
 const COLUMN_WIDTH = (width - SPACING.lg * 2 - SPACING.md) / 2;
 const CATEGORIES = ['All', 'Electronics', 'Home', 'Fashion', 'Health', 'Sports', 'Other'];
+
+const getCategoryLabel = (item: any) => {
+  if (typeof item.category === 'string') return item.category;
+  return item.category?.title || item.category?.name || 'General';
+};
+
+const getProductImageUri = (imageUrl?: string | null) => {
+  if (!imageUrl) return 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=500';
+  return imageUrl.startsWith('http') ? imageUrl : getImageUrl(imageUrl);
+};
+
+const getProductPrice = (price: unknown) => {
+  const parsedPrice = typeof price === 'string' ? Number(price) : price;
+  return typeof parsedPrice === 'number' && Number.isFinite(parsedPrice) ? parsedPrice : 0;
+};
+
+const normalizeProductLocations = (value: unknown): string[] => {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item || '').trim()).filter(Boolean);
+  }
+  if (typeof value === 'string') {
+    return value.split(',').map((item) => item.trim()).filter(Boolean);
+  }
+  return [];
+};
 
 export default function Shop() {
   const router = useRouter();
@@ -31,10 +56,24 @@ export default function Shop() {
 
   const filteredData = data?.filter((item: any) => {
     const matchesSearch = item.name.toLowerCase().includes(search.toLowerCase());
+    const categoryLabel = getCategoryLabel(item);
     const matchesCategory = selectedCategory === 'All' || 
-                           item.category?.toLowerCase() === selectedCategory.toLowerCase();
+                           categoryLabel.toLowerCase() === selectedCategory.toLowerCase();
     return matchesSearch && matchesCategory;
   });
+
+  const handleAddToCart = (event: GestureResponderEvent, item: any) => {
+    event.stopPropagation();
+
+    addItem({
+      id: String(item.id),
+      name: item.name,
+      price: getProductPrice(item.price),
+      quantity: 1,
+      image: getProductImageUri(item.image_url),
+      category: getCategoryLabel(item),
+    });
+  };
 
   const renderHeader = () => (
     <View style={styles.header}>
@@ -95,7 +134,7 @@ export default function Shop() {
       >
         <View style={styles.imageContainer}>
           <Image
-            source={{ uri: item.image_url || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=500' }}
+            source={{ uri: getProductImageUri(item.image_url) }}
             style={styles.image}
           />
           <TouchableOpacity style={styles.wishlistButton}>
@@ -104,11 +143,23 @@ export default function Shop() {
         </View>
         <View style={styles.cardContent}>
           <Typography variant="label" color={COLORS.gray[500]} numberOfLines={1}>
-            {item.category || 'General'}
+            {getCategoryLabel(item)}
           </Typography>
           <Typography variant="subtitle" weight="bold" numberOfLines={1} style={{ marginTop: 2 }}>
             {item.name}
           </Typography>
+          {normalizeProductLocations(item.locations).length > 0 && (
+            <View style={styles.locationChips}>
+              <MapPin size={12} color={COLORS.primary} />
+              {normalizeProductLocations(item.locations).slice(0, 2).map((location) => (
+                <View key={location} style={styles.locationChip}>
+                  <Typography variant="caption" color={COLORS.gray[600]} weight="bold" style={{ fontSize: 9 }}>
+                    {location.toUpperCase()}
+                  </Typography>
+                </View>
+              ))}
+            </View>
+          )}
 
           <View style={styles.priceRow}>
             <Typography variant="h3" weight="bold" color={COLORS.primary}>
@@ -116,7 +167,7 @@ export default function Shop() {
             </Typography>
             <TouchableOpacity
               style={styles.addButton}
-              onPress={() => addItem({ ...item, quantity: 1 })}
+              onPress={(event) => handleAddToCart(event, item)}
             >
               <Plus size={20} color={COLORS.white} />
             </TouchableOpacity>
@@ -245,6 +296,19 @@ const styles = StyleSheet.create({
   },
   cardContent: {
     padding: SPACING.md,
+  },
+  locationChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 6,
+  },
+  locationChip: {
+    backgroundColor: COLORS.gray[100],
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
   },
   priceRow: {
     flexDirection: 'row',

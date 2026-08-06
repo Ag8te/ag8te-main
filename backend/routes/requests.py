@@ -17,6 +17,7 @@ from backend.services.email_service import EmailService
 from backend.services.wallet_service import WalletService
 from backend.services.notification_service import NotificationService
 from backend.services.payment_service import PaymentService
+from backend.services.auth_service import REGISTRATION_FEE_REQUIRED
 from backend.utils.decorators import require_auth, require_role
 from backend.utils.response import error_response, success_response
 from backend.utils.url import get_public_backend_base_url, get_request_frontend_base_url, get_request_frontend_return_path
@@ -534,12 +535,14 @@ def accept_request(request_id):
             service_request.details = details
 
         elif service_request.request_type in ('professional', 'provider'):
-            if not user.is_paid:
+            if not user.is_paid and REGISTRATION_FEE_REQUIRED:
                 return error_response(
                     'FORBIDDEN',
                     'Your registration payment must be completed before accepting bookings',
                     None, 403
                 )
+            if not user.is_paid and not REGISTRATION_FEE_REQUIRED:
+                user.is_paid = True
             if not user.is_approved:
                 return error_response(
                     'FORBIDDEN',

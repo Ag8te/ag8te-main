@@ -37,7 +37,7 @@ export default function Ads() {
                 image: imgSrc,
                 category: ad.category_name || 'Ads',
                 seller: ad.user?.name || 'User',
-                location: ad.city || ad.province || 'Mzansi',
+                location: ad.city || ad.province || 'South Africa',
                 date: ad.created_at,
                 raw: ad
             });

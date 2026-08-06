@@ -19,7 +19,7 @@ export default function Profile() {
           style={styles.guestImage}
         />
         <Typography variant="h2" weight="bold" style={{ marginTop: SPACING.xl, marginBottom: SPACING.sm }}>
-          Join MzansiServe
+          Join AG8TE
         </Typography>
         <Typography variant="body" color={COLORS.gray[500]} align="center" style={{ marginBottom: SPACING.xl, paddingHorizontal: SPACING.xl }}>
           Sign in to save your favorite services and manage your profile.

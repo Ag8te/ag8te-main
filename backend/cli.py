@@ -7,6 +7,7 @@ from backend.models import User, ShopCategory, ShopSubcategory, ShopProduct, Ord
 from backend.extensions import db
 from backend.services.wallet_service import WalletService
 from backend.utils.auth import generate_tracking_number
+from sqlalchemy import MetaData
 import secrets
 import json
 
@@ -118,6 +119,64 @@ def delete_user(email, id, force):
     db.session.commit()
     
     click.echo(f'User {user.email} deleted successfully')
+
+
+@cli.command('clear-database')
+@click.option('--admin-email', default='admin@ag8te.com', show_default=True, help='Admin account to keep')
+@click.option('--keep-settings/--clear-settings', default=True, show_default=True, help='Keep app_settings such as payment and shipping config')
+@click.option('--force', is_flag=True, help='Run without confirmation')
+@with_appcontext
+def clear_database(admin_email, keep_settings, force):
+    """Clear application data while preserving one administrator account."""
+    admin = User.query.filter_by(email=admin_email, role='admin').first()
+    if not admin:
+        click.echo(f'Error: admin user not found: {admin_email}')
+        return
+
+    if not force:
+        click.confirm(
+            f'This will delete application data and all users except {admin_email}. Continue?',
+            abort=True,
+        )
+
+    metadata = MetaData()
+    metadata.reflect(bind=db.engine)
+
+    keep_tables = {'users', 'alembic_version'}
+    if keep_settings:
+        keep_tables.add('app_settings')
+
+    deleted_tables = []
+    try:
+        User.query.update({User.agent_id: None}, synchronize_session=False)
+        db.session.flush()
+
+        for table in reversed(metadata.sorted_tables):
+            if table.name in keep_tables:
+                continue
+            result = db.session.execute(table.delete())
+            deleted_tables.append((table.name, result.rowcount))
+
+        User.query.filter(User.id != admin.id).delete(synchronize_session=False)
+        admin.role = 'admin'
+        admin.is_admin = True
+        admin.is_paid = True
+        admin.is_approved = True
+        admin.is_active = True
+        admin.email_verified = True
+        admin.agent_id = None
+        WalletService.get_or_create_wallet(admin.id)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        raise
+
+    click.echo(f'Kept administrator: {admin.email}')
+    if keep_settings:
+        click.echo('Kept app_settings.')
+    click.echo('Cleared tables:')
+    for table_name, rowcount in deleted_tables:
+        click.echo(f'  {table_name}: {rowcount if rowcount is not None else "unknown"}')
 
 
 @cli.command('change-password')
@@ -1197,7 +1256,7 @@ def seed_banners(clear):
             'order': 4,
             'badge': 'Shop',
             'title': 'Buy & Sell\nLocally with Ease',
-            'subtitle': 'Discover products from local sellers. A ads built for Mzansi.',
+            'subtitle': 'Discover products from local sellers. An e-Shop built for South Africa.',
             'cta_text': 'Start Shopping',
             'cta_link': '/shop',
             'cta_color': 'bg-sa-red shadow-lg',
@@ -1265,7 +1324,7 @@ def seed_landing_content(clear):
         {'icon': 'ShieldCheck', 'title': 'Fully Verified', 'description': 'Every provider is vetted through SARS, Home Affairs, CIPC, and SAPS databases.', 'order': 1},
         {'icon': 'Clock', 'title': 'Instant Booking', 'description': 'Book any service in seconds. No long calls, no waiting — just tap and go.', 'order': 2},
         {'icon': 'BadgeCheck', 'title': 'Accredited Experts', 'description': 'Professional bodies validate credentials so you don\'t have to do due diligence.', 'order': 3},
-        {'icon': 'Headphones', 'title': 'Dedicated Support', 'description': 'Our Mzansi-based support team is available to help — any time, any issue.', 'order': 4},
+        {'icon': 'Headphones', 'title': 'Dedicated Support', 'description': 'Our South Africa-based support team is available to help — any time, any issue.', 'order': 4},
     ]
     feat_created = 0
     for fdata in features_data:
@@ -1279,10 +1338,10 @@ def seed_landing_content(clear):
 
     # ── Testimonials ──────────────────────────────────────────────────────────
     testimonials_data = [
-        {'name': 'Sipho Dlamini', 'role': 'Homeowner, Johannesburg', 'rating': 5, 'text': 'I booked a plumber through MzansiServe and he arrived within the hour. Verified, professional, and affordable. Highly recommend!', 'order': 1},
-        {'name': 'Zanele Mokoena', 'role': 'Business Owner, Cape Town', 'rating': 5, 'text': 'The drivers on this platform are punctual and courteous. I use MzansiServe for all my business transport needs now.', 'order': 2},
+        {'name': 'Sipho Dlamini', 'role': 'Homeowner, Johannesburg', 'rating': 5, 'text': 'I booked a plumber through AG8TE and he arrived within the hour. Verified, professional, and affordable. Highly recommend!', 'order': 1},
+        {'name': 'Zanele Mokoena', 'role': 'Business Owner, Cape Town', 'rating': 5, 'text': 'The drivers on this platform are punctual and courteous. I use AG8TE for all my business transport needs now.', 'order': 2},
         {'name': 'Thabo Sithole', 'role': 'Software Engineer, Durban', 'rating': 5, 'text': 'Found an amazing accountant for my small business through the platform. The verification process gives me peace of mind.', 'order': 3},
-        {'name': 'Lerato Khumalo', 'role': 'Event Planner, Pretoria', 'rating': 5, 'text': 'I hired a caterer and DJ through MzansiServe for my client\'s event. Both were exceptional. This platform is a game-changer for SA events!', 'order': 4},
+        {'name': 'Lerato Khumalo', 'role': 'Event Planner, Pretoria', 'rating': 5, 'text': 'I hired a caterer and DJ through AG8TE for my client\'s event. Both were exceptional. This platform is a game-changer for SA events!', 'order': 4},
     ]
     test_created = 0
     for tdata in testimonials_data:
@@ -1347,7 +1406,7 @@ def seed_demo_data():
     # ── Professionals ──
     profs_data = [
         {
-            'email': 'prof_lawyer@mzansiserve.co.za',
+            'email': 'prof_lawyer@ag8te.com',
             'full_name': 'Advocate Sipho Mdluli',
             'profession': 'Legal Consultant',
             'services': [
@@ -1358,7 +1417,7 @@ def seed_demo_data():
             'body': 'Legal Practice Council (LPC)'
         },
         {
-            'email': 'prof_accountant@mzansiserve.co.za',
+            'email': 'prof_accountant@ag8te.com',
             'full_name': 'Zanele Khumalo CA(SA)',
             'profession': 'Chartered Accountant',
             'services': [
@@ -1369,7 +1428,7 @@ def seed_demo_data():
             'body': 'SAICA'
         },
         {
-            'email': 'prof_doctor@mzansiserve.co.za',
+            'email': 'prof_doctor@ag8te.com',
             'full_name': 'Dr. Thabo Sithole',
             'profession': 'General Practitioner',
             'services': [
@@ -1384,7 +1443,7 @@ def seed_demo_data():
     # ── Service Providers ──
     providers_data = [
         {
-            'email': 'prov_cleaning@mzansiserve.co.za',
+            'email': 'prov_cleaning@ag8te.com',
             'full_name': 'Sarah Moremi',
             'business': 'Sparkle Home Services',
             'services': [
@@ -1393,7 +1452,7 @@ def seed_demo_data():
             ]
         },
         {
-            'email': 'prov_plumbing@mzansiserve.co.za',
+            'email': 'prov_plumbing@ag8te.com',
             'full_name': 'Johannes van der Merwe',
             'business': 'Jozi Plumbing Pros',
             'services': [
@@ -1402,7 +1461,7 @@ def seed_demo_data():
             ]
         },
         {
-            'email': 'prov_electrical@mzansiserve.co.za',
+            'email': 'prov_electrical@ag8te.com',
             'full_name': 'Lerato Nkosi',
             'business': 'Nkosi Electrical Solutions',
             'services': [

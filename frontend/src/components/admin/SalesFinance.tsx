@@ -221,7 +221,7 @@ export const SalesFinance = () => {
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = url;
-        link.download = `mzansi_payments_${new Date().toISOString().slice(0, 10)}.csv`;
+        link.download = `ag8te_payments_${new Date().toISOString().slice(0, 10)}.csv`;
         link.click();
         URL.revokeObjectURL(url);
     };
@@ -265,7 +265,7 @@ export const SalesFinance = () => {
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = url;
-        link.download = `mzansi_orders_${new Date().toISOString().slice(0, 10)}.csv`;
+        link.download = `ag8te_orders_${new Date().toISOString().slice(0, 10)}.csv`;
         link.click();
         URL.revokeObjectURL(url);
     };

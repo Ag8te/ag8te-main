@@ -12,8 +12,8 @@ const Footer = () => {
   const [contactInfo, setContactInfo] = useState({
     address: "Johannesburg, Gauteng, South Africa",
     phone: "+27 (0) 11 000 0000",
-    email: "info@mzansiserve.co.za",
-    company_name: "MzansiServe",
+    email: "info@ag8te.com",
+    company_name: "AG8TE",
   });
   const [email, setEmail] = useState("");
   const [subscribeStatus, setSubscribeStatus] = useState("");
@@ -25,8 +25,8 @@ const Footer = () => {
           setContactInfo({
             address: res.data.footer.physical_address || "Johannesburg, Gauteng, South Africa",
             phone: res.data.footer.phone || "+27 (0) 11 000 0000",
-            email: res.data.footer.email || "info@mzansiserve.co.za",
-            company_name: res.data.footer.company_name || "MzansiServe",
+            email: res.data.footer.email || "info@ag8te.com",
+            company_name: res.data.footer.company_name || "AG8TE",
           });
         }
       })
@@ -135,11 +135,11 @@ const Footer = () => {
             {/* Brand */}
             <div className="lg:col-span-4 space-y-8">
               <Link to="/" onClick={scrollTop} className="inline-flex items-center gap-2 group">
-                <div className="flex h-9 w-auto items-center justify-center overflow-hidden rounded-lg bg-primary/10 px-2">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-primary/10 p-2.5 shadow-sm transition-all group-hover:shadow-md">
                   <img
                     src={logo}
                     alt={contactInfo.company_name}
-                    className="h-7 w-auto object-contain"
+                    className="h-full w-full object-contain"
                   />
                 </div>
                 <span className="text-xl font-semibold text-[#222222] tracking-tight">
@@ -147,7 +147,7 @@ const Footer = () => {
                 </span>
               </Link>
               <p className="text-slate-600 text-[15px] leading-relaxed max-w-sm">
-                MzansiServe is born in South Africa as a comprehensive accessible online marketing platform.Book transport, hire professionals, request services, and shop — all in one trusted platform, no matter where you are!
+                AG8TE is born in South Africa as a comprehensive accessible online marketing platform. Book transport, hire professionals, request services, and shop — all in one trusted platform, no matter where you are!
               </p>
 
               {/* Social links */}
@@ -162,7 +162,7 @@ const Footer = () => {
                     key={label}
                     href={href}
                     aria-label={label}
-                    className="w-10 h-10 rounded-full flex items-center justify-center text-slate-500 hover:text-primary hover:bg-primary/5 transition-all duration-300 border border-slate-100"
+                    className="flex h-10 w-10 items-center justify-center rounded-full border border-primary/10 bg-gradient-to-br from-primary to-primary/80 text-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md hover:shadow-primary/20"
                   >
                     <Icon size={17} />
                   </a>

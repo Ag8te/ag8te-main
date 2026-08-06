@@ -20,7 +20,8 @@ import {
   Share2,
   Heart,
   Loader2,
-  ExternalLink
+  ExternalLink,
+  MapPin
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/contexts/CartContext";
@@ -29,6 +30,7 @@ import { apiFetch, API_BASE_URL, getImageUrl } from "@/lib/api";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { cn } from "@/lib/utils";
+import productPlaceholder from "@/assets/product-placeholder.svg";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 interface ApiProduct {
@@ -63,7 +65,18 @@ interface ApiProduct {
   grouped_products?: any;
   external_url?: string;
   button_text?: string;
+  locations?: string[];
 }
+
+const normalizeProductLocations = (value: unknown): string[] => {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item || "").trim()).filter(Boolean);
+  }
+  if (typeof value === "string") {
+    return value.split(",").map((item) => item.trim()).filter(Boolean);
+  }
+  return [];
+};
 
 const ProductDetails = () => {
   const { id } = useParams();
@@ -222,7 +235,7 @@ const ProductDetails = () => {
           category: product.category?.title || "Bundle",
           price: -discountAmount,
           image: "",
-          seller: "MzansiServe",
+          seller: "AG8TE",
           rating: 5,
           reviews: 0,
           inStock: true,
@@ -327,6 +340,7 @@ const ProductDetails = () => {
           : product.inventory
             ? product.inventory.available_quantity > 0
             : product.in_stock !== false);
+  const productLocations = normalizeProductLocations(product.locations);
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -384,7 +398,7 @@ const ProductDetails = () => {
                     transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
                     src={
                       getImageSrc(images[selectedImageIndex]) ||
-                      "/placeholder.png"
+                      productPlaceholder
                     }
                     alt={product.name}
                     className="w-full h-full object-contain p-12 md:p-20"
@@ -432,7 +446,7 @@ const ProductDetails = () => {
                       )}
                     >
                       <img
-                        src={getImageSrc(img) || "/placeholder.png"}
+                        src={getImageSrc(img) || productPlaceholder}
                         alt={`${product.name} thumbnail ${idx + 1}`}
                         className="w-full h-full object-cover"
                       />
@@ -445,7 +459,7 @@ const ProductDetails = () => {
             {/* Product Info */}
             <div className="lg:col-span-5 flex flex-col">
               <div className="mb-10">
-                <div className="flex items-center gap-3 mb-6">
+                <div className="mb-6 flex flex-wrap items-center gap-3">
                   <span className="px-3 py-1 rounded-full bg-primary/5 text-primary text-[10px] font-black uppercase tracking-wider border border-primary/10">
                     {product.category?.title || (product.product_type === "external" ? "External Product" : "New Arrival")}
                   </span>
@@ -486,6 +500,15 @@ const ProductDetails = () => {
                       </div>
                     );
                   })()}
+                  {productLocations.map((location) => (
+                    <span
+                      key={location}
+                      className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-slate-600"
+                    >
+                      <MapPin className="h-3 w-3 text-primary" />
+                      {location}
+                    </span>
+                  ))}
                 </div>
 
                 <h1 className="text-4xl md:text-5xl font-bold text-[#222222] leading-[1.1] mb-6 tracking-tight">
@@ -535,7 +558,7 @@ const ProductDetails = () => {
                   </h3>
                   <p className="text-slate-600 text-base leading-relaxed font-normal">
                     {product.description ||
-                      "Every MzansiServe product is carefully selected to meet our high quality standards. This item combines durability with modern design to provide exceptional value for our customers."}
+                      "Every AG8TE product is carefully selected to meet our high quality standards. This item combines durability with modern design to provide exceptional value for our customers."}
                   </p>
                 </div>
 
@@ -780,7 +803,7 @@ const ProductDetails = () => {
                     <p className="text-xs text-slate-400 font-medium leading-relaxed">
                       This product is sold and fulfilled by an external partner.
                       Delivery, returns, and payment are managed by them directly —
-                      not by MzansiServe.
+                      not by AG8TE.
                     </p>
                   </div>
                 ) : (

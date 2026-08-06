@@ -27,13 +27,13 @@ def seed_all():
     Idempotent — safe to run on every deploy; existing records are skipped.
 
     Admin credentials created:
-      Email   : admin@mzansiserve.co.za
+      Email   : admin@ag8te.com
       Password: admin
     """
 
     SEP = '─' * 55
     click.echo(f'\n{SEP}')
-    click.echo('  MzansiServe — Full Database Seed')
+    click.echo('  AG8TE — Full Database Seed')
     click.echo(f'{SEP}\n')
 
     # ── 1. Countries ───────────────────────────────────────────────────────
@@ -139,7 +139,7 @@ def seed_all():
          'From cleaning to events, DSTV to repairs — trusted providers at your door.',
          'Get a Service',  '/services',    'bg-gradient-gold shadow-glow-gold',     'hero-services.jpg'),
         (4, 'Shop',        'Buy & Sell\nLocally with Ease',
-         'Discover products from local sellers. A ads built for Mzansi.',
+         'Discover products from local sellers. An e-Shop built for South Africa.',
          'Start Shopping', '/shop',        'bg-sa-red shadow-lg',                  'hero-shop.jpg'),
     ]
     banners_added: list = []
@@ -170,7 +170,7 @@ def seed_all():
         ('ShieldCheck', 'Fully Verified',    'Every provider is vetted through SARS, Home Affairs, CIPC, and SAPS databases.', 1),
         ('Clock',       'Instant Booking',   'Book any service in seconds. No long calls, no waiting — just tap and go.',        2),
         ('BadgeCheck',  'Accredited Experts',"Professional bodies validate credentials so you don't have to do due diligence.", 3),
-        ('Headphones',  'Dedicated Support', 'Our Mzansi-based support team is available to help — any time, any issue.',       4),
+        ('Headphones',  'Dedicated Support', 'Our South Africa-based support team is available to help — any time, any issue.',       4),
     ]
     features_added: list = []
     for icon, title, desc, order in features:
@@ -179,13 +179,13 @@ def seed_all():
             features_added.append(title)
     testimonials = [
         ('Sipho Dlamini', 'Homeowner, Johannesburg',  5, 1,
-         'I booked a plumber through MzansiServe and he arrived within the hour. Verified, professional, and affordable!'),
+         'I booked a plumber through AG8TE and he arrived within the hour. Verified, professional, and affordable!'),
         ('Zanele Mokoena','Business Owner, Cape Town', 5, 2,
-         'The drivers on this platform are punctual and courteous. I use MzansiServe for all my business transport needs.'),
+         'The drivers on this platform are punctual and courteous. I use AG8TE for all my business transport needs.'),
         ('Thabo Sithole', 'Software Engineer, Durban',  5, 3,
          'Found an amazing accountant for my small business. The verification process gives me peace of mind.'),
         ('Lerato Khumalo','Event Planner, Pretoria',    5, 4,
-         "I hired a caterer and DJ through MzansiServe for my client's event. Both were exceptional!"),
+         "I hired a caterer and DJ through AG8TE for my client's event. Both were exceptional!"),
     ]
     testimonials_added: list = []
     for name, role, rating, order, text in testimonials:
@@ -218,9 +218,9 @@ def seed_all():
 
     # ── 8. Default Admin User ──────────────────────────────────────────────
     click.echo('[8/10] Default admin user…')
-    ADMIN_EMAIL = 'admin@mzansiserve.co.za'
+    ADMIN_EMAIL = 'admin@ag8te.com'
     ADMIN_PASS  = 'admin'
-    ADMIN_NAME  = 'MzansiServe Admin'
+    ADMIN_NAME  = 'AG8TE Admin'
     if User.query.filter_by(email=ADMIN_EMAIL, role='admin').first():
         click.echo(f'   Already exists ({ADMIN_EMAIL}) — skipped.\n')
     else:
@@ -267,18 +267,18 @@ def seed_all():
     click.echo('[10/10] Demo data (Providers & Professionals)…')
     demo_users = [
         {
-            'email': 'prof_lawyer@mzansiserve.co.za', 'full_name': 'Advocate Sipho Mdluli',
+            'email': 'prof_lawyer@ag8te.com', 'full_name': 'Advocate Sipho Mdluli',
             'role': 'professional', 'profession': 'Legal Consultant',
             'services': [{'name': 'Legal Advice', 'description': 'Contract law and civil litigation advice.', 'hourly_rate': 1200.0}],
             'qualification': 'LLB, LLM (Wits)', 'body': 'LPC'
         },
         {
-            'email': 'prov_cleaning@mzansiserve.co.za', 'full_name': 'Sarah Moremi',
+            'email': 'prov_cleaning@ag8te.com', 'full_name': 'Sarah Moremi',
             'role': 'service-provider', 'business': 'Sparkle Home Services',
             'services': [{'name': 'Standard Cleaning', 'description': 'Full house cleaning.', 'hourly_rate': 180.0}]
         },
         {
-            'email': 'prof_accountant@mzansiserve.co.za', 'full_name': 'Zanele Khumalo CA(SA)',
+            'email': 'prof_accountant@ag8te.com', 'full_name': 'Zanele Khumalo CA(SA)',
             'role': 'professional', 'profession': 'Chartered Accountant',
             'services': [{'name': 'Tax Consultation', 'description': 'SARS personal and business tax filing.', 'hourly_rate': 950.0}],
             'qualification': 'BAcc, CTA (UJ)', 'body': 'SAICA'
@@ -380,7 +380,7 @@ def seed_all():
                         province=ad_data['province'],
                         condition=ad_data['condition'],
                         images=ad_data['images'],
-                        contact_name='MzansiServe Sales',
+                        contact_name='AG8TE Sales',
                         contact_phone='011 234 5678',
                         status='active'
                     ))
@@ -392,7 +392,7 @@ def seed_all():
         click.echo('[12/12] Demo bookings & orders…')
         
         # Admin is our demo client
-        admin_user = User.query.filter_by(email='admin@mzansiserve.co.za').first()
+        admin_user = User.query.filter_by(email='admin@ag8te.com').first()
         demo_prof = User.query.filter_by(role='professional').first()
         demo_prov = User.query.filter_by(role='service-provider').first()
         

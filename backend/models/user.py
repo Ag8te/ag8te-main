@@ -17,6 +17,9 @@ class User(UserMixin, db.Model):
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     email = db.Column(CITEXT, nullable=False)
     password_hash = db.Column(db.Text, nullable=False)
+    login_failed_attempts = db.Column(db.Integer, nullable=False, default=0)
+    password_reset_required = db.Column(db.Boolean, nullable=False, default=False)
+    password_reset_required_at = db.Column(db.DateTime(timezone=True), nullable=True)
     
     # User role and type
     role = db.Column(db.Text, nullable=False)
@@ -69,6 +72,9 @@ class User(UserMixin, db.Model):
             password.encode('utf-8'),
             salt
         ).decode('utf-8')
+        self.login_failed_attempts = 0
+        self.password_reset_required = False
+        self.password_reset_required_at = None
     
     def check_password(self, password):
         """Check password against hash"""

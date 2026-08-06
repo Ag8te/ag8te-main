@@ -4,12 +4,33 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import apiClient, { getImageUrl } from '../../api/client';
 import { useCart } from '../../contexts/CartContext';
-import { ArrowLeft, ShoppingBag, Star, Share2, Heart, Plus, Minus, Check, Truck, ShieldCheck, RotateCcw } from 'lucide-react-native';
+import { ArrowLeft, ShoppingBag, Star, Share2, Heart, Plus, Minus, Check, Truck, ShieldCheck, RotateCcw, MapPin } from 'lucide-react-native';
 import { COLORS, SPACING, SIZES, SHADOWS } from '../../constants/Theme';
 import { Typography } from '../../components/UI/Typography';
 import { Button } from '../../components/UI/Button';
 
 const { width } = Dimensions.get('window');
+const FALLBACK_PRODUCT_IMAGE = 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=500';
+
+const getCategoryLabel = (product: any) => {
+    if (typeof product.category === 'string') return product.category;
+    return product.category?.title || product.category?.name || 'General';
+};
+
+const getProductImageUri = (imageUrl?: string | null) => {
+    if (!imageUrl) return FALLBACK_PRODUCT_IMAGE;
+    return imageUrl.startsWith('http') ? imageUrl : getImageUrl(imageUrl);
+};
+
+const normalizeProductLocations = (value: unknown): string[] => {
+    if (Array.isArray(value)) {
+        return value.map((item) => String(item || '').trim()).filter(Boolean);
+    }
+    if (typeof value === 'string') {
+        return value.split(',').map((item) => item.trim()).filter(Boolean);
+    }
+    return [];
+};
 
 export default function ProductDetails() {
     const { id } = useLocalSearchParams<{ id: string }>();
@@ -28,15 +49,24 @@ export default function ProductDetails() {
 
     const handleAddToCart = () => {
         if (!product) return;
-        addItem({ ...product, quantity });
+        const price = typeof product.price === 'string' ? Number(product.price) : product.price;
+
+        addItem({
+            id: String(product.id),
+            name: product.name,
+            price: Number.isFinite(price) ? price : 0,
+            quantity,
+            image: getProductImageUri(product.image_url),
+            category: getCategoryLabel(product),
+        });
         router.push('/cart');
     };
 
     const handleShare = async () => {
         try {
             await Share.share({
-                message: `Check out ${product?.name} on MzansiServe!`,
-                url: `https://mzansiserve.com/shop/product/${id}`,
+                message: `Check out ${product?.name} on AG8TE!`,
+                url: `https://ag8te.com/shop/product/${id}`,
             });
         } catch (error) {
             console.error(error);
@@ -62,6 +92,7 @@ export default function ProductDetails() {
 
     const inStock = product.in_stock !== false;
     const price = typeof product.price === 'string' ? parseFloat(product.price) : product.price;
+    const productLocations = normalizeProductLocations(product.locations);
 
     return (
         <View style={styles.container}>
@@ -79,7 +110,7 @@ export default function ProductDetails() {
                         {itemCount > 0 && (
                             <View style={styles.cartBadge}>
                                 <Typography variant="caption" color={COLORS.white} weight="bold" style={{ fontSize: 10 }}>
-                                    {itemCount}
+                                    {itemCount > 99 ? '99+' : itemCount}
                                 </Typography>
                             </View>
                         )}
@@ -91,7 +122,7 @@ export default function ProductDetails() {
                 {/* Image Gallery */}
                 <View style={styles.imageContainer}>
                     <Image
-                        source={{ uri: product.image_url || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=500' }}
+                        source={{ uri: getProductImageUri(product.image_url) }}
                         style={styles.image}
                         resizeMode="contain"
                     />
@@ -105,7 +136,7 @@ export default function ProductDetails() {
                     <View style={styles.categoryRow}>
                         <View style={styles.categoryBadge}>
                             <Typography variant="caption" color={COLORS.primary} weight="bold">
-                                {product.category?.title || 'GENERAL'}
+                                {getCategoryLabel(product).toUpperCase()}
                             </Typography>
                         </View>
                         <View style={[styles.stockBadge, { backgroundColor: inStock ? COLORS.success + '10' : COLORS.error + '10' }]}>
@@ -113,6 +144,14 @@ export default function ProductDetails() {
                                 {inStock ? 'IN STOCK' : 'OUT OF STOCK'}
                             </Typography>
                         </View>
+                        {productLocations.map((location) => (
+                            <View key={location} style={styles.locationBadge}>
+                                <MapPin size={12} color={COLORS.primary} />
+                                <Typography variant="caption" color={COLORS.gray[600]} weight="bold">
+                                    {location.toUpperCase()}
+                                </Typography>
+                            </View>
+                        ))}
                     </View>
 
                     <Typography variant="h1" weight="bold" style={styles.title}>
@@ -278,6 +317,8 @@ const styles = StyleSheet.create({
     },
     categoryRow: {
         flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
         marginBottom: SPACING.md,
     },
     categoryBadge: {
@@ -289,6 +330,15 @@ const styles = StyleSheet.create({
     },
     stockBadge: {
         paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: SIZES.radius.full,
+    },
+    locationBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: COLORS.gray[100],
+        paddingHorizontal: 10,
         paddingVertical: 6,
         borderRadius: SIZES.radius.full,
     },

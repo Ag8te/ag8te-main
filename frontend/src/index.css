@@ -15,7 +15,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 13%;
 
-    /* Mzansi Purple, but kept clean */
+    /* AG8TE purple, but kept clean */
     --primary: 260 54% 45%;
     --primary-foreground: 0 0% 100%;
 
@@ -118,6 +118,9 @@
 
   .native-app {
     --native-safe-top: calc(env(safe-area-inset-top, 0px) + 10px);
+    --mobile-app-header-height: 70px;
+    --native-keyboard-height: 0px;
+    background: #ffffff;
   }
 
   .native-app #root {
@@ -125,9 +128,169 @@
     padding-top: var(--native-safe-top);
   }
 
+  .native-app::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: var(--native-safe-top);
+    background: #ffffff;
+    z-index: 110;
+    pointer-events: none;
+  }
+
   .native-app .native-safe-top,
   .native-app .MuiAppBar-positionSticky {
     top: 0;
+  }
+
+	  .native-app .mobile-app-header {
+	    position: fixed;
+	    top: var(--native-safe-top);
+	    left: 0;
+	    right: 0;
+	    z-index: 100;
+	  }
+
+	  .mobile-app-header .brand-link {
+	    max-width: min(52vw, 230px);
+	  }
+
+	  .mobile-app-header .brand-logo {
+	    width: 44px;
+	    height: 44px;
+	  }
+
+	  .mobile-app-header .brand-logo img {
+	    display: block;
+	    width: 100%;
+	    height: 100%;
+	    max-width: 100%;
+	    max-height: 100%;
+	  }
+
+	  .mobile-app-header .brand-name {
+	    max-width: 150px;
+	    font-size: 16px;
+	    line-height: 1.1;
+	    -webkit-text-size-adjust: 100%;
+	    text-size-adjust: 100%;
+	  }
+
+	  @media (max-width: 380px) {
+	    .mobile-app-header .brand-link {
+	      max-width: 48vw;
+	      gap: 6px;
+	    }
+
+	    .mobile-app-header .brand-logo {
+	      width: 40px;
+	      height: 40px;
+	    }
+
+	    .mobile-app-header .brand-name {
+	      max-width: 108px;
+	      font-size: 14px;
+	    }
+	  }
+
+	  .native-app main {
+	    padding-top: var(--mobile-app-header-height);
+	  }
+
+  .native-app.native-keyboard-open {
+    scroll-padding-bottom: calc(var(--native-keyboard-height) + 24px);
+  }
+
+  .native-app.native-keyboard-open input,
+  .native-app.native-keyboard-open textarea,
+  .native-app.native-keyboard-open select {
+    scroll-margin-bottom: calc(var(--native-keyboard-height) + 24px);
+  }
+
+  .native-app .mobile-app-hero {
+    height: 450px;
+  }
+
+  .native-app .mobile-app-hero-loading {
+    height: 450px;
+  }
+
+  .native-app .mobile-app-hero-content {
+    padding-top: 0;
+    padding-bottom: 42px;
+  }
+
+  .native-app .mobile-app-hero-controls {
+    bottom: 16px;
+  }
+
+  .native-app .mobile-app-quick-actions {
+    padding-bottom: 18px;
+  }
+
+  .native-app .mobile-app-how-section {
+    padding-top: 0;
+    padding-bottom: 32px;
+  }
+
+  .native-app .mobile-app-how-copy {
+    margin-bottom: 24px;
+  }
+
+  .native-app .mobile-app-how-grid {
+    row-gap: 28px;
+  }
+
+  .native-app .mobile-app-why-section {
+    padding-top: 34px;
+    padding-bottom: 34px;
+  }
+
+  .native-app .mobile-app-service-section {
+    padding-top: 36px;
+    padding-bottom: 36px;
+  }
+
+  .native-app .mobile-app-section-heading {
+    margin-bottom: 22px;
+  }
+
+  @media (min-width: 640px) {
+    .native-app .mobile-app-hero {
+      height: 560px;
+    }
+
+    .native-app .mobile-app-hero-loading {
+      height: 500px;
+    }
+
+    .native-app .mobile-app-hero-content {
+      padding-bottom: 68px;
+    }
+
+    .native-app .mobile-app-hero-controls {
+      bottom: 24px;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .native-app .mobile-app-hero {
+      height: 680px;
+    }
+
+    .native-app .mobile-app-hero-loading {
+      height: 680px;
+    }
+
+    .native-app .mobile-app-hero-content {
+      padding-bottom: 104px;
+    }
+
+    .native-app .mobile-app-hero-controls {
+      bottom: 72px;
+    }
   }
 
   /* Poppins weight ladder:
@@ -148,6 +311,17 @@
     /* Poppins semibold — avoids heavy "bold" look */
     letter-spacing: -0.02em;
   }
+
+  @media (max-width: 639px) {
+    .mobile-app-hero,
+    .mobile-app-hero-loading {
+      height: 450px;
+    }
+
+    .mobile-app-how-section {
+      padding-top: 0;
+    }
+  }
 }
 
 @layer utilities {
@@ -165,6 +339,15 @@
     backdrop-filter: blur(var(--glass-blur));
     -webkit-backdrop-filter: blur(var(--glass-blur));
     border: 1px solid hsl(var(--glass-border));
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
   }
 
   .shadow-glow-purple {

@@ -4,7 +4,7 @@ import apiClient from '../api/client';
 
 // Aura API Configuration
 const AURA_BASE_URL = 'https://panic.aura.services/panic-api/v2';
-const AURA_CLIENT_ID = 'sb_mzansiserve_client_id'; // This should ideally come from backend config
+const AURA_CLIENT_ID = 'sb_ag8te_client_id'; // This should ideally come from backend config
 
 export interface AlertPayload {
     external_user_id: string;

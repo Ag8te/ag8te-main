@@ -62,7 +62,7 @@ export default defineConfig(async ({ mode }) => {
     server: {
       host: "::",
       port: 8080,
-      allowedHosts: ["localhost","mzansiserve.co.za"],
+      allowedHosts: ["localhost", "ag8te.com", "www.ag8te.com", "ag8te.co.za", "www.ag8te.co.za"],
       hmr: {
         overlay: false,
       },

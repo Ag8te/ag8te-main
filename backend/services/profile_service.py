@@ -15,7 +15,8 @@ from backend.utils.url import get_public_backend_base_url, get_request_frontend_
 
 logger = logging.getLogger(__name__)
 
-REGISTRATION_FEE_AMOUNT = 10000  # R100.00
+REGISTRATION_FEE_AMOUNT = 0  # Free registration period; restore paid amount when needed.
+REGISTRATION_FEE_REQUIRED = REGISTRATION_FEE_AMOUNT > 0
 
 ALLOWED_AFTER_APPROVAL_COMMON = {'phone', 'next_of_kin'}
 ALLOWED_AFTER_APPROVAL_BY_ROLE = {
@@ -92,6 +93,22 @@ class ProfileService:
         user = User.query.get(user_id)
         if not user:
             return None, "USER_NOT_FOUND"
+
+        if user.role == 'client':
+            allowed_keys = ALLOWED_AFTER_APPROVAL_BY_ROLE.get('client', set())
+            disallowed = set(data.keys()) - allowed_keys
+            if disallowed:
+                return None, f"DISALLOWED_FIELDS: {', '.join(sorted(disallowed))}"
+
+            payload = ProfileService._prepare_payload(user, data, files)
+            if not payload:
+                return None, "NO_CHANGES"
+
+            updated_data = dict(user.data) if user.data else {}
+            updated_data.update(payload)
+            user.data = updated_data
+            db.session.commit()
+            return {'updated': True, 'pre_approval': False}, None
         
         if not user.is_approved and user.role not in ('client', 'admin'):
             compliance_keys = COMPLIANCE_KEYS_BY_ROLE.get(user.role, set())
@@ -205,6 +222,16 @@ class ProfileService:
         user = User.query.get(user_id)
         if not user or user.is_paid:
             return None, "ALREADY_PAID_OR_NOT_FOUND"
+        if not REGISTRATION_FEE_REQUIRED:
+            user.is_paid = True
+            db.session.commit()
+            return {
+                'redirect_url': None,
+                'checkout_id': None,
+                'external_id': None,
+                'payment_required': False,
+                'message': 'Registration is currently free. No payment is required.'
+            }, None
             
         user_id_hex = str(user.id).replace('-', '')
         external_id = f"reg_fee_{user_id_hex}_{uuid.uuid4().hex[:8]}"
@@ -304,7 +331,7 @@ class ProfileService:
       # BASIC FIELD MAPPING (UNCHANGED)
       # =========================
       for key in (
-          'phone', 'full_name', 'surname', 'next_of_kin',
+          'phone', 'full_name', 'surname', 'gender', 'next_of_kin',
           'operating_areas', 'availability',
           'driver_services', 'professional_services', 'provider_services',
           'highest_qualification', 'professional_body'

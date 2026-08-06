@@ -15,7 +15,7 @@ class DocumentService:
 
         # Header
         p.setFont("Helvetica-Bold", 20)
-        p.drawString(2 * cm, height - 2 * cm, "MzansiServe - TAX INVOICE")
+        p.drawString(2 * cm, height - 2 * cm, "AG8TE - TAX INVOICE")
         
         p.setFont("Helvetica", 10)
         p.drawString(2 * cm, height - 3 * cm, f"Invoice #: {order_data['id']}")
@@ -77,7 +77,7 @@ class DocumentService:
         p.drawCentredString(width / 2, height - 12 * cm, "successfully completed a service request with")
         
         p.setFont("Helvetica-Bold", 18)
-        p.drawCentredString(width / 2, height - 14 * cm, f"{request_data.get('provider_name', 'MzansiServe Professional')}")
+        p.drawCentredString(width / 2, height - 14 * cm, f"{request_data.get('provider_name', 'AG8TE Professional')}")
         
         p.setFont("Helvetica", 12)
         p.drawCentredString(width / 2, height - 17 * cm, f"Service Request ID: {request_data['id']}")

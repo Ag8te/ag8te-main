@@ -1,8 +1,8 @@
 import { Browser } from "@capacitor/browser";
 import { Capacitor } from "@capacitor/core";
 import { Geolocation } from "@capacitor/geolocation";
+import { Keyboard, KeyboardResize, KeyboardStyle } from "@capacitor/keyboard";
 import { SplashScreen } from "@capacitor/splash-screen";
-import { StatusBar, Style } from "@capacitor/status-bar";
 
 export const nativePlatform = Capacitor.getPlatform();
 export const isNativeApp = Capacitor.isNativePlatform();
@@ -12,16 +12,17 @@ export const isAndroidApp = nativePlatform === "android";
 export const canUseGoogleOAuth = () => !isNativeApp;
 export const googleOAuthClientId =
   import.meta.env.VITE_GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com";
+export const isValidGoogleOAuthClientId = (clientId: string) =>
+  /^\d+-[a-z0-9_-]+\.apps\.googleusercontent\.com$/i.test(clientId.trim());
 export const isGoogleOAuthConfigured = () =>
   canUseGoogleOAuth() &&
-  !!googleOAuthClientId &&
-  !googleOAuthClientId.startsWith("YOUR_GOOGLE_CLIENT_ID");
+  isValidGoogleOAuthClientId(googleOAuthClientId);
 
-export const defaultMobileApiBaseUrl = "https://mzansiserve.co.za";
+export const defaultMobileApiBaseUrl = "https://ag8te.com";
 export const publicWebBaseUrl =
-  import.meta.env.VITE_PUBLIC_FRONTEND_URL || "https://mzansiserve.co.za";
+  import.meta.env.VITE_PUBLIC_FRONTEND_URL || "https://ag8te.com";
 export const mobileAppBaseUrl =
-  import.meta.env.VITE_MOBILE_APP_URL || "co.za.mzansiserve.app://app";
+  import.meta.env.VITE_MOBILE_APP_URL || "co.za.ag8te.app://app";
 
 const stripTrailingSlash = (value: string) => value.replace(/\/+$/, "");
 
@@ -149,19 +150,32 @@ export const configureNativeChrome = async () => {
   if (!isNativeApp) return;
 
   try {
-    await StatusBar.show();
-    await StatusBar.setOverlaysWebView({ overlay: false });
-    await StatusBar.setStyle({ style: Style.Light });
-    if (isAndroidApp) {
-      await StatusBar.setBackgroundColor({ color: "#ffffff" });
-    }
-  } catch (error) {
-    console.warn("Failed to configure native status bar:", error);
-  }
-
-  try {
     await SplashScreen.hide();
   } catch (error) {
     console.warn("Failed to hide splash screen:", error);
+  }
+};
+
+export const configureNativeKeyboard = async () => {
+  if (!isNativeApp) return;
+
+  try {
+    if (isIOSApp) {
+      await Keyboard.setResizeMode({ mode: KeyboardResize.Body });
+      await Keyboard.setStyle({ style: KeyboardStyle.Light });
+      await Keyboard.setAccessoryBarVisible({ isVisible: false });
+    }
+
+    await Keyboard.addListener("keyboardWillShow", ({ keyboardHeight }) => {
+      document.documentElement.classList.add("native-keyboard-open");
+      document.documentElement.style.setProperty("--native-keyboard-height", `${keyboardHeight}px`);
+    });
+
+    await Keyboard.addListener("keyboardWillHide", () => {
+      document.documentElement.classList.remove("native-keyboard-open");
+      document.documentElement.style.setProperty("--native-keyboard-height", "0px");
+    });
+  } catch (error) {
+    console.warn("Failed to configure native keyboard:", error);
   }
 };
