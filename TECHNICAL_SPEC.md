@@ -1,9 +1,9 @@
-# MzansiServe Technical Specification: Flask Migration
+# AG8TE Technical Specification: Flask Migration
 
 ## Document Information
 - **Version**: 1.0
 - **Date**: 2024
-- **Purpose**: Technical specification for migrating MzansiServe from Node/Supabase to Flask/PostgreSQL/Docker architecture
+- **Purpose**: Technical specification for migrating AG8TE from Node/Supabase to Flask/PostgreSQL/Docker architecture
 - **Status**: Draft
 
 ---
@@ -24,7 +24,7 @@
 ## Executive Summary
 
 ### Project Overview
-MzansiServe is a service ads platform connecting users with vetted service providers (cabs, professionals, service providers). The platform includes user registration, service request management, payment processing, e-commerce shop, and admin dashboards.
+AG8TE is a service ads platform connecting users with vetted service providers (cabs, professionals, service providers). The platform includes user registration, service request management, payment processing, e-commerce shop, and admin dashboards.
 
 ### Migration Goals
 - **Convert** from Node.js/Express backend to fullstack Flask (Python) with server-side rendering
@@ -118,7 +118,7 @@ services:
     build: .
     ports: ["5000:5000"]
     environment:
-      - DATABASE_URL=postgresql://mzansi:${DB_PASSWORD:-changeme}@db:5432/mzansiserve
+      - DATABASE_URL=postgresql://ag8te:${DB_PASSWORD:-changeme}@db:5432/ag8te
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key}
       - JWT_SECRET_KEY=${JWT_SECRET_KEY:-jwt-secret-key}
       - FLASK_ENV=development
@@ -143,14 +143,14 @@ services:
     image: postgres:15-alpine
     ports: ["5432:5432"]
     environment:
-      - POSTGRES_DB=mzansiserve
-      - POSTGRES_USER=mzansi
+      - POSTGRES_DB=ag8te
+      - POSTGRES_USER=ag8te
       - POSTGRES_PASSWORD=${DB_PASSWORD:-changeme}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U mzansi"]
+      test: ["CMD-SHELL", "pg_isready -U ag8te"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -543,8 +543,8 @@ volumes:
 - [ ] Implement Forgot Password Recovery
 
 **Service Integration:**
-- [ ] Implement email service (`/home/charles/Documents/projects/mzansi-serve/services/email`)
-- [ ] Implement payment service (`/home/charles/Documents/projects/mzansi-serve/services/yoco-checkout-service`)
+- [ ] Implement email service (`/home/charles/Documents/projects/ag8te/services/email`)
+- [ ] Implement payment service (`/home/charles/Documents/projects/ag8te/services/yoco-checkout-service`)
 - [ ] Implement payment processing
 - [ ] Implement admin endpoints
 
@@ -783,7 +783,7 @@ CREATE INDEX idx_notifications_status ON notifications(status);
 
 ### Base URL
 - Development: `http://localhost:5000/api` (or relative `/api` since same origin)
-- Production: `https://mzansiserve.co.za/api` (or relative `/api` since same origin)
+- Production: `https://ag8te.com/api` (or relative `/api` since same origin)
 
 **Note**: Since Flask serves both API and frontend from the same origin, the frontend can use relative URLs (`/api/*`) which simplifies CORS and eliminates cross-origin issues.
 
@@ -1348,8 +1348,8 @@ services:
   db:
     image: postgres:15-alpine
     environment:
-      POSTGRES_DB: mzansiserve
-      POSTGRES_USER: mzansi
+      POSTGRES_DB: ag8te
+      POSTGRES_USER: ag8te
       POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
     ports:
       - "5432:5432"
@@ -1357,7 +1357,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U mzansi"]
+      test: ["CMD-SHELL", "pg_isready -U ag8te"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -1369,7 +1369,7 @@ services:
     ports:
       - "5000:5000"
     environment:
-      DATABASE_URL: postgresql://mzansi:${DB_PASSWORD:-changeme}@db:5432/mzansiserve
+      DATABASE_URL: postgresql://ag8te:${DB_PASSWORD:-changeme}@db:5432/ag8te
       SECRET_KEY: ${SECRET_KEY:-dev-secret-key}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:-jwt-secret-key}
       FLASK_ENV: ${FLASK_ENV:-development}
@@ -1382,7 +1382,7 @@ services:
       PAYPAL_SECRET: ${PAYPAL_SECRET}
       PAYPAL_BASE_URL: ${PAYPAL_BASE_URL:-https://api-m.sandbox.paypal.com}
       YOCO_SECRET_KEY: ${YOCO_SECRET_KEY}
-      DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL:-noreply@mzansiserve.co.za}
+      DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL:-noreply@ag8te.com}
     depends_on:
       db:
         condition: service_healthy
@@ -1467,7 +1467,7 @@ def request():
 #### Backend (.env)
 ```bash
 # Database
-DATABASE_URL=postgresql://mzansi:password@db:5432/mzansiserve
+DATABASE_URL=postgresql://ag8te:password@db:5432/ag8te
 
 # Flask
 SECRET_KEY=your-secret-key-here
@@ -1480,7 +1480,7 @@ SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=your-email@gmail.com
 SMTP_PASSWORD=your-app-password
-DEFAULT_FROM_EMAIL=noreply@mzansiserve.co.za
+DEFAULT_FROM_EMAIL=noreply@ag8te.com
 
 # Payments
 PAYPAL_CLIENT_ID=your-paypal-client-id
@@ -1677,8 +1677,8 @@ privacy policy
   - [ ] If "rejected" user can see "reasons" field.
 - [ ] Implement Password Reset/Update
 - [ ] Implement Forgot Password Recovery 
-- [ ] Implement email service (/home/charles/Documents/projects/mzansi-serve/services/email)
-- [ ] Implement payment service (/home/charles/Documents/projects/mzansi-serve/services/yoco-checkout-service)
+- [ ] Implement email service (/home/charles/Documents/projects/ag8te/services/email)
+- [ ] Implement payment service (/home/charles/Documents/projects/ag8te/services/yoco-checkout-service)
 - [ ] Implement payment processing
 - [ ] Implement admin endpoints
 - [ ] Implement service request features
@@ -2047,12 +2047,12 @@ Admin must be able to upload via file upload dialog window instead of pasting a 
 -------
 make logo bigger
 -------
-remove "MzansiServe" name next to the logo
+remove "AG8TE" name next to the logo
 -------
-change nav bar and fotter color to MzansiServe blue/purple gradient
+change nav bar and fotter color to AG8TE blue/purple gradient
 -------
 refactor make home page:
-- "Welcome to MzansiServe" section
+- "Welcome to AG8TE" section
   - "Convert into a carousel"
     - Section fades in from top
       - As it currently reads (Your trusted service ads), and the buttons
@@ -2074,10 +2074,10 @@ Implement Fade in effect for apprpriate web paghes
 -------
 Implementing a responsive navigation bar with a hamburger menu. 
 -------
-https://mzansi-serve.jalusitech.co.za/request-driver
+https://ag8te.com/request-driver
 Under "Service Preferences" - under the date/time manual selection section, add option for requesting immeditaely "Request for now"
 -------
-https://mzansi-serve.jalusitech.co.za/requested-services
+https://ag8te.com/requested-services
 Change the layout of the listed services.
 - instead of a conventional table, use cards that display details of the record
 -------
@@ -2095,7 +2095,7 @@ Nav bar:
 when logged in user is an admin user then they should see a nav link option for the admin portal
 - make this change to both the responsive nav and the standard nav
 -------
-https://mzansi-serve.jalusitech.co.za/dashboard
+https://ag8te.com/dashboard
 When page is at 125% zoom, the logo gets very squashed. make the size and shape of the the logo display consistent
 -------
 On admin page, add "Edit" action button
@@ -2168,7 +2168,7 @@ Admin can add multiple images per product
 -------
 On "Request a driver" - on "Accept Quote & Create Request" change to "Accept Quote & Request"
 -------
-On registration page (https://mzansi-serve.jalusitech.co.za/register)
+On registration page (https://ag8te.com/register)
 - Move "ID Document" upload input field to "Verification Documents" section
 - Move "ID verification: Pending review" alert to the part of the registration form that has the ID upload input field
 - Move "Registration fee not paid." alert to the part of the registration form that has the payment info and payment button
@@ -2181,18 +2181,18 @@ On registration page (https://mzansi-serve.jalusitech.co.za/register)
 - Add nationality field to user model and persist this input selection in the new field
 -On the registration form, change the label "Role" to "Register as a" 
 -------
-On registration page (https://mzansi-serve.jalusitech.co.za/register)
+On registration page (https://ag8te.com/register)
 - If SA provide ID, else passport number
 - Move ID upload field to the "Verification Documents" section
 - "Basic Information" must be mandatory fields for registration
 -------
-On registration page (https://mzansi-serve.jalusitech.co.za/register)
+On registration page (https://ag8te.com/register)
 - When user selects a role, the displayed input fields should change to reflect the select user role/type
 - When user selects a commuter or service provider or professional role, driver's license is not mandatory
 -------
-https://mzansi-serve.jalusitech.co.za/request-driver
-https://mzansi-serve.jalusitech.co.za/request-professional
-https://mzansi-serve.jalusitech.co.za/request-service-provider
+https://ag8te.com/request-driver
+https://ag8te.com/request-professional
+https://ag8te.com/request-service-provider
 
 If clicks on Request a cab, Request a service provider, or Request a professional
 - if user is logged out
@@ -2201,10 +2201,10 @@ If clicks on Request a cab, Request a service provider, or Request a professiona
   - the modal cant be removed. modal has buttons for reister and login
 
 -------
-https://mzansi-serve.jalusitech.co.za/login
+https://ag8te.com/login
 add link to register page
 
-https://mzansi-serve.jalusitech.co.za/register
+https://ag8te.com/register
 add link to login page
 ----------------------------
 ensure we implement emails
@@ -2215,7 +2215,7 @@ ensure we implement emails
 - when user is approved by admin.
 - when user is suspended by admin.
 --------------------------------------
-https://mzansi-serve.jalusitech.co.za/profile Driver Services (Cars) section layout must be styled to look https://mzansi-serve.jalusitech.co.za/register page's Driver Services (Cars) section
+https://ag8te.com/profile Driver Services (Cars) section layout must be styled to look https://ag8te.com/register page's Driver Services (Cars) section
 --------------------------------------
 Identity Information in profile page must be refactored to align with the registration page display, except read-only and set to the user's selected Nationality
 --------------------------------------
@@ -2254,7 +2254,7 @@ Although the request has been made to make the profile fields editable again, th
 - This feature would represent a material expansion of the current scope of work beyond what I am aware of being part of the current scope.
 - This feature is more reliable when implemented as a mobile app feature.
 
-"On payment cancellation, redirect message must say “If you choose to do so, you will be directed back to Mzansi Server” (Replace “DIPSEL GROUP”)."
+"On payment cancellation, redirect message must say “If you choose to do so, you will be directed back to AG8TE” (Replace “DIPSEL GROUP”)."
 - Require clarity
 
 --------------------------------------
@@ -2309,7 +2309,7 @@ On register page under "Identity Information" section:
 --------------------------------------
 Logo should be the same height as the nav bar
 -----------------
-https://mzansi-serve.jalusitech.co.za/admin
+https://ag8te.com/admin
 Under Categories tab
 - Add new action option "add sub category"
 - clikcing on "add sub category" trigger modal with option to add subcategory for the selected category
@@ -2325,22 +2325,22 @@ Under Products tab
 Edit Product
 - Category and subcategory fields must populate correctly
 -----------------
-https://mzansi-serve.jalusitech.co.za/requested-services
+https://ag8te.com/requested-services
 under Requested Services
 - If request type is cab then display car type
 
 -----------
-https://mzansi-serve.jalusitech.co.za/driver-dashboard
+https://ag8te.com/driver-dashboard
 Available Ride Requests
 - if request type is cab, then display distance in the ride request item details
 
 -----------
-https://mzansi-serve.jalusitech.co.za/driver-dashboard
+https://ag8te.com/driver-dashboard
 Available Ride Requests
 - display car typex
 
 -----------
-https://mzansi-serve.jalusitech.co.za/rides-made
+https://ag8te.com/rides-made
 Rides You've Made
 - display car type on the rides
 

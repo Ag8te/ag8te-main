@@ -1,9 +1,9 @@
-MzansiServe Email Confirmation Templates
+AG8TE Email Confirmation Templates
 send_verification_email
-Subject: Verify Your Email Address – Welcome to MzansiServe
+Subject: Verify Your Email Address – Welcome to AG8TE
 Hi {{first_name}},
 
-Welcome to MzansiServe 
+Welcome to AG8TE 
 
 To complete your registration, please verify your email address by clicking the button below:
 
@@ -14,13 +14,13 @@ If you did not create this account, you can safely ignore this email.
 Thank you for joining South Africa’s trusted ads for services, professionals, drivers, and shops.
 
 Warm regards,
-MzansiServe Support Team
-www.mzansiserve.co.za
+AG8TE Support Team
+www.ag8te.com
 send_registration_confirmation
-Subject: Registration Successful – Welcome to MzansiServe!
+Subject: Registration Successful – Welcome to AG8TE!
 Hi {{first_name}},
 
-Great news! Your registration on MzansiServe was successful 
+Great news! Your registration on AG8TE was successful 
 
 Your account is now active, and you can start exploring:
 - Local professionals & service providers
@@ -28,12 +28,12 @@ Your account is now active, and you can start exploring:
 - Online shopping
 - Secure payments
 
-Login anytime here: {{login_link}} or directly from the mzanserve mobile app, www.MzansiServe.co.za or www.MzansiServe .co.za
+Login anytime here: {{login_link}} or directly from the ag8te mobile app, www.AG8TE.com or www.AG8TE .com
 
-Thank you for choosing MzansiServe — made for Mzansi, built for you 🇿🇦
+Thank you for choosing AG8TE — made for South Africa, built for you 🇿🇦
 
 Kind regards,
-MzansiServe Team
+AG8TE Team
 send_registration_payment_confirmation
 Subject: Payment Received – Registration Confirmed
 Hi {{first_name}},
@@ -47,13 +47,13 @@ Reference: {{reference}}
 Your subscription/registration is now fully confirmed, and your account remains active.
 
 Regards,
-MzansiServe Billing Team
-billing@mzansiserve.co.za
+AG8TE Billing Team
+billing@ag8te.com
 send_shop_purchase_confirmation
-Subject: Order Confirmed – Thank You for Shopping with MzansiServe
+Subject: Order Confirmed – Thank You for Shopping with AG8TE
 Hi {{first_name}},
 
-Thank you for your purchase on MzansiServe Shop 🛒
+Thank you for your purchase on AG8TE Shop 🛒
 
 Order Number: {{order_number}}
 Total Amount: R{{amount}}
@@ -63,7 +63,7 @@ Order Date: {{order_date}}
 You will receive another update once your order is dispatched.
 
 Warm regards,
-MzansiServe Shop Team
+AG8TE Shop Team
 send_callout_payment_confirmation
 Subject: Call-Out Payment Confirmed – Service Booking Successful
 Hi {{first_name}},
@@ -78,9 +78,9 @@ Booking Date: {{booking_date}}
 The provider will contact you shortly.
 
 Regards,
-MzansiServe Support Team
+AG8TE Support Team
 send_user_approval_notification
-Subject: Account Approved – Welcome to MzansiServe!
+Subject: Account Approved – Welcome to AG8TE!
 Hi {{first_name}},
 
 Congratulations 🎉
@@ -92,17 +92,17 @@ You are now authorised as a: {{account_type}}
 Access your dashboard here: {{dashboard_link}}
 
 Warm regards,
-MzansiServe Team
+AG8TE Team
 send_user_suspension_notification
 Subject: Account Suspended – Important Notice
 Hi {{first_name}},
 
-We regret to inform you that your MzansiServe account has been temporarily suspended.
+We regret to inform you that your AG8TE account has been temporarily suspended.
 
 Reason: {{suspension_reason}}
 
 If you believe this was done in error, please contact us:
-support@mzansiserve.co.za
+support@ag8te.com
 
 Sincerely,
-MzansiServe Compliance Team
+AG8TE Compliance Team

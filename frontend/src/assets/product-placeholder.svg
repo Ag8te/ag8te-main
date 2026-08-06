@@ -1,15 +1,40 @@
-<svg width="1200" height="800" viewBox="0 0 1200 800" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="1200" height="800" fill="#F8FAFC"/>
-  <path d="M0 0H1200V800H0V0Z" fill="#FFF7F7"/>
-  <path d="M0 620C160 560 260 640 410 590C560 540 650 470 820 520C990 570 1060 500 1200 450V800H0V620Z" fill="#FEE2E2"/>
-  <path d="M0 680C180 620 300 690 470 640C640 590 760 600 910 650C1060 700 1120 640 1200 610V800H0V680Z" fill="#FFE4E6"/>
-  <rect x="420" y="175" width="360" height="360" rx="64" fill="white"/>
-  <rect x="420" y="175" width="360" height="360" rx="64" stroke="#F1F5F9" stroke-width="4"/>
-  <path d="M505 310H695L718 455C722 482 701 506 674 506H526C499 506 478 482 482 455L505 310Z" fill="#E53935"/>
-  <path d="M548 310V282C548 253 571 230 600 230C629 230 652 253 652 282V310" stroke="#222222" stroke-width="26" stroke-linecap="round"/>
-  <circle cx="548" cy="362" r="12" fill="white"/>
-  <circle cx="652" cy="362" r="12" fill="white"/>
-  <path d="M553 422C581 446 619 446 647 422" stroke="white" stroke-width="18" stroke-linecap="round"/>
-  <text x="600" y="605" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="56" font-weight="800" fill="#222222">MzansiServe</text>
-  <text x="600" y="660" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" fill="#64748B">Product image coming soon</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-label="AG8TE product image placeholder">
+  <defs>
+    <linearGradient id="surface" x1="140" x2="1060" y1="70" y2="730" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#F4F7FB"/>
+    </linearGradient>
+    <linearGradient id="ag8te-arch" x1="420" x2="790" y1="235" y2="235" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7B22F4"/>
+      <stop offset=".48" stop-color="#684BFF"/>
+      <stop offset="1" stop-color="#0998F6"/>
+    </linearGradient>
+    <linearGradient id="ag8te-gold" x1="552" x2="682" y1="275" y2="508" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFE45A"/>
+      <stop offset=".52" stop-color="#FFC320"/>
+      <stop offset="1" stop-color="#F59B10"/>
+    </linearGradient>
+    <filter id="soft-shadow" x="210" y="118" width="780" height="564" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="28" stdDeviation="38" flood-color="#162033" flood-opacity=".12"/>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="800" fill="url(#surface)"/>
+  <path fill="#EEF3FA" d="M168 168h864v464H168z" opacity=".7"/>
+  <path stroke="#D5DEE9" stroke-width="4" stroke-dasharray="18 18" d="M190 190h820v420H190z" opacity=".85"/>
+
+  <g filter="url(#soft-shadow)">
+    <rect x="358" y="176" width="484" height="412" rx="34" fill="#FFFFFF"/>
+    <path fill="#F7FAFD" d="M400 514h400l-105-132-86 88-58-59-151 103Z"/>
+    <circle cx="730" cy="270" r="42" fill="#E8F0F8"/>
+    <path fill="none" stroke="#C9D5E3" stroke-linecap="round" stroke-linejoin="round" stroke-width="16" d="M448 514h304"/>
+  </g>
+
+  <g aria-hidden="true">
+    <path fill="url(#ag8te-arch)" d="M444 323c42-70 80-134 114-189 13-22 29-32 50-32h60c22 0 38 10 51 32l113 189c10 17 3 35-17 35h-31c-18 0-31-7-40-22l-91-152c-7-13-21-13-29 0l-91 152c-9 15-22 22-40 22h-31c-20 0-28-18-18-35Z"/>
+    <text x="600" y="498" fill="url(#ag8te-gold)" font-family="Arial Black, Arial, sans-serif" font-size="230" font-weight="900" text-anchor="middle">8</text>
+  </g>
+
+  <text x="600" y="672" fill="#121826" font-family="Arial Black, Arial, sans-serif" font-size="58" font-weight="900" text-anchor="middle">AG8TE</text>
+  <text x="600" y="720" fill="#617089" font-family="Arial, sans-serif" font-size="28" font-weight="700" text-anchor="middle">Product image coming soon</text>
 </svg>

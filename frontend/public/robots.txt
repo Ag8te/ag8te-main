@@ -13,4 +13,4 @@ Allow: /
 User-agent: *
 Allow: /
 
-Sitemap: https://mzansiserve.co.za/sitemap.xml
+Sitemap: https://ag8te.com/sitemap.xml

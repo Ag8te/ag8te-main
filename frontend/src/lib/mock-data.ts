@@ -136,7 +136,7 @@ export const authStore = {
     const user = registeredUsers.find((u) => u.email === email);
     if (!user) {
       // Demo account
-      if (email === "demo@mzansiserve.co.za") {
+      if (email === "demo@ag8te.com") {
         const demoUser: User = { id: "usr_demo", name: "Demo User", email, phone: "0810001111", role: "customer", createdAt: new Date().toISOString() };
         currentUser = demoUser;
         return { success: true, user: demoUser };

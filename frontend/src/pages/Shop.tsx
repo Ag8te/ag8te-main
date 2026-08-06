@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search, MapPin, Tag, Filter, ChevronRight,
@@ -69,6 +69,23 @@ const normalizeProductLocations = (value: unknown): string[] => {
   return [];
 };
 
+const getPrimaryImageUrl = (product: any): string | null => {
+  const images = Array.isArray(product.images) ? [...product.images] : [];
+  images.sort((a, b) => {
+    if (a?.is_primary && !b?.is_primary) return -1;
+    if (!a?.is_primary && b?.is_primary) return 1;
+    return Number(a?.order ?? 0) - Number(b?.order ?? 0);
+  });
+
+  return images.find((img) => img?.image_url)?.image_url || product.image_url || null;
+};
+
+const getProductCardDescription = (description?: string | null) => {
+  const text = (description || "").trim().replace(/\s+/g, " ");
+  if (!text) return "";
+  return text.length > 120 ? `${text.slice(0, 117).trimEnd()}...` : text;
+};
+
 const getCategoryIcon = (categoryName: string, iconKey?: string) => {
   if (iconKey && iconMap[iconKey]) {
     return iconMap[iconKey];
@@ -116,6 +133,7 @@ export default function Shop() {
   const [sortBy, setSortBy] = useState("newest");
   const [onlyWishlist, setOnlyWishlist] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
+  const resultsRef = useRef<HTMLDivElement | null>(null);
   const [wishlist, setWishlist] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem("mz_wishlist");
@@ -209,7 +227,7 @@ export default function Shop() {
 
     products.forEach((p: any) => {
       if (p.status === "inactive") return;
-      const firstImg = p.images?.[0]?.image_url || p.image_url;
+      const firstImg = getPrimaryImageUrl(p);
       const imgSrc = firstImg ? getImageUrl(firstImg) : null;
       const price = typeof p.price === "string" ? parseFloat(p.price) : p.price;
       items.push({
@@ -220,9 +238,9 @@ export default function Shop() {
         image: imgSrc,
         category: p.category?.title || "Shop Product",
         category_id: p.category?.id || p.category_id,
-        seller: p.seller_name || "MzansiServe",
+        seller: p.seller_name || "AG8TE",
         locations: normalizeProductLocations(p.locations),
-        location: normalizeProductLocations(p.locations).join(", ") || "Mzansi",
+        location: normalizeProductLocations(p.locations).join(", ") || "South Africa",
         date: p.created_at,
         raw: p,
       });
@@ -239,7 +257,7 @@ export default function Shop() {
         category: ad.category_name || "Ads",
         category_id: ad.category_id || ad.category_slug || ad.category_name, // fallback for matching
         seller: ad.user?.name || "User",
-        location: ad.city || ad.province || "Mzansi",
+        location: ad.city || ad.province || "South Africa",
         date: ad.created_at,
         raw: ad,
       });
@@ -366,6 +384,22 @@ export default function Shop() {
     const start = (currentPage - 1) * itemsPerPage;
     return filteredItems.slice(start, start + itemsPerPage);
   }, [filteredItems, currentPage, itemsPerPage]);
+  const firstVisibleItem = totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+  const lastVisibleItem = Math.min(currentPage * itemsPerPage, totalItems);
+
+  const moveToPage = (page: number) => {
+    const nextPage = Math.min(Math.max(page, 1), Math.max(totalPages, 1));
+    setCurrentPage(nextPage);
+    window.setTimeout(() => {
+      resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 0);
+  };
+
+  useEffect(() => {
+    if (totalPages > 0 && currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   const updateParams = (updates: Record<string, string | null>) => {
     const newParams = new URLSearchParams(searchParams);
@@ -457,15 +491,15 @@ export default function Shop() {
               animate={{ opacity: 1, y: 0 }}
             >
               <Badge className="mb-4 bg-primary/10 text-primary border-none text-xs font-bold px-3 py-1">
-                <Sparkles className="w-3 h-3 mr-1" /> THE MZANSI SHOP
+                <Sparkles className="w-3 h-3 mr-1" /> THE AG8TE SHOP
               </Badge>
               <h1 className="text-4xl md:text-6xl font-black text-[#1e293b] mb-6 tracking-tight">
                 Shop Premium Deals in{" "}
-                <span className="text-primary italic">Mzansi</span>
+                <span className="text-primary italic">AG8TE</span>
               </h1>
               <p className="text-slate-500 text-lg mb-8 max-w-2xl mx-auto">
                 Discover the best local items curated and sold exclusively by
-                MzansiServe. Want us to sell your items for a small fee?{" "}
+                AG8TE. Want us to sell your items for a small fee?{" "}
                 <button
                   onClick={() => navigate("/contact")}
                   className="text-primary font-bold hover:underline cursor-pointer"
@@ -696,6 +730,48 @@ export default function Shop() {
           </div>
         </div>
 
+        <div
+          ref={resultsRef}
+          className="mb-5 flex flex-col gap-3 scroll-mt-28 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div>
+            <p className="text-sm font-bold text-slate-500">
+              {totalItems > 0
+                ? `Showing ${firstVisibleItem}-${lastVisibleItem} of ${totalItems} items`
+                : "No items to show"}
+            </p>
+            {totalPages > 1 && (
+              <p className="text-xs font-semibold text-slate-400">
+                Page {currentPage} of {totalPages}
+              </p>
+            )}
+          </div>
+          {totalPages > 1 && (
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="rounded-xl font-bold"
+                disabled={currentPage === 1}
+                onClick={() => moveToPage(currentPage - 1)}
+              >
+                Previous
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="rounded-xl font-bold"
+                disabled={currentPage === totalPages}
+                onClick={() => moveToPage(currentPage + 1)}
+              >
+                Next page
+              </Button>
+            </div>
+          )}
+        </div>
+
         {isLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
@@ -720,7 +796,7 @@ export default function Shop() {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 whileHover={{ y: -5 }}
-                className={`group bg-white border border-slate-100 rounded-[2rem] overflow-hidden transition-all hover:shadow-2xl hover:shadow-slate-200 cursor-pointer ${viewMode === "list" ? "flex h-48 sm:h-auto sm:min-h-[12rem] flex-row" : "flex flex-col h-[22rem]"}`}
+                className={`group bg-white border border-slate-100 rounded-[2rem] overflow-hidden transition-all hover:shadow-2xl hover:shadow-slate-200 cursor-pointer ${viewMode === "list" ? "flex h-48 sm:h-auto sm:min-h-[12rem] flex-row" : item.item_type === "shop" ? "flex min-h-[38rem] flex-col" : "flex h-[22rem] flex-col"}`}
                 onClick={() => handleItemClick(item)}
               >
                 <div
@@ -735,10 +811,14 @@ export default function Shop() {
                     className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-110 bg-slate-100"
                     onError={(e) => {
                       const t = e.currentTarget as HTMLImageElement;
-                      t.style.display = "none";
-                      (t.nextElementSibling as HTMLElement)?.classList.remove(
-                        "hidden",
-                      );
+                      if (!t.src.includes("product-placeholder")) {
+                        t.src = productPlaceholder;
+                      } else {
+                        t.style.display = "none";
+                        (t.nextElementSibling as HTMLElement)?.classList.remove(
+                          "hidden",
+                        );
+                      }
                     }}
                   />
                   <div
@@ -847,9 +927,9 @@ export default function Shop() {
                             : "POA"}
                     </div>
                   </div>
-                  {item.raw?.description && (
-                    <p className="text-slate-400 text-xs mt-1 line-clamp-3 leading-relaxed">
-                      {item.raw.description}
+                  {getProductCardDescription(item.raw?.description) && (
+                    <p className="mt-1 min-h-[2.5rem] text-xs leading-5 text-slate-400 line-clamp-2">
+                      {getProductCardDescription(item.raw?.description)}
                     </p>
                   )}
                   {item.item_type === "shop" &&
@@ -1053,7 +1133,7 @@ export default function Shop() {
               <PaginationContent>
                 <PaginationItem>
                   <PaginationPrevious
-                    onClick={() => setCurrentPage((c) => Math.max(1, c - 1))}
+                    onClick={() => moveToPage(currentPage - 1)}
                     className={
                       currentPage === 1
                         ? "pointer-events-none opacity-50"
@@ -1072,7 +1152,7 @@ export default function Shop() {
                       <PaginationItem key={i}>
                         <PaginationLink
                           isActive={currentPage === page}
-                          onClick={() => setCurrentPage(page)}
+                          onClick={() => moveToPage(page)}
                           className="cursor-pointer"
                         >
                           {page}
@@ -1090,9 +1170,7 @@ export default function Shop() {
                 })}
                 <PaginationItem>
                   <PaginationNext
-                    onClick={() =>
-                      setCurrentPage((c) => Math.min(totalPages, c + 1))
-                    }
+                    onClick={() => moveToPage(currentPage + 1)}
                     className={
                       currentPage === totalPages
                         ? "pointer-events-none opacity-50"

@@ -48,7 +48,7 @@ const ReachMillionsSection = () => {
                   }}
                 >
                   Reach millions <br />
-                  <Box component="span" sx={{ color: 'hsl(var(--primary))' }}>on MzansiServe</Box>
+                  <Box component="span" sx={{ color: 'hsl(var(--primary))' }}>on AG8TE</Box>
                 </Typography>
                 <Typography
                   variant="h5"
@@ -83,7 +83,7 @@ const ReachMillionsSection = () => {
                     }
                   }}
                 >
-                  MzansiServe Setup
+                  AG8TE Setup
                 </Button>
                 <Button
                   variant="outlined"
@@ -139,7 +139,7 @@ const ReachMillionsSection = () => {
                     overflowWrap: 'break-word',
                   }}
                 >
-                  mzansi<Box component="span" sx={{ color: '#222222' }}>cover</Box>
+                  ag8te<Box component="span" sx={{ color: '#222222' }}>cover</Box>
                 </Typography>
                 <Typography
                   variant="body1"

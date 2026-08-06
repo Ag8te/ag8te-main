@@ -50,12 +50,12 @@ def get_auth_header(client, email, password, role):
     return {'Authorization': f"Bearer {data['data']['token']}"}
 
 def create_admin(db_session):
-    admin = User.query.filter_by(email="admin@mzansiserve.co.za", role="admin").first()
+    admin = User.query.filter_by(email="admin@ag8te.com", role="admin").first()
     if admin:
         return admin
         
     admin = User(
-        email="admin@mzansiserve.co.za", 
+        email="admin@ag8te.com", 
         role="admin", 
         is_active=True, 
         is_approved=True, 

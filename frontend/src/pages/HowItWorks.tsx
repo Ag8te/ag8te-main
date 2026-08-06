@@ -36,7 +36,7 @@ const guarantees = [
     {
         icon: ShieldCheck,
         title: "Vetted Professionals",
-        description: "Every provider on MzansiServe undergoes a rigorous multi-step verification process, including criminal background checks and professional credential validation.",
+        description: "Every provider on AG8TE undergoes a rigorous multi-step verification process, including criminal background checks and professional credential validation.",
     },
     {
         icon: Zap,
@@ -64,7 +64,7 @@ const HowItWorks = () => {
                     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
                         <span className="inline-block mb-3 text-xs font-bold uppercase tracking-[0.2em] text-primary">The Process</span>
                         <h1 className="text-3xl md:text-5xl lg:text-6xl font-semibold text-[#222222] mb-4 tracking-tight">
-                            How <span className="text-primary">MzansiServe</span> Works
+                            How <span className="text-primary">AG8TE</span> Works
                         </h1>
                         <p className="text-base md:text-lg text-slate-500 font-normal leading-relaxed">
                             We've made it easier than ever to book trusted services in South Africa.
@@ -193,7 +193,7 @@ const HowItWorks = () => {
                     >
                         <div className="absolute top-0 right-0 w-64 h-64 bg-primary/20 rounded-full blur-3xl -mr-32 -mt-32" />
                         <div className="relative z-10">
-                            <h2 className="text-3xl md:text-5xl font-semibold mb-6">Experience the Mzansi Way</h2>
+                            <h2 className="text-3xl md:text-5xl font-semibold mb-6">Experience the AG8TE Way</h2>
                             <p className="text-slate-400 text-lg mb-10 font-normal">
                                 Join thousands of users who have simplified their lives with our trusted platform.
                             </p>

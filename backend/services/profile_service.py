@@ -93,6 +93,22 @@ class ProfileService:
         user = User.query.get(user_id)
         if not user:
             return None, "USER_NOT_FOUND"
+
+        if user.role == 'client':
+            allowed_keys = ALLOWED_AFTER_APPROVAL_BY_ROLE.get('client', set())
+            disallowed = set(data.keys()) - allowed_keys
+            if disallowed:
+                return None, f"DISALLOWED_FIELDS: {', '.join(sorted(disallowed))}"
+
+            payload = ProfileService._prepare_payload(user, data, files)
+            if not payload:
+                return None, "NO_CHANGES"
+
+            updated_data = dict(user.data) if user.data else {}
+            updated_data.update(payload)
+            user.data = updated_data
+            db.session.commit()
+            return {'updated': True, 'pre_approval': False}, None
         
         if not user.is_approved and user.role not in ('client', 'admin'):
             compliance_keys = COMPLIANCE_KEYS_BY_ROLE.get(user.role, set())
@@ -315,7 +331,7 @@ class ProfileService:
       # BASIC FIELD MAPPING (UNCHANGED)
       # =========================
       for key in (
-          'phone', 'full_name', 'surname', 'next_of_kin',
+          'phone', 'full_name', 'surname', 'gender', 'next_of_kin',
           'operating_areas', 'availability',
           'driver_services', 'professional_services', 'provider_services',
           'highest_qualification', 'professional_body'

@@ -1,5 +1,5 @@
 /**
- * API Utility for MzansiServe Frontend
+ * API Utility for AG8TE Frontend
  * Wrapper around standard fetch to add base URLs and authorization headers.
  */
 
@@ -15,7 +15,7 @@ export const API_BASE_URL =
         ? defaultMobileApiBaseUrl
         : typeof window !== "undefined" && window.location?.origin
             ? window.location.origin
-            : "https://mzansiserve.co.za");
+            : "https://ag8te.com");
 
 function normalizeExternalImageUrl(path: string): string {
     try {
@@ -117,9 +117,12 @@ export async function apiFetch<T = any>(
     // Handle errors
     if (!response.ok) {
         // If unauthorized, clear token
-        if (response.status === 401) {
+        const isAuthEndpoint = /^\/?api\/auth\/(login|admin-login|google-login|verify-login-otp|resend-login-otp|forgot-password|reset-password)/.test(endpoint);
+        if (response.status === 401 && !isAuthEndpoint) {
             localStorage.removeItem("token");
             localStorage.removeItem("user");
+            localStorage.removeItem("adminToken");
+            localStorage.removeItem("adminUser");
             // Optional: force reload or redirect to login
             // window.location.href = '/login';
         }

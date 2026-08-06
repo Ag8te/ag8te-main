@@ -1,4 +1,4 @@
-# MzansiServe Detailed Project Schedule (4-Week Sprint)
+# AG8TE Detailed Project Schedule (4-Week Sprint)
 
 ## 📋 Document Overview
 This document represents a **4-week aggressive delivery roadmap** starting **Wednesday, February 18, 2026** (Tomorrow).

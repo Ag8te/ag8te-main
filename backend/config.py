@@ -8,7 +8,7 @@ class Config:
     """Base configuration"""
     # Database
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
-        'postgresql://mzansi:changeme@localhost:5432/mzansiserve'
+        'postgresql://mzansi:changeme@localhost:5432/ag8te'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {
         'pool_size': 10,
@@ -29,10 +29,10 @@ class Config:
     MAIL_USE_TLS = True
     MAIL_USERNAME = os.environ.get('SMTP_USER')
     MAIL_PASSWORD = os.environ.get('SMTP_PASSWORD')
-    DEFAULT_FROM_NAME = os.environ.get('DEFAULT_FROM_NAME') or 'Mzansi Serve'
-    DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL') or 'noreply@mzansiserve.co.za'
+    DEFAULT_FROM_NAME = os.environ.get('DEFAULT_FROM_NAME') or 'AG8TE'
+    DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL') or 'noreply@ag8te.com'
     DEFAULT_REPLY_TO_EMAIL = os.environ.get('DEFAULT_REPLY_TO_EMAIL') or DEFAULT_FROM_EMAIL
-    SUPPORT_EMAIL = os.environ.get('SUPPORT_EMAIL') or 'support@mzansiserve.co.za'
+    SUPPORT_EMAIL = os.environ.get('SUPPORT_EMAIL') or 'support@ag8te.com'
     BREVO_API_KEY = os.environ.get('BREVO_API_KEY')
     BREVO_API_URL = os.environ.get('BREVO_API_URL') or 'https://api.brevo.com/v3'
     BREVO_SENDER_EMAIL = os.environ.get('BREVO_SENDER_EMAIL') or DEFAULT_FROM_EMAIL
@@ -42,6 +42,7 @@ class Config:
     OTP_TRUSTED_DEVICE_DAYS = int(os.environ.get('OTP_TRUSTED_DEVICE_DAYS') or 7)
     OTP_SENSITIVE_EXPIRES_MINUTES = int(os.environ.get('OTP_SENSITIVE_EXPIRES_MINUTES') or 10)
     OTP_MAX_ATTEMPTS = int(os.environ.get('OTP_MAX_ATTEMPTS') or 5)
+    HUAWEI_REVIEW_EMAIL = os.environ.get('HUAWEI_REVIEW_EMAIL', '').strip().lower()
     FIREBASE_PROJECT_ID = os.environ.get('FIREBASE_PROJECT_ID')
     
     # Payments
@@ -82,9 +83,9 @@ class Config:
     FLASK_ENV = os.environ.get('FLASK_ENV') or 'development'
     FLASK_DEBUG = os.environ.get('FLASK_DEBUG') == '1'
 
-    FRONTEND_URL = os.environ.get('FRONTEND_URL') or ('https://mzansiserve.co.za' if FLASK_ENV == 'production' else 'http://localhost:8080')
-    BACKEND_URL = os.environ.get('BACKEND_URL') or ('https://mzansiserve.co.za' if FLASK_ENV == 'production' else 'http://localhost:5006')
-    MOBILE_APP_URL = os.environ.get('MOBILE_APP_URL') or 'co.za.mzansiserve.app://app'
+    FRONTEND_URL = os.environ.get('FRONTEND_URL') or ('https://ag8te.com' if FLASK_ENV == 'production' else 'http://localhost:8080')
+    BACKEND_URL = os.environ.get('BACKEND_URL') or ('https://ag8te.com' if FLASK_ENV == 'production' else 'http://localhost:5006')
+    MOBILE_APP_URL = os.environ.get('MOBILE_APP_URL') or 'co.za.ag8te.app://app'
 
     # Google Maps
     GOOGLE_MAPS_API_KEY = os.environ.get('GOOGLE_MAPS_API_KEY') or ''

@@ -41,6 +41,7 @@ const Login = () => {
   const [resending, setResending] = useState(false);
   const [isVerificationError, setIsVerificationError] = useState(false);
   const showGoogleSignIn = isGoogleOAuthConfigured();
+  const isPasswordResetRequired = error.toLowerCase().includes("reset your password");
 
   const navigateByRole = (u: User) => {
     if (requiresRegistrationPayment(u)) {
@@ -206,7 +207,7 @@ const Login = () => {
           </div>
 
           <div className="p-6">
-            <h2 className="text-[22px] font-semibold text-[#222222] mb-6">Welcome to MzansiServe</h2>
+            <h2 className="text-[22px] font-semibold text-[#222222] mb-6">Welcome to AG8TE</h2>
 
             {/* Error Banner */}
             <AnimatePresence mode="wait">
@@ -231,6 +232,14 @@ const Login = () => {
                         {resending ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
                         Resend verification email
                       </button>
+                    )}
+                    {isPasswordResetRequired && (
+                      <Link
+                        to={role ? `/forgot-password?role=${encodeURIComponent(role)}` : "/forgot-password"}
+                        className="mt-2 inline-flex text-[13px] font-bold underline hover:text-red-800 transition-colors"
+                      >
+                        Reset password
+                      </Link>
                     )}
                   </div>
                 </motion.div>
@@ -291,7 +300,7 @@ const Login = () => {
                     Password
                   </label>
                   <Link
-                    to="/forgot-password"
+                    to={role ? `/forgot-password?role=${encodeURIComponent(role)}` : "/forgot-password"}
                     className="text-[13px] font-bold text-primary hover:underline underline-offset-4"
                   >
                     Forgot password?
@@ -323,7 +332,7 @@ const Login = () => {
                 id="login-submit-button"
                 type="submit"
                 className="w-full bg-primary hover:bg-primary/95 text-white font-bold py-4 rounded-2xl shadow-xl shadow-primary/10 transition-all active:scale-[0.98] h-14 text-base mt-2"
-                disabled={loading}
+                disabled={loading || isPasswordResetRequired}
               >
                 {loading ? (
                   <Loader2 className="w-5 h-5 animate-spin mx-auto" />
@@ -335,7 +344,7 @@ const Login = () => {
 
             <div className="mt-4 flex justify-start">
               <Link
-                to="/forgot-password"
+                to={role ? `/forgot-password?role=${encodeURIComponent(role)}` : "/forgot-password"}
                 className="text-sm font-semibold text-[#222222] underline hover:text-black transition-colors"
               >
                 Forgot password?

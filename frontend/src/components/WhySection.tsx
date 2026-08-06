@@ -23,7 +23,7 @@ const FALLBACK: Feature[] = [
   { id: "1", icon: "ShieldCheck", title: "Fully Verified", description: "Every provider is vetted through, Home Affairs, CIPC, and SAPS databases." },
   { id: "2", icon: "Clock", title: "Instant Booking", description: "Book any service in seconds. No long calls, no waiting — just tap and go." },
   { id: "3", icon: "BadgeCheck", title: "Accredited Experts", description: "Professional bodies validate credentials so you don't have to do due diligence." },
-  { id: "4", icon: "Headphones", title: "Dedicated Support", description: "Our Mzansi-based support team is available to help — any time, any issue." },
+  { id: "4", icon: "Headphones", title: "Dedicated Support", description: "Our South Africa-based support team is available to help — any time, any issue." },
 ];
 
 const WhySection = () => {
@@ -57,7 +57,7 @@ const WhySection = () => {
           className="mobile-app-section-heading text-center mb-8"
         >
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold text-[#222222] mb-3">
-            Why <span className="text-primary">MzansiServe</span>?
+            Why <span className="text-primary">AG8TE</span>?
           </h2>
           <p className="text-base md:text-lg text-slate-600 font-normal max-w-xl mx-auto">
             Built by South Africans, for South Africans. We go beyond connecting — we verify, validate, and protect.

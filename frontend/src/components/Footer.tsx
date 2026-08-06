@@ -12,8 +12,8 @@ const Footer = () => {
   const [contactInfo, setContactInfo] = useState({
     address: "Johannesburg, Gauteng, South Africa",
     phone: "+27 (0) 11 000 0000",
-    email: "info@mzansiserve.co.za",
-    company_name: "MzansiServe",
+    email: "info@ag8te.com",
+    company_name: "AG8TE",
   });
   const [email, setEmail] = useState("");
   const [subscribeStatus, setSubscribeStatus] = useState("");
@@ -25,8 +25,8 @@ const Footer = () => {
           setContactInfo({
             address: res.data.footer.physical_address || "Johannesburg, Gauteng, South Africa",
             phone: res.data.footer.phone || "+27 (0) 11 000 0000",
-            email: res.data.footer.email || "info@mzansiserve.co.za",
-            company_name: res.data.footer.company_name || "MzansiServe",
+            email: res.data.footer.email || "info@ag8te.com",
+            company_name: res.data.footer.company_name || "AG8TE",
           });
         }
       })
@@ -147,7 +147,7 @@ const Footer = () => {
                 </span>
               </Link>
               <p className="text-slate-600 text-[15px] leading-relaxed max-w-sm">
-                MzansiServe is born in South Africa as a comprehensive accessible online marketing platform. Book transport, hire professionals, request services, and shop — all in one trusted platform, no matter where you are!
+                AG8TE is born in South Africa as a comprehensive accessible online marketing platform. Book transport, hire professionals, request services, and shop — all in one trusted platform, no matter where you are!
               </p>
 
               {/* Social links */}

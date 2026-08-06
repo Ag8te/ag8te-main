@@ -30,7 +30,7 @@ export default function Terms() {
                 <View style={styles.section}>
                     <Typography variant="subtitle" weight="bold" style={{ marginBottom: 8 }}>1. Acceptance of Terms</Typography>
                     <Typography variant="body" color={COLORS.gray[600]}>
-                        By accessing and using MzansiServe, you agree to comply with and be bound by these Terms and Conditions. If you do not agree to these terms, please do not use the application.
+                        By accessing and using AG8TE, you agree to comply with and be bound by these Terms and Conditions. If you do not agree to these terms, please do not use the application.
                     </Typography>
                 </View>
 
@@ -44,7 +44,7 @@ export default function Terms() {
                 <View style={styles.section}>
                     <Typography variant="subtitle" weight="bold" style={{ marginBottom: 8 }}>3. Services and Fees</Typography>
                     <Typography variant="body" color={COLORS.gray[600]}>
-                        MzansiServe facilitates connections between service providers and clients. We may charge fees for certain services. All fees are clearly stated at the time of booking or purchase.
+                        AG8TE facilitates connections between service providers and clients. We may charge fees for certain services. All fees are clearly stated at the time of booking or purchase.
                     </Typography>
                 </View>
 
@@ -58,7 +58,7 @@ export default function Terms() {
                 <View style={styles.section}>
                     <Typography variant="subtitle" weight="bold" style={{ marginBottom: 8 }}>5. Limitation of Liability</Typography>
                     <Typography variant="body" color={COLORS.gray[600]}>
-                        MzansiServe is not liable for any direct, indirect, incidental, special, or consequential damages resulting from the use or inability to use the app or for the cost of procurement of substitute services.
+                        AG8TE is not liable for any direct, indirect, incidental, special, or consequential damages resulting from the use or inability to use the app or for the cost of procurement of substitute services.
                     </Typography>
                 </View>
 

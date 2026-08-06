@@ -1,7 +1,11 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
+import { AppState, View } from "react-native";
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import apiClient from '../api/client';
+
+const IDLE_TIMEOUT_MS = 5 * 60 * 1000;
+const LAST_ACTIVITY_KEY = "lastActivityAt";
 
 export interface User {
   id: string;
@@ -33,11 +37,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const recordActivity = useCallback(async () => {
+    await AsyncStorage.setItem(LAST_ACTIVITY_KEY, String(Date.now()));
+  }, []);
+
   useEffect(() => {
     const initAuth = async () => {
       try {
         const token = await SecureStore.getItemAsync("token");
         if (token) {
+          const lastActivity = Number(await AsyncStorage.getItem(LAST_ACTIVITY_KEY) || 0);
+          if (lastActivity && Date.now() - lastActivity > IDLE_TIMEOUT_MS) {
+            await SecureStore.deleteItemAsync("token");
+            await AsyncStorage.removeItem(LAST_ACTIVITY_KEY);
+            setUser(null);
+            return;
+          }
+
           const response = await apiClient.get("/profile", {
             headers: { Authorization: `Bearer ${token}` }
           });
@@ -55,7 +71,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     initAuth();
-  }, []);
+  }, [recordActivity]);
 
   const login = useCallback(async (email: string, password: string, role: string) => {
     try {
@@ -64,6 +80,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (result.success) {
         await SecureStore.setItemAsync("token", result.data.token);
+        await recordActivity();
         setUser(result.data.user);
         return { success: true, data: result.data };
       }
@@ -80,7 +97,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                           "An error occurred during login";
       return { success: false, error: errorMessage };
     }
-  }, []);
+  }, [recordActivity]);
 
   const register = useCallback(async (data: FormData | Record<string, any>) => {
     try {
@@ -101,7 +118,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       // Use native fetch for better FormData/boundary handling in React Native
-      const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://mzansiserve.co.za';
+      const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://ag8te.com';
       const url = `${API_URL}/api${endpoint}`;
 
       const fetchOptions: RequestInit = {
@@ -117,6 +134,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (fetchResponse.ok && result.success) {
         if (result.data?.token) {
           await SecureStore.setItemAsync("token", result.data.token);
+          await recordActivity();
           setUser(result.data.user);
         }
         return { success: true, data: result.data };
@@ -138,16 +156,48 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
       return { success: false, error: errorMessage };
     }
-  }, []);
+  }, [recordActivity]);
 
   const logout = useCallback(async () => {
     await SecureStore.deleteItemAsync("token");
+    await AsyncStorage.removeItem(LAST_ACTIVITY_KEY);
     setUser(null);
   }, []);
 
+  useEffect(() => {
+    if (!user) return;
+
+    const logoutIfIdle = async () => {
+      const lastActivity = Number(await AsyncStorage.getItem(LAST_ACTIVITY_KEY) || Date.now());
+      if (Date.now() - lastActivity > IDLE_TIMEOUT_MS) {
+        await logout();
+      }
+    };
+
+    void recordActivity();
+    const intervalId = setInterval(() => {
+      void logoutIfIdle();
+    }, 15000);
+
+    const subscription = AppState.addEventListener("change", (nextState) => {
+      if (nextState === "active") {
+        void logoutIfIdle();
+      } else {
+        void AsyncStorage.setItem(LAST_ACTIVITY_KEY, String(Date.now()));
+      }
+    });
+
+    return () => {
+      clearInterval(intervalId);
+      subscription.remove();
+    };
+  }, [user, logout, recordActivity]);
+
   return (
     <AuthContext.Provider value={{ user, login, register, logout, setUser, isAuthenticated: !!user, isLoading }}>
-      {children}
+      <View style={{ flex: 1 }} onTouchStart={user ? () => { void recordActivity(); } : undefined}>
+        {children}
+      </View>
     </AuthContext.Provider>
   );
 };

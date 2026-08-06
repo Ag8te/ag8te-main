@@ -35,7 +35,7 @@ const AdsInvitation = () => {
                             </h2>
 
                             <p className="text-lg md:text-xl text-slate-400 font-normal leading-relaxed mb-10 max-w-2xl">
-                                Elevate your brand with hyper-local targeting. Join MzansiServe's exclusive network of advertisers and connect with South Africans when it matters most.
+                                Elevate your brand with hyper-local targeting. Join AG8TE's exclusive network of advertisers and connect with South Africans when it matters most.
                             </p>
 
                             <div className="flex flex-wrap items-center gap-6">
@@ -63,7 +63,7 @@ const AdsInvitation = () => {
                             <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#1a1a1a]/80 z-10" />
                             <img
                                 src="https://images.unsplash.com/photo-1557804506-669a67965ba0?fm=jpg&fit=crop&q=80&w=1000"
-                                alt="Advertising on MzansiServe"
+                                alt="Advertising on AG8TE"
                                 className="w-full h-full object-cover rounded-3xl opacity-60"
                             />
                             <div className="absolute bottom-10 left-10 right-10 z-20">

@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "reports"
 OUT.mkdir(exist_ok=True)
 
-DOCX_PATH = OUT / "MzansiServe_E-Hailing_Checklist_Gap_Report.docx"
+DOCX_PATH = OUT / "AG8TE_E-Hailing_Checklist_Gap_Report.docx"
 LOGO_PATH = ROOT / "static" / "assets" / "logo.jpeg"
 
 NAVY = "17233A"
@@ -176,7 +176,7 @@ list_style.paragraph_format.first_line_indent = Inches(-0.16)
 header = section.header
 hp = header.paragraphs[0]
 hp.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-add_run(hp, "MZANSISERVE  |  E-HAILING COMPLIANCE GAP REPORT", bold=True, color=MID_GRAY, size=7.5)
+add_run(hp, "AG8TE  |  E-HAILING COMPLIANCE GAP REPORT", bold=True, color=MID_GRAY, size=7.5)
 
 # Footer with dynamic page number
 footer = section.footer
@@ -204,7 +204,7 @@ if LOGO_PATH.exists():
 p = doc.add_paragraph()
 p.alignment = WD_ALIGN_PARAGRAPH.CENTER
 p.paragraph_format.space_after = Pt(4)
-add_run(p, "MZansiServe E-Hailing Platform", bold=True, color=NAVY, size=22)
+add_run(p, "AG8TE E-Hailing Platform", bold=True, color=NAVY, size=22)
 
 p = doc.add_paragraph()
 p.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -239,7 +239,7 @@ p = doc.add_paragraph()
 p.paragraph_format.space_after = Pt(7)
 add_run(
     p,
-    "MzansiServe already contains several important e-hailing capabilities, including ride booking, "
+    "AG8TE already contains several important e-hailing capabilities, including ride booking, "
     "scheduled trips, live driver location sharing, in-app messaging, ratings, payments, payouts, "
     "driver document collection, and administrative user management. However, the assessment identified "
     "several software, operational, and regulatory gaps that should be closed before a formal inspection "
@@ -345,15 +345,15 @@ p.paragraph_format.space_after = Pt(4)
 add_run(
     p,
     "This report compares the supplied checklist with functionality and evidence observed in the current "
-    "MzansiServe project. Operational activities and documents that are maintained outside the source-code "
+    "AG8TE project. Operational activities and documents that are maintained outside the source-code "
     "repository must be confirmed separately. This report supports inspection preparation and does not "
     "replace advice from the relevant regulator, legal adviser, or transport-compliance professional.",
     color=MID_GRAY,
     size=8.5,
 )
 
-doc.core_properties.title = "MzansiServe E-Hailing Checklist Gap Assessment"
+doc.core_properties.title = "AG8TE E-Hailing Checklist Gap Assessment"
 doc.core_properties.subject = "Inspection readiness and compliance gap report"
-doc.core_properties.author = "MzansiServe"
+doc.core_properties.author = "AG8TE"
 doc.save(DOCX_PATH)
 print(DOCX_PATH)

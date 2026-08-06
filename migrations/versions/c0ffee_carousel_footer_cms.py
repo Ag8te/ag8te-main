@@ -40,7 +40,7 @@ def upgrade():
         sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
         sa.PrimaryKeyConstraint('id')
     )
-    op.execute("INSERT INTO footer_content (id, company_name, created_at, updated_at) VALUES (1, 'MzansiServe', NOW(), NOW()) ON CONFLICT (id) DO NOTHING")
+    op.execute("INSERT INTO footer_content (id, company_name, created_at, updated_at) VALUES (1, 'AG8TE', NOW(), NOW()) ON CONFLICT (id) DO NOTHING")
 
 
 def downgrade():

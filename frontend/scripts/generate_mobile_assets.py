@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate Android and iOS app icons/splash assets from the MzansiServe logo."""
+"""Generate Android and iOS app icons/splash assets from the AG8TE logo."""
 
 from __future__ import annotations
 

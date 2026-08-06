@@ -4,7 +4,7 @@ import App from "./App.tsx";
 import "./index.css";
 import { googleOAuthClientId, isGoogleOAuthConfigured, isNativeApp } from "@/lib/native";
 
-const STALE_BUILD_RELOAD_KEY = "mzansiserve-stale-build-reload";
+const STALE_BUILD_RELOAD_KEY = "ag8te-stale-build-reload";
 
 // A user can keep an older app shell open while a deployment replaces its
 // hashed JavaScript chunks. Vite emits this event when that shell requests a

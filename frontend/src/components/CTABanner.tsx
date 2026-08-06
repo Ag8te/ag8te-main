@@ -27,7 +27,7 @@ const CTABanner = () => {
             <motion.p
               className="hidden sm:block text-lg md:text-xl text-slate-600 font-normal leading-relaxed mb-10"
             >
-              Join thousands of South Africans already using MzansiServe.{" "}
+              Join thousands of South Africans already using AG8TE.{" "}
               <br className="hidden md:block" />
               Sign up today and get access to verified services across the country.
             </motion.p>

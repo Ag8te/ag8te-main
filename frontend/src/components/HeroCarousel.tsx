@@ -79,7 +79,7 @@ const fallbackSlides: SlideData[] = [
     order: 4,
     badge: "Shop",
     title: "Buy & Sell\nLocally with Ease",
-    subtitle: "Discover products from local sellers. A marketplace built for Mzansi.",
+    subtitle: "Discover products from local sellers. A marketplace built for South Africa.",
     ctaColor: "bg-sa-red shadow-lg",
     learnMore: "/shop",
   },
@@ -113,7 +113,7 @@ const HeroCarousel = () => {
             return {
               ...item,
               badge: item.badge || "Highlight",
-              title: item.title || "MzansiServe\nMarketplace",
+              title: item.title || "AG8TE\nMarketplace",
               subtitle: item.subtitle || "Connecting South Africa to reliable services and products.",
               ctaColor: item.cta_color || defaultColor,
               learnMore: item.cta_link || "/"

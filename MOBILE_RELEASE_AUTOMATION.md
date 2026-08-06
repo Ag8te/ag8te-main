@@ -29,7 +29,7 @@ Add these environment secrets.
 
 | Secret | Value |
 | --- | --- |
-| `ANDROID_KEYSTORE_BASE64` | Base64-encoded MzansiServe release keystore |
+| `ANDROID_KEYSTORE_BASE64` | Base64-encoded AG8TE release keystore |
 | `ANDROID_KEYSTORE_PASSWORD` | Release keystore password |
 | `ANDROID_KEY_ALIAS` | Release key alias |
 | `ANDROID_KEY_PASSWORD` | Release key password |
@@ -37,7 +37,7 @@ Add these environment secrets.
 Encode the local keystore on macOS:
 
 ```bash
-base64 -i /path/to/mzansiserve-release.keystore | pbcopy
+base64 -i /path/to/ag8te-release.keystore | pbcopy
 ```
 
 ### Google Play
@@ -46,7 +46,7 @@ base64 -i /path/to/mzansiserve-release.keystore | pbcopy
 | --- | --- |
 | `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` | Complete Google Play service-account JSON |
 
-The service account must have release access to `co.za.mzansiserve.app`.
+The service account must have release access to `co.za.ag8te.app`.
 Google Play API access must be enabled and the internal testing track must
 exist.
 
@@ -81,8 +81,8 @@ Encode Apple files on macOS:
 
 ```bash
 base64 -i AuthKey_ABC123.p8 | pbcopy
-base64 -i MzansiServe_Distribution.p12 | pbcopy
-base64 -i MzansiServe_AppStore.mobileprovision | pbcopy
+base64 -i AG8TE_Distribution.p12 | pbcopy
+base64 -i AG8TE_AppStore.mobileprovision | pbcopy
 ```
 
 ## Versioning

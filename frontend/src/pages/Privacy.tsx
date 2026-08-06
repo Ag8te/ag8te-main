@@ -11,7 +11,7 @@ export const PRIVACY_SECTIONS = [
     {
         id: "introduction",
         title: "Introduction",
-        content: `MzansiServe (Pty) Ltd ("MzansiServe", "we", "us", or "our") is committed to protecting your personal information in accordance with the Protection of Personal Information Act, 4 of 2013 ("POPIA") and all other applicable South African data protection laws.
+        content: `AG8TE (Pty) Ltd ("AG8TE", "we", "us", or "our") is committed to protecting your personal information in accordance with the Protection of Personal Information Act, 4 of 2013 ("POPIA") and all other applicable South African data protection laws.
 
     This Privacy Policy explains what personal information we collect, how we use it, who we share it with, and what rights you have regarding your information. Please read it carefully alongside our Terms of Service and Cookie Policy.`,
     },
@@ -49,7 +49,7 @@ export const PRIVACY_SECTIONS = [
         title: "How We Use Your Information",
         content: `We use your personal information to:
 
-    • Create and manage your MzansiServe account.
+    • Create and manage your AG8TE account.
     • Facilitate and confirm service bookings between Clients and Service Providers.
     • Process payments and issue invoices or receipts.
     • Verify Service Provider credentials and qualifications.
@@ -72,7 +72,7 @@ export const PRIVACY_SECTIONS = [
 
     Technology Partners: Cloud hosting, analytics, and support tool providers who access data only as necessary to deliver their services and are bound by data processing agreements.
 
-    Legal Authorities: Where required by South African law, court order, or to protect the rights, property, or safety of MzansiServe, its users, or the public.`,
+    Legal Authorities: Where required by South African law, court order, or to protect the rights, property, or safety of AG8TE, its users, or the public.`,
     },
     {
         id: "retention",
@@ -96,7 +96,7 @@ export const PRIVACY_SECTIONS = [
     • Withdrawal of Consent: Withdraw consent for marketing or non-essential processing at any time.
     • Complaints: Lodge a complaint with the Information Regulator of South Africa at inforeg.org.za.
 
-    To exercise any of these rights, contact our Information Officer at: privacy@mzansiserve.co.za`,
+    To exercise any of these rights, contact our Information Officer at: privacy@ag8te.com`,
     },
     {
         id: "security",
@@ -125,8 +125,8 @@ export const PRIVACY_SECTIONS = [
         title: "Contact & Information Officer",
         content: `If you have any questions or concerns about this Privacy Policy or how we handle your personal information, please contact our Information Officer:
 
-    Information Officer, MzansiServe (Pty) Ltd
-    Email: privacy@mzansiserve.co.za
+    Information Officer, AG8TE (Pty) Ltd
+    Email: privacy@ag8te.com
     Phone: +27 (0) 11 000 0000
     Address: Johannesburg, Gauteng, South Africa
 

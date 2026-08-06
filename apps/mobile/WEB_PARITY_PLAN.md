@@ -1,4 +1,4 @@
-# MzansiServe Mobile Web-Parity Plan
+# AG8TE Mobile Web-Parity Plan
 
 This plan aligns the existing Expo mobile app in `apps/mobile` with the current web feature set.
 
@@ -8,7 +8,7 @@ Admin is excluded from mobile by design and remains web-only.
 - The repository already contains a mobile app at `apps/mobile`.
 - The web app remains the reference implementation for feature scope.
 - Several core mobile flows already exist, but parity is incomplete.
-- The older Flutter proposal in `backend/mobile_apps/mzansi-serve-flutter-app.md` is useful as historical scope context, but the active mobile implementation in this repo is Expo React Native.
+- The older Flutter proposal in `backend/mobile_apps/ag8te-flutter-app.md` is useful as historical scope context, but the active mobile implementation in this repo is Expo React Native.
 
 ## Scope Included on Mobile
 - `client`

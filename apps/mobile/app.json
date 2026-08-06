@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "mobile",
-    "slug": "mobile",
+    "name": "AG8TE",
+    "slug": "ag8te",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -13,10 +13,10 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.mzansiserve.mobile"
+      "bundleIdentifier": "co.za.ag8te.app"
     },
     "android": {
-      "package": "com.mzansiserve.mobile",
+      "package": "co.za.ag8te.app",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -35,6 +35,6 @@
       "expo-font",
       "expo-sharing"
     ],
-    "scheme": "mzansiserve-mobile"
+    "scheme": "co.za.ag8te.app"
   }
 }

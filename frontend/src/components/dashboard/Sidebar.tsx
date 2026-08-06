@@ -101,7 +101,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               ease: "easeInOut"
             }}
           >
-            <Typography variant="h6" sx={{ fontWeight: 800, lineHeight: 1 }}>MzansiServe</Typography>
+            <Typography variant="h6" sx={{ fontWeight: 800, lineHeight: 1 }}>AG8TE</Typography>
           </motion.div>
           <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, letterSpacing: 0.5 }}>
             {role.toUpperCase()} CONSOLE
