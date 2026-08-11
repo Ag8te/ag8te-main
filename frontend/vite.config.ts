@@ -62,9 +62,13 @@ export default defineConfig(async ({ mode }) => {
     server: {
       host: "::",
       port: 8080,
-      allowedHosts: ["localhost", "ag8te.com", "www.ag8te.com", "ag8te.co.za", "www.ag8te.co.za"],
+      allowedHosts: ["localhost", "ag8te.com", "www.ag8te.com", "ag8te.co.za", "www.ag8te.co.za", "frontend"],
       hmr: {
         overlay: false,
+        clientPort: 80,
+        host: "localhost",
+        protocol: "ws",
+        path: "/__vite_hmr",
       },
     },
     plugins: [...plugins /* mode === "development" && componentTagger() */].filter(Boolean),
