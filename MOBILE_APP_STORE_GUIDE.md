@@ -117,6 +117,7 @@ Notes:
 
 - `VITE_GOOGLE_CLIENT_ID` is still useful for the web version
 - `VITE_GOOGLE_MAPS_API_KEY` is mandatory in the `mobile-testing` GitHub environment; the release workflow now fails before building if it is absent
+- keep `VITE_GOOGLE_MAPS_API_KEY` separate from the backend-only `GOOGLE_MAPS_API_KEY`: Vite embeds its value in the web/app bundle, so restrict the client key to the required browser APIs and allowed origins, and restrict the backend key to the Geocoding API and production server
 - native builds currently hide Google sign-in
 - the store URL variables are for the homepage app-promo buttons once the listings are live
 
