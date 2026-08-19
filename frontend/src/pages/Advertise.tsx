@@ -81,7 +81,7 @@ const Advertise = () => {
                                 <span className="text-sm font-bold uppercase tracking-wider">Advertise with us</span>
                             </div>
                             <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-[#1a1a1a] leading-tight mb-8">
-                                Partner with <span className="text-primary italic">AG8TE's</span> Best
+                                Partner with <span className="text-primary italic">AG8TE</span>
                             </h1>
                             <p className="text-lg text-slate-600 leading-relaxed mb-10">
                                 Put your business in front of local customers. Our advertising solutions are designed to help you reach the right audience at the right time.

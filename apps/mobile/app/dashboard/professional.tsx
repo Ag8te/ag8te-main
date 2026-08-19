@@ -52,7 +52,7 @@ export default function ProfessionalDashboard() {
           <Typography variant="h2" weight="bold">Pro Console</Typography>
           <View style={styles.statusBadge}>
             <Award size={14} color={COLORS.primary} style={{ marginRight: 4 }} />
-            <Typography variant="caption" color={COLORS.primary} weight="bold">TOP RATED</Typography>
+            <Typography variant="caption" color={COLORS.primary} weight="bold">PROFESSIONAL</Typography>
           </View>
         </View>
         <TouchableOpacity style={styles.iconButton}>

@@ -182,7 +182,7 @@ const ServiceSections = () => {
                 icon: Car,
                 title: "Sedan",
                 description:
-                  "Our most popular ride. Comfortable everyday travel for up to 4 passengers.",
+                  "A standard ride for comfortable everyday travel with up to 4 passengers.",
               },
               {
                 icon: Star,
@@ -200,7 +200,7 @@ const ServiceSections = () => {
                 icon: Users,
                 title: "Minibus",
                 description:
-                  "Best for small group travel. Comfortable 9-seater transport.",
+                  "Comfortable 9-seater transport for small groups.",
               },
               {
                 icon: Users,

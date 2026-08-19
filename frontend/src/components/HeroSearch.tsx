@@ -140,7 +140,7 @@ const HeroSearch = () => {
         <motion.div
           className="mt-10 flex flex-wrap justify-center gap-3"
         >
-          <span className="text-sm font-bold text-[#717171] py-2">Popular:</span>
+          <span className="text-sm font-bold text-[#717171] py-2">Browse:</span>
           {["Plumber", "Driver", "Web Designer", "Electrician", "House Cleaner"].map((tag) => (
             <button
               key={tag}

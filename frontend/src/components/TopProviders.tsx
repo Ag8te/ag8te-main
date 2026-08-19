@@ -3,7 +3,7 @@ import { Star, ShieldCheck, MapPin, ChevronRight, User as UserIcon } from "lucid
 import { Button } from "./ui/button";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { apiFetch, API_BASE_URL, getImageUrl } from "@/lib/api";
+import { apiFetch, getImageUrl } from "@/lib/api";
 
 interface Provider {
     id: string;
@@ -18,18 +18,6 @@ interface Provider {
     role?: string;
 }
 
-const FALLBACK_PROVIDERS = [
-    {
-        name: "AG8TE Professional",
-        role_display: "Verified Expert",
-        location: "Gauteng, ZA",
-        avg_rating: 5.0,
-        review_count: 10,
-        profile_image_url: null,
-        is_approved: true,
-    },
-];
-
 export const TopProviders = () => {
     const navigate = useNavigate();
     const [providers, setProviders] = useState<Provider[]>([]);
@@ -42,8 +30,6 @@ export const TopProviders = () => {
             })
             .catch(err => {
                 console.error("Failed to fetch top providers:", err);
-                // @ts-ignore
-                setProviders(FALLBACK_PROVIDERS);
             })
             .finally(() => setLoading(false));
     }, []);
@@ -69,17 +55,17 @@ export const TopProviders = () => {
                 {/* Header */}
                 <div className="mb-3 sm:hidden">
                     <h2 className="text-base font-bold text-[#222222]">
-                        AG8TE's <span className="text-primary">Top Rated</span>
+                        <span className="text-primary">Verified Providers</span>
                     </h2>
                 </div>
 
                 <div className="hidden sm:flex flex-col md:flex-row md:items-end justify-between mb-6 gap-6">
                     <div className="max-w-2xl">
                         <h2 className="text-3xl md:text-4xl font-semibold text-[#222222] mb-3">
-                            AG8TE's <span className="text-primary">Top Rated</span>
+                            <span className="text-primary">Verified Providers</span>
                         </h2>
                         <p className="text-lg md:text-xl text-slate-600 font-normal">
-                            Meet the highest-rated professionals and service providers on our platform.
+                            Browse professionals and service providers with customer ratings.
                         </p>
                     </div>
                     <Button

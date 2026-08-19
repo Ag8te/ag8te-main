@@ -116,6 +116,7 @@ VITE_HUAWEI_APPGALLERY_URL=
 Notes:
 
 - `VITE_GOOGLE_CLIENT_ID` is still useful for the web version
+- `VITE_GOOGLE_MAPS_API_KEY` is mandatory in the `mobile-testing` GitHub environment; the release workflow now fails before building if it is absent
 - native builds currently hide Google sign-in
 - the store URL variables are for the homepage app-promo buttons once the listings are live
 
@@ -161,6 +162,18 @@ The signed Google Play output is copied to:
 
 ```bash
 frontend/store-builds/google-play/
+```
+
+The Huawei build must be produced separately so it includes Huawei Location Kit while retaining the existing AppGallery package name `co.za.ag8te.app`:
+
+```bash
+npm run huawei:bundle:release
+```
+
+The signed AppGallery output is copied to:
+
+```bash
+frontend/store-builds/huawei/
 ```
 
 Google Play currently requires new apps and updates to target Android 15 / API 35 or higher. This project is configured with `targetSdkVersion = 36`.

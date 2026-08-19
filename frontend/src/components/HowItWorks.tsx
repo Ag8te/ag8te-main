@@ -16,8 +16,8 @@ const steps = [
     },
     {
         number: "03",
-        title: "Enjoy AG8TE Quality",
-        description: "Relax while our verified providers handle the rest with top-tier service.",
+        title: "Track Your Booking",
+        description: "Follow the booking while the selected provider completes the requested service.",
         icon: "😊",
     },
 ];
