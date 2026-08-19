@@ -258,30 +258,30 @@ www.ag8te.com"""
         return email
 
     @staticmethod
-    def send_client_registration_profile_link(user, token):
-        """Send client registration confirmation link that opens profile completion."""
+    def send_client_registration_verification(user, token):
+        """Send the email-verification link for a completed client registration."""
         frontend_url = get_public_frontend_base_url()
-        confirmation_url = f"{frontend_url}/verify-email?token={token}&next=/profile"
+        confirmation_url = f"{frontend_url}/verify-email?token={token}"
         first_name = _first_name(user)
         subject = "Confirm Your AG8TE Registration"
         body = f"""Hi {first_name},
 
 Welcome to AG8TE.
 
-Please confirm your registration by clicking the link below. After confirmation, you will be taken to your client profile page where you can complete your personal information if you want to.
+Please confirm your registration by clicking the link below. After confirmation, you can sign in to your client account.
 
 Confirm Registration: {confirmation_url}
 
-Your personal information is optional for client accounts, and client accounts do not need to upload verification documents.
+Your personal information and verification documents were submitted with your registration.
 
 Kind regards,
 AG8TE Team"""
         body_html = f"""<html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; text-align: left;">
 <p>Hi {first_name},</p>
 <p>Welcome to AG8TE.</p>
-<p>Please confirm your registration by clicking the button below. After confirmation, you will be taken to your client profile page where you can complete your personal information if you want to.</p>
+<p>Please confirm your registration by clicking the button below. After confirmation, you can sign in to your client account.</p>
 <p><a href="{confirmation_url}" style="display:inline-block;background:#2563eb;color:#fff;padding:10px 20px;text-decoration:none;border-radius:6px;">Confirm Registration</a></p>
-<p>Your personal information is optional for client accounts, and client accounts do not need to upload verification documents.</p>
+<p>Your personal information and verification documents were submitted with your registration.</p>
 <p>Kind regards,<br>AG8TE Team</p>
 </body></html>"""
         email = EmailService.queue_email(

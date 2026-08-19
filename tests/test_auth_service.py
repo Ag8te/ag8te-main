@@ -11,8 +11,8 @@ def test_register_user_success(db_session):
     full_name = "Test User"
     
     with patch('backend.services.wallet_service.WalletService.get_or_create_wallet'), \
-         patch('backend.utils.auth.create_email_verification_token', return_value="token123"), \
-         patch('backend.services.email_service.EmailService.send_verification_email'):
+         patch('backend.services.auth_service.create_email_verification_token', return_value="token123"), \
+         patch('backend.services.auth_service.EmailService.send_client_registration_verification') as send_verification:
         
         user, error = AuthService.register_user(email, password, role, full_name)
         
@@ -22,6 +22,58 @@ def test_register_user_success(db_session):
         assert user.role == role
         assert user.check_password(password)
         assert user.data['full_name'] == full_name
+        send_verification.assert_called_once_with(user, "token123")
+
+
+def test_client_registration_email_does_not_defer_details_to_profile(db_session):
+    user = User(email="client-verification@example.com", role="client", data={"full_name": "Client User"})
+    user.set_password("password123")
+    db_session.session.add(user)
+    db_session.session.commit()
+
+    with patch('backend.services.email_service.EmailService.send_email'):
+        EmailService.send_client_registration_verification(user, "token123")
+
+    queued_email = EmailQueue.query.filter_by(recipient=user.email).order_by(EmailQueue.created_at.desc()).first()
+    assert "/verify-email?token=token123" in queued_email.body
+    assert "next=/profile" not in queued_email.body
+    assert "complete your personal information" not in queued_email.body
+
+
+def test_client_registration_persists_required_personal_details_and_documents(db_session):
+    registration_data = {
+        "email": "complete-client@example.com",
+        "password": "password123",
+        "role": "client",
+        "full_name": "Complete",
+        "surname": "Client",
+        "phone": "+27820000000",
+        "gender": "female",
+        "nationality": "South Africa",
+        "id_number": "9001010000080",
+        "next_of_kin": {
+            "full_name": "Kin Person",
+            "contact_number": "+27821111111",
+            "contact_email": "kin@example.com",
+        },
+    }
+    files = {
+        "profile_photo": MagicMock(name="profile_photo"),
+        "id_document": MagicMock(name="id_document"),
+    }
+
+    with patch('backend.services.auth_service.WalletService.get_or_create_wallet'), \
+         patch('backend.services.auth_service.AuthService._send_registration_email'), \
+         patch.object(AuthService, 'handle_file_upload', side_effect=lambda _file, prefix, _folder: f"/uploads/{prefix}.jpg"):
+        user, error = AuthService.register_with_payment_logic(registration_data, files)
+
+    assert error is None
+    assert user.nationality == "South Africa"
+    assert user.data["id_number"] == "9001010000080"
+    assert user.data["sa_id"] == "9001010000080"
+    assert user.data["next_of_kin"]["full_name"] == "Kin Person"
+    assert user.file_urls == ["/uploads/id.jpg"]
+    assert user.profile_image_url == "/uploads/profile.jpg"
 
 
 def test_non_client_registration_sends_next_steps_email(db_session):

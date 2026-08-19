@@ -23,7 +23,7 @@ class AuthService:
     def _send_registration_email(user):
         if user.role == 'client':
             token = create_email_verification_token(user.id)
-            EmailService.send_client_registration_profile_link(user, token)
+            EmailService.send_client_registration_verification(user, token)
         else:
             EmailService.send_registration_confirmation(user)
 
@@ -174,35 +174,26 @@ class AuthService:
             is_active=True,
             email_verified=role != 'client',
             tracking_number=generate_tracking_number(),
-            nationality=None if is_client else registration_data.get('nationality'),
+            nationality=registration_data.get('nationality'),
             agent_id=agent_uuid,
         )
         user.set_password(password)
         
         # Build data JSONB
-        if is_client:
-            user_data = {
-                'full_name': registration_data.get('full_name') or '',
-                'surname': registration_data.get('surname') or '',
-                'phone': registration_data.get('phone') or '',
-                'gender': registration_data.get('gender') or '',
-                'next_of_kin': registration_data.get('next_of_kin') or {},
-            }
-        else:
-            user_data = {
-                'full_name': registration_data.get('full_name'),
-                'surname': registration_data.get('surname'),
-                'phone': registration_data.get('phone'),
-                'gender': registration_data.get('gender'),
-                'id_number': registration_data.get('id_number'),
-                'next_of_kin': registration_data.get('next_of_kin'),
-                'sa_citizen': registration_data.get('nationality') == 'South Africa'
-            }
+        user_data = {
+            'full_name': registration_data.get('full_name'),
+            'surname': registration_data.get('surname'),
+            'phone': registration_data.get('phone'),
+            'gender': registration_data.get('gender'),
+            'id_number': registration_data.get('id_number'),
+            'next_of_kin': registration_data.get('next_of_kin'),
+            'sa_citizen': registration_data.get('nationality') == 'South Africa'
+        }
 
-            if user_data['sa_citizen']:
-                user_data['sa_id'] = registration_data.get('id_number')
-            else:
-                user_data['passport_number'] = registration_data.get('id_number')
+        if user_data['sa_citizen']:
+            user_data['sa_id'] = registration_data.get('id_number')
+        else:
+            user_data['passport_number'] = registration_data.get('id_number')
 
         def _normalize_driver_services(reg_data):
             raw_driver_services = reg_data.get('driver_services') or []
@@ -283,7 +274,7 @@ class AuthService:
             os.makedirs(upload_folder)
 
         # Map files to user data
-        if role != 'client' and 'id_document' in files:
+        if 'id_document' in files:
             url = cls.handle_file_upload(files['id_document'], 'id', upload_folder)
             user.file_urls = [url] if url else []
         

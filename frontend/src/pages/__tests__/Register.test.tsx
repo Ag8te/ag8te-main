@@ -106,4 +106,17 @@ describe("Register Component", () => {
       "Search country/region...",
     );
   });
+
+  it("shows personal and verification fields in client registration", () => {
+    renderRegister();
+    fireEvent.change(screen.getByLabelText(/Register as/i), { target: { value: "client" } });
+
+    expect(screen.getByPlaceholderText("Thabo")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Mokoena")).toBeInTheDocument();
+    expect(screen.getByText(/Nationality \(country\/region\)/i)).toBeInTheDocument();
+    expect(screen.getByText("Next of Kin")).toBeInTheDocument();
+    expect(screen.getByText("Verification Documents")).toBeInTheDocument();
+    expect(screen.getByText("Profile Photo")).toBeInTheDocument();
+    expect(screen.getByText("Certified ID Document / Passport")).toBeInTheDocument();
+  });
 });
