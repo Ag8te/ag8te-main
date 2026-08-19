@@ -280,6 +280,7 @@ Current Huawei readiness notes:
 - Huawei builds use Huawei Location Kit and exclude Google Play Services Location
 - Google Play builds keep the standard Google-backed Capacitor geolocation implementation
 - map screens still use Google Maps in the web UI, so a real Huawei device test is required before submission
+- registration labels searchable nationality values as countries/regions in both maintained app interfaces; preserve this wording in future translations and screenshots
 - AppGallery requires listing information such as app name, package name, category, screenshots, release countries/regions, and privacy policy URL
 
 Official Huawei references:
@@ -295,6 +296,7 @@ Before submitting to stores, finish these:
 - test the branded icons and splash screens on real Android and iPhone hardware
 - set your real release versioning in Android and iOS projects
 - test login, payments, maps, uploads, and live driver tracking on real devices
+- confirm every locale uses "country/region" rather than "country" for searchable geopolitical selectors
 - define privacy/data safety answers for each store
 - add store screenshots and marketing copy
 - confirm Yoco browser redirect flows behave correctly inside the native system browser handoff

@@ -339,7 +339,7 @@ export default function Register() {
                             style={styles.pickerTrigger} 
                             onPress={() => setShowCountryPicker(true)}
                         >
-                            <Typography variant="caption" color={COLORS.gray[600]} style={{ marginBottom: 4 }}>Nationality</Typography>
+                            <Typography variant="caption" color={COLORS.gray[600]} style={{ marginBottom: 4 }}>Nationality (country/region)</Typography>
                             <View style={styles.pickerValue}>
                                 <Globe color={COLORS.gray[400]} size={20} />
                                 <Typography variant="body" style={{ flex: 1, marginLeft: 10 }}>{nationality}</Typography>
@@ -572,7 +572,7 @@ export default function Register() {
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
                         <View style={styles.modalHeader}>
-                            <Typography variant="h2">Select Nationality</Typography>
+                            <Typography variant="h2">Select country/region</Typography>
                             <TouchableOpacity onPress={() => setShowCountryPicker(false)}>
                                 <X color={COLORS.gray[800]} size={24} />
                             </TouchableOpacity>
@@ -581,7 +581,8 @@ export default function Register() {
                         <View style={styles.searchInputContainer}>
                             <Search color={COLORS.gray[400]} size={20} />
                             <RNTextInput
-                                placeholder="Search countries..."
+                                placeholder="Search country/region..."
+                                accessibilityLabel="Search country/region"
                                 style={styles.searchInput}
                                 value={countrySearch}
                                 onChangeText={setCountrySearch}

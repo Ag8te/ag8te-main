@@ -265,7 +265,7 @@ const carOptions = [
   { type: "Bakkie", seats: [ 1] },
 ];
 
-// ─── Country List ─────────────────────────────────────────────────────────────
+// ─── Country/Region List ──────────────────────────────────────────────────────
 const countries = [
   "South Africa", "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua & Deps", "Argentina",
   "Armenia", "Australia", "Austria", "Azerbaijan", "Bahamas", "Bahrain", "Bangladesh", "Barbados", "Belarus",
@@ -1050,7 +1050,7 @@ const removeCarImage = (index: number) => {
                     </div>
 
                     <div className="space-y-1">
-                      <label className={fieldLabel}>Nationality<Req /></label>
+                      <label className={fieldLabel}>Nationality (country/region)<Req /></label>
                       <Autocomplete
                         autoHighlight={false}
                         openOnFocus={false}
@@ -1063,7 +1063,8 @@ const removeCarImage = (index: number) => {
                           <div ref={params.InputProps.ref} className="w-full">
                             <input
                               {...params.inputProps}
-                              placeholder="Search country..."
+                              placeholder="Search country/region..."
+                              aria-label="Search country/region"
                               className={ic("nationality")}
                               autoComplete="new-password"
                             />

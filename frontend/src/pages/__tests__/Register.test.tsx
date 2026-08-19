@@ -95,4 +95,15 @@ describe("Register Component", () => {
     fireEvent.change(passwordInput, { target: { value: "StrongPassword123!" } });
     expect(screen.getByText(/Excellent/i)).toBeInTheDocument();
   });
+
+  it("uses country/region wording for nationality selection", () => {
+    renderRegister();
+    fireEvent.change(screen.getByLabelText(/Register as/i), { target: { value: "driver" } });
+
+    expect(screen.getByText(/Nationality \(country\/region\)/i)).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: /Search country\/region/i })).toHaveAttribute(
+      "placeholder",
+      "Search country/region...",
+    );
+  });
 });
