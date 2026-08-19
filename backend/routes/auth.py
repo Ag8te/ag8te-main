@@ -197,14 +197,15 @@ def login():
                 'message': 'Registration payment is still pending. Redirecting to Yoco.'
             }, 'Registration payment required.', 200)
 
+        google_play_review_email = (current_app.config.get('GOOGLE_PLAY_REVIEW_EMAIL') or '').strip().lower()
         huawei_review_email = (current_app.config.get('HUAWEI_REVIEW_EMAIL') or '').strip().lower()
         if (
-            huawei_review_email
+            (google_play_review_email or huawei_review_email)
             and user.role == 'client'
-            and str(user.email).strip().lower() == huawei_review_email
+            and str(user.email).strip().lower() in {google_play_review_email, huawei_review_email}
         ):
             access_token = create_access_token(identity=str(user.id))
-            logger.info("login: Huawei reviewer OTP bypass user_id=%s", user.id)
+            logger.info("login: app reviewer OTP bypass user_id=%s", user.id)
             return success_response({
                 'user': user.to_dict(),
                 'token': access_token,
