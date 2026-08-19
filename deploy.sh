@@ -63,6 +63,7 @@ while [[ $# -gt 0 ]]; do
     echo ""
     echo "Environment:"
     echo "  DEPLOY_BRANCH   Override the branch to deploy"
+    echo "  DEPLOY_ENV_FILE Path to the private environment file to upload (default: .env)"
     echo "  MOBILE_RELEASE_ON_DEPLOY=0  Disable mobile store testing trigger"
     echo "  GH_TOKEN        GitHub token with Actions: write permission when gh CLI is unavailable"
     exit 0
@@ -227,20 +228,25 @@ if [[ "$ACTION" == "setup" ]]; then
 fi
 
 # ─── Upload environment file ─────────────────────────────────────────────────
-ENV_FILE="$LOCAL_DIR/.env"
-if [[ -f "$LOCAL_DIR/.env.production" ]]; then
-  info "Using .env.production for deployment."
-  ENV_FILE="$LOCAL_DIR/.env.production"
-fi
+ENV_FILE="${DEPLOY_ENV_FILE:-$LOCAL_DIR/.env}"
+UPLOAD_ENV="0"
 
-info "Uploading $(basename "$ENV_FILE") to VM (as .env)…"
-remote "sudo mkdir -p $REMOTE_DIR && sudo chown \$(whoami):\$(whoami) $REMOTE_DIR" 2>/dev/null || true
-gcloud compute scp \
-  --zone "$ZONE" \
-  --project "$PROJECT" \
-  "$ENV_FILE" \
-  "${INSTANCE}:${REMOTE_DIR}/.env"
-success ".env uploaded."
+if [[ -f "$ENV_FILE" ]]; then
+  info "Uploading $(basename "$ENV_FILE") to VM (as .env)…"
+  remote "sudo mkdir -p $REMOTE_DIR && sudo chown \$(whoami):\$(whoami) $REMOTE_DIR" 2>/dev/null || true
+  gcloud compute scp \
+    --zone "$ZONE" \
+    --project "$PROJECT" \
+    "$ENV_FILE" \
+    "${INSTANCE}:${REMOTE_DIR}/.env"
+  UPLOAD_ENV="1"
+  success ".env uploaded."
+elif [[ "$ACTION" == "env" ]]; then
+  error "Environment file not found: $ENV_FILE"
+else
+  warn "No local environment file found; preserving the VM's existing .env."
+  remote "test -f $REMOTE_DIR/.env" || error "The VM does not have $REMOTE_DIR/.env."
+fi
 
 if [[ "$ACTION" == "env" ]]; then
   info "Recreating containers to pick up new .env…"
@@ -284,13 +290,16 @@ remote "
 success "Code synced via git (branch: $BRANCH)."
 
 info "Step 2/5 — Ensuring .env is in place…"
-# Re-upload .env after git pull (git won't touch it because it's in .gitignore,
-# but let's be safe in case the first clone didn't have it)
-gcloud compute scp \
-  --zone "$ZONE" \
-  --project "$PROJECT" \
-  "$ENV_FILE" \
-  "${INSTANCE}:${REMOTE_DIR}/.env" 2>/dev/null
+if [[ "$UPLOAD_ENV" == "1" ]]; then
+  # Re-upload after the code sync in case this was the first deployment.
+  gcloud compute scp \
+    --zone "$ZONE" \
+    --project "$PROJECT" \
+    "$ENV_FILE" \
+    "${INSTANCE}:${REMOTE_DIR}/.env" 2>/dev/null
+else
+  remote "test -f $REMOTE_DIR/.env" || error "The VM does not have $REMOTE_DIR/.env."
+fi
 success ".env verified."
 
 info "Step 3/5 — Building & starting containers…"
