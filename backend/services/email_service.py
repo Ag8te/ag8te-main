@@ -272,7 +272,7 @@ Please confirm your registration by clicking the link below. After confirmation,
 
 Confirm Registration: {confirmation_url}
 
-Your personal information and verification documents were submitted with your registration.
+Your registration information was submitted successfully.
 
 Kind regards,
 AG8TE Team"""
@@ -281,7 +281,7 @@ AG8TE Team"""
 <p>Welcome to AG8TE.</p>
 <p>Please confirm your registration by clicking the button below. After confirmation, you can sign in to your client account.</p>
 <p><a href="{confirmation_url}" style="display:inline-block;background:#2563eb;color:#fff;padding:10px 20px;text-decoration:none;border-radius:6px;">Confirm Registration</a></p>
-<p>Your personal information and verification documents were submitted with your registration.</p>
+<p>Your registration information was submitted successfully.</p>
 <p>Kind regards,<br>AG8TE Team</p>
 </body></html>"""
         email = EmailService.queue_email(

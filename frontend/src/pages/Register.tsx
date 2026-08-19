@@ -639,8 +639,8 @@ const removeCarImage = (index: number) => {
 
     // File-level checks (shown in top banner — not per-field)
     if (!form.role) { setServerError("Please select a role to register as"); return; }
-    if (!files.profile_photo) { setServerError("Profile photo is required"); return; }
-    if (!files.id_document) { setServerError("ID document is required"); return; }
+    if (form.role !== "client" && !files.profile_photo) { setServerError("Profile photo is required"); return; }
+    if (form.role !== "client" && !files.id_document) { setServerError("ID document is required"); return; }
     if (form.role === "driver" && (!files.proof_of_residence || !files.drivers_license || !files.prdp_document || !files.vehicle_disk_document)) {
       setServerError("Drivers need Proof of Residence, Driver's License, PrDP, and Vehicle Disk documents"); return;
     }
@@ -705,17 +705,17 @@ const removeCarImage = (index: number) => {
         provider_services: form.role === 'service-provider' ? payloadServices : [],
         professions_offered: selectedProfessions,
       }));
-      if (files.profile_photo) formData.append("profile_photo", files.profile_photo);
+      if (form.role !== "client" && files.profile_photo) formData.append("profile_photo", files.profile_photo);
       carImages.forEach((file) => {
         formData.append("car_images", file);
       });
-      if (files.id_document) formData.append("id_document", files.id_document);
-      if (files.proof_of_residence) formData.append("proof_of_residence", files.proof_of_residence);
-      if (files.drivers_license) formData.append("drivers_license", files.drivers_license);
-      if (files.prdp_document) formData.append("prdp_document", files.prdp_document);
-      if (files.vehicle_disk_document) formData.append("vehicle_disk_document", files.vehicle_disk_document);
-      if (files.cv_resume) formData.append("cv_resume", files.cv_resume);
-      if (files.qualification_documents) formData.append("qualification_documents", files.qualification_documents);
+      if (form.role !== "client" && files.id_document) formData.append("id_document", files.id_document);
+      if (form.role !== "client" && files.proof_of_residence) formData.append("proof_of_residence", files.proof_of_residence);
+      if (form.role !== "client" && files.drivers_license) formData.append("drivers_license", files.drivers_license);
+      if (form.role !== "client" && files.prdp_document) formData.append("prdp_document", files.prdp_document);
+      if (form.role !== "client" && files.vehicle_disk_document) formData.append("vehicle_disk_document", files.vehicle_disk_document);
+      if (form.role !== "client" && files.cv_resume) formData.append("cv_resume", files.cv_resume);
+      if (form.role !== "client" && files.qualification_documents) formData.append("qualification_documents", files.qualification_documents);
 
       const result = await register(formData);
       if (result.success) {
@@ -1494,15 +1494,14 @@ const removeCarImage = (index: number) => {
   )}
 </AnimatePresence>
 
-                {/* ── Verification Documents ── */}
-                <section className="space-y-5 pt-6 border-t border-slate-50">
-                  <p className={sectionLabel}><ShieldCheck className="w-4 h-4" /> Verification Documents</p>
-                  <div className="grid gap-6 sm:grid-cols-2">
-                    <FileUploadArea label="Profile Photo" field="profile_photo" accept="image/*" required />
-                    <FileUploadArea label="Certified ID Document / Passport" field="id_document" accept=".pdf,.jpg,.jpeg,.png" required />
-                    {(form.role === "driver" || form.role === "professional" || form.role === "service-provider") && (
+                {/* ── Verification Documents (provider roles only) ── */}
+                {form.role !== "client" && (
+                  <section className="space-y-5 pt-6 border-t border-slate-50">
+                    <p className={sectionLabel}><ShieldCheck className="w-4 h-4" /> Verification Documents</p>
+                    <div className="grid gap-6 sm:grid-cols-2">
+                      <FileUploadArea label="Profile Photo" field="profile_photo" accept="image/*" required />
+                      <FileUploadArea label="Certified ID Document / Passport" field="id_document" accept=".pdf,.jpg,.jpeg,.png" required />
                       <FileUploadArea label="Proof of Residence" field="proof_of_residence" accept=".pdf,.jpg,.jpeg,.png" required />
-                    )}
                     {form.role === "driver" && (
                       <>
                         <FileUploadArea label="Certified Driver's License" field="drivers_license" accept=".pdf,.jpg,.jpeg,.png" required />
@@ -1516,8 +1515,9 @@ const removeCarImage = (index: number) => {
                         <FileUploadArea label="Qualification Documents" field="qualification_documents" accept=".pdf,.jpg,.jpeg,.png" required />
                       </>
                     )}
-                  </div>
-                </section>
+                    </div>
+                  </section>
+                )}
 
                 {/* ── Terms & Submit ── */}
                 <section className="pt-6 border-t border-slate-50 space-y-6">

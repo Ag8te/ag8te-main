@@ -268,41 +268,42 @@ class AuthService:
 
         user.data = user_data
 
-        # File processing
-        upload_folder = current_app.config.get('UPLOAD_FOLDER')
-        if not os.path.exists(upload_folder):
-            os.makedirs(upload_folder)
+        # Client registration is intentionally data-only. Ignore uploads from
+        # stale clients while retaining provider verification uploads.
+        if not is_client:
+            upload_folder = current_app.config.get('UPLOAD_FOLDER')
+            if not os.path.exists(upload_folder):
+                os.makedirs(upload_folder)
 
-        # Map files to user data
-        if 'id_document' in files:
-            url = cls.handle_file_upload(files['id_document'], 'id', upload_folder)
-            user.file_urls = [url] if url else []
-        
-        if 'proof_of_residence' in files:
-            user_data['proof_of_residence_url'] = cls.handle_file_upload(files['proof_of_residence'], 'proof', upload_folder)
-            
-        if 'drivers_license' in files:
-            user_data['driver_license_url'] = cls.handle_file_upload(files['drivers_license'], 'license', upload_folder)
+            if 'id_document' in files:
+                url = cls.handle_file_upload(files['id_document'], 'id', upload_folder)
+                user.file_urls = [url] if url else []
 
-        if 'prdp_document' in files:
-            user_data['prdp_document_url'] = cls.handle_file_upload(files['prdp_document'], 'prdp', upload_folder)
+            if 'proof_of_residence' in files:
+                user_data['proof_of_residence_url'] = cls.handle_file_upload(files['proof_of_residence'], 'proof', upload_folder)
 
-        if 'vehicle_disk_document' in files:
-            vehicle_disk_url = cls.handle_file_upload(files['vehicle_disk_document'], 'disk', upload_folder)
-            user_data['vehicle_disk_document_url'] = vehicle_disk_url
-            if vehicle_disk_url and user_data.get('driver_services'):
-                user_data['driver_services'][0]['disk_document'] = vehicle_disk_url
+            if 'drivers_license' in files:
+                user_data['driver_license_url'] = cls.handle_file_upload(files['drivers_license'], 'license', upload_folder)
 
-        if 'cv_resume' in files:
-            user_data['cv_resume_url'] = cls.handle_file_upload(files['cv_resume'], 'cv', upload_folder)
-            
-        if 'profile_photo' in files:
-            user.profile_image_url = cls.handle_file_upload(files['profile_photo'], 'profile', upload_folder)
+            if 'prdp_document' in files:
+                user_data['prdp_document_url'] = cls.handle_file_upload(files['prdp_document'], 'prdp', upload_folder)
 
-        if 'qualification_documents' in files:
-            qual_files = files.getlist('qualification_documents')
-            urls = [cls.handle_file_upload(f, 'qual', upload_folder) for f in qual_files if f]
-            user_data['qualification_urls'] = [u for u in urls if u]
+            if 'vehicle_disk_document' in files:
+                vehicle_disk_url = cls.handle_file_upload(files['vehicle_disk_document'], 'disk', upload_folder)
+                user_data['vehicle_disk_document_url'] = vehicle_disk_url
+                if vehicle_disk_url and user_data.get('driver_services'):
+                    user_data['driver_services'][0]['disk_document'] = vehicle_disk_url
+
+            if 'cv_resume' in files:
+                user_data['cv_resume_url'] = cls.handle_file_upload(files['cv_resume'], 'cv', upload_folder)
+
+            if 'profile_photo' in files:
+                user.profile_image_url = cls.handle_file_upload(files['profile_photo'], 'profile', upload_folder)
+
+            if 'qualification_documents' in files:
+                qual_files = files.getlist('qualification_documents')
+                urls = [cls.handle_file_upload(f, 'qual', upload_folder) for f in qual_files if f]
+                user_data['qualification_urls'] = [u for u in urls if u]
 
         user.data = user_data
         db.session.add(user)

@@ -4,7 +4,7 @@ import {
     User, Mail, Phone, Shield, Camera,
     Loader2, Save, ChevronRight, CheckCircle2,
     Trash2, MapPin, Globe, CreditCard,
-    Clock, Calendar, X, Plus, AlertCircle
+    Clock, Calendar, X, Plus, AlertCircle, FileText, Upload
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -28,7 +28,9 @@ const Profile = () => {
     const { toast } = useToast();
     const [loading, setLoading] = useState(false);
     const [photoLoading, setPhotoLoading] = useState(false);
+    const [documentLoading, setDocumentLoading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const idDocumentInputRef = useRef<HTMLInputElement>(null);
     const isProvider = ['driver', 'professional', 'service-provider'].includes(user?.role || "");
     const isClient = user?.role === "client";
     const isDriver = user?.role === "driver";
@@ -117,6 +119,40 @@ const Profile = () => {
             });
         } finally {
             setPhotoLoading(false);
+        }
+    };
+
+    const handleIdDocumentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setDocumentLoading(true);
+        const uploadData = new FormData();
+        uploadData.append('document', file);
+
+        try {
+            const res = await apiFetch('/api/profile/upload-id-document', {
+                method: 'POST',
+                body: uploadData,
+                headers: {}
+            });
+
+            if (res.success) {
+                toast({
+                    title: "Document uploaded",
+                    description: "Your ID document was saved and is pending verification.",
+                });
+                window.location.reload();
+            }
+        } catch (error: any) {
+            toast({
+                title: "Upload failed",
+                description: error.message || "Failed to upload ID document",
+                variant: "destructive"
+            });
+        } finally {
+            setDocumentLoading(false);
+            e.target.value = '';
         }
     };
 
@@ -512,6 +548,41 @@ const ToggleSwitch = ({ enabled, onToggle }: { enabled: boolean; onToggle: () =>
 
                         {/* Right Column: Status & Actions */}
                         <div className="space-y-8">
+                            {isClient && (
+                                <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
+                                    <h3 className="text-lg font-bold text-[#222222] mb-3 flex items-center gap-3">
+                                        <FileText size={20} className="text-primary" /> Identity Document
+                                    </h3>
+                                    <p className="text-sm text-slate-500 leading-relaxed mb-5">
+                                        Upload your ID or passport here after creating your account. PDF, JPG, JPEG, and PNG files are accepted.
+                                    </p>
+                                    {user?.file_urls?.[0] && (
+                                        <p className="mb-4 text-xs font-bold text-emerald-600">
+                                            Document uploaded · {user.id_verification_status || 'pending'}
+                                        </p>
+                                    )}
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => idDocumentInputRef.current?.click()}
+                                        disabled={documentLoading}
+                                        className="w-full h-12 rounded-xl font-bold"
+                                    >
+                                        {documentLoading
+                                            ? <Loader2 className="h-5 w-5 animate-spin" />
+                                            : <><Upload className="h-4 w-4 mr-2" />{user?.file_urls?.[0] ? 'Replace ID Document' : 'Upload ID Document'}</>
+                                        }
+                                    </Button>
+                                    <input
+                                        ref={idDocumentInputRef}
+                                        type="file"
+                                        accept=".pdf,.jpg,.jpeg,.png"
+                                        onChange={handleIdDocumentUpload}
+                                        className="hidden"
+                                    />
+                                </div>
+                            )}
+
                             <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
                                 <h3 className="text-lg font-bold text-[#222222] mb-6">Account Status</h3>
 

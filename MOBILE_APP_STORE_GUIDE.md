@@ -146,6 +146,8 @@ Then in Android Studio:
 
 To replace the legacy brain image on the store listing, open **Grow users → Store presence → Main store listing** in Play Console and upload [app-icon-google-play-512.png](/Users/bingodedingo/Desktop/ag8te-main/frontend/src/assets/mobile/app-icon-google-play-512.png) as the app icon.
 
+If Google rejects the listing for Metadata policy, changing the app bundle is not enough. In **Main store listing**, switch to every active locale (especially **English (United Kingdom) / en-GB**) and replace any uploaded screenshot, icon, title, short description, or full description containing ranking or promotional claims such as “Best”, “#1”, “Top”, “Top Rated”, or award claims. Save the listing changes and include them in the next Publishing overview submission.
+
 Release build notes:
 
 - `versionCode` and `versionName` are ready in [frontend/android/app/build.gradle](/Users/bingodedingo/Desktop/ag8te-main/frontend/android/app/build.gradle)
@@ -280,6 +282,7 @@ Current Huawei readiness notes:
 - Huawei builds use Huawei Location Kit and exclude Google Play Services Location
 - Google Play builds keep the standard Google-backed Capacitor geolocation implementation
 - map screens still use Google Maps in the web UI, so a real Huawei device test is required before submission
+- on both a GMS device and an HMS-only Huawei device, test a complete booking by typing pickup and destination addresses manually as well as using current location; a successful compile does not prove that the production Maps key and Huawei Location Kit authorization are accepted on-device
 - registration labels searchable nationality values as countries/regions in both maintained app interfaces; preserve this wording in future translations and screenshots
 - AppGallery requires listing information such as app name, package name, category, screenshots, release countries/regions, and privacy policy URL
 
