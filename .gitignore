@@ -33,6 +33,11 @@ frontend/android/*.keystore
 frontend/android/*.jks
 frontend/android/app/*.keystore
 frontend/android/app/*.jks
+frontend/android/ag8te-signing-key.zip
+frontend/android/pepk.jar
+frontend/android/upload_certificate.pem
+frontend/android/encryptedPrivateKey
+frontend/android/certificate.pem
 frontend/store-builds/
 releases/
 
