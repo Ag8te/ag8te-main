@@ -5,6 +5,7 @@ __pycache__/
 venv/
 .env
 .env.*
+!.env.production.example
 node_modules/
 
 # Flask

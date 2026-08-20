@@ -33,7 +33,7 @@ A service ads platform connecting users with vetted service providers (cabs, pro
 
 2. **Create environment file**
    ```bash
-   cp .env.production .env
+   cp .env.production.example .env
    # Edit .env with your configuration if needed (see ENV VARS below)
    ```
 
@@ -42,7 +42,7 @@ A service ads platform connecting users with vetted service providers (cabs, pro
    **For Local Development (Recommended):**
    ```bash
    # Use the development override to skip SSL requirements locally
-   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+   docker compose -f docker-compose.yml -f docker-compose.local.override.yml up -d
    ```
 
    **For Production (Requires SSL):**
@@ -93,7 +93,7 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
 # Set environment variables (see env.example for full list)
-export DATABASE_URL=postgresql://ag8te:changeme@localhost:5432/ag8te
+export DATABASE_URL=postgresql://ag8te:local-only-password@localhost:5432/ag8te
 export SECRET_KEY=dev-secret-key
 export JWT_SECRET_KEY=jwt-secret-key
 export GOOGLE_MAPS_API_KEY=your-google-maps-api-key

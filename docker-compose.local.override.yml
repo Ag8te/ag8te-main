@@ -3,6 +3,10 @@
 # Keep this file out of the default docker-compose.override.yml name so production does not load it automatically.
 
 services:
+  db:
+    ports:
+      - "127.0.0.1:5432:5432"
+
   app:
     environment:
       FLASK_ENV: development
@@ -16,13 +20,18 @@ services:
     command: flask run --host=0.0.0.0 --port=5000 --reload
 
   nginx:
-    volumes:
+    ports: !override
+      - "80:80"
+      - "5006:5006"
+    volumes: !override
       - ./nginx_dir/new/nginx.local.conf:/etc/nginx/nginx.conf:ro
       - ./static:/app/static:ro
       - ./uploads:/app/uploads:ro
-    # Skip the /etc/letsencrypt mount which doesn't exist locally
+    # Do not inherit the production TLS port or /etc/letsencrypt mount.
 
   frontend:
+    build:
+      target: build
     volumes:
       - ./frontend:/app
       - /app/node_modules

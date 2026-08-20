@@ -3,7 +3,7 @@ set -e
 
 # Use environment variables for database connection (with defaults)
 DB_HOST="${DB_HOST:-db}"
-DB_USER="${POSTGRES_USER:-mzansi}"
+DB_USER="${POSTGRES_USER:-ag8te}"
 DB_NAME="${POSTGRES_DB:-ag8te}"
 
 # Wait for database to be ready
@@ -44,8 +44,8 @@ if [ ! -f "migrations/env.py" ]; then
             # But since it's a volume mount, we can't remove it - just exit with error
             if [ -d "migrations" ]; then
                 echo "Error: migrations directory exists but env.py is missing and init failed."
-                echo "This may be due to an incomplete volume mount. Try removing the migrations volume:"
-                echo "  docker volume rm mzansi-serve_migrations"
+                echo "This may be due to an incomplete migrations mount."
+                echo "Inspect the mount and preserve any migration history before changing Docker volumes."
                 exit 1
             else
                 echo "Error: Failed to initialize migrations"
@@ -84,4 +84,3 @@ fi
 
 # Execute the command passed to docker-entrypoint
 exec "$@"
-
