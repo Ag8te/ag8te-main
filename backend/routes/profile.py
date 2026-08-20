@@ -231,6 +231,33 @@ def upload_profile_photo():
         return error_response('INTERNAL_ERROR', 'Failed to upload photo', None, 500)
 
 
+@bp.route('/upload-id-document', methods=['POST'])
+@require_auth
+def upload_client_id_document():
+    """Allow clients to add or replace their ID/passport after registration."""
+    try:
+        user_id = get_jwt_identity()
+        document = request.files.get('document')
+        if not document or not document.filename:
+            return error_response('MISSING_FILES', 'No ID document provided', None, 400)
+        if not allowed_file(document.filename):
+            return error_response('INVALID_FILE', 'Use a PDF, JPG, JPEG, or PNG document', None, 400)
+
+        document_url, error = ProfileService.upload_client_id_document(user_id, document)
+        if error == 'CLIENT_ONLY':
+            return error_response(error, 'This upload is available to client accounts only', None, 403)
+        if error:
+            return error_response(error, 'Failed to upload ID document', None, 400)
+
+        return success_response({
+            'id_document_url': document_url,
+            'id_verification_status': 'pending',
+        }, 'ID document uploaded successfully')
+    except Exception as e:
+        current_app.logger.error(f"Upload ID document error: {str(e)}")
+        return error_response('INTERNAL_ERROR', 'Failed to upload ID document', None, 500)
+
+
 @bp.route('/professionals', methods=['GET'])
 def list_professionals():
     """

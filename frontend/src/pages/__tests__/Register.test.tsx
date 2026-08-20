@@ -95,4 +95,37 @@ describe("Register Component", () => {
     fireEvent.change(passwordInput, { target: { value: "StrongPassword123!" } });
     expect(screen.getByText(/Excellent/i)).toBeInTheDocument();
   });
+
+  it("uses country/region wording for nationality selection", () => {
+    renderRegister();
+    fireEvent.change(screen.getByLabelText(/Register as/i), { target: { value: "driver" } });
+
+    expect(screen.getByText(/Nationality \(country\/region\)/i)).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: /Search country\/region/i })).toHaveAttribute(
+      "placeholder",
+      "Search country/region...",
+    );
+  });
+
+  it("shows client personal fields without document uploads", () => {
+    renderRegister();
+    fireEvent.change(screen.getByLabelText(/Register as/i), { target: { value: "client" } });
+
+    expect(screen.getByPlaceholderText("Thabo")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Mokoena")).toBeInTheDocument();
+    expect(screen.getByText(/Nationality \(country\/region\)/i)).toBeInTheDocument();
+    expect(screen.getByText("Next of Kin")).toBeInTheDocument();
+    expect(screen.queryByText("Verification Documents")).not.toBeInTheDocument();
+    expect(screen.queryByText("Profile Photo")).not.toBeInTheDocument();
+    expect(screen.queryByText("Certified ID Document / Passport")).not.toBeInTheDocument();
+  });
+
+  it("retains document uploads for provider registration", () => {
+    renderRegister();
+    fireEvent.change(screen.getByLabelText(/Register as/i), { target: { value: "professional" } });
+
+    expect(screen.getByText("Verification Documents")).toBeInTheDocument();
+    expect(screen.getByText("Profile Photo")).toBeInTheDocument();
+    expect(screen.getByText("Certified ID Document / Passport")).toBeInTheDocument();
+  });
 });

@@ -45,6 +45,11 @@ jobs:
     env:
       APP_VERSION_NAME: ${{ needs.prepare-version.outputs.version_name }}
       APP_VERSION_CODE: ${{ needs.prepare-version.outputs.version_code }}
+      VITE_API_URL: https://ag8te.com
+      VITE_PUBLIC_FRONTEND_URL: https://ag8te.com
+      VITE_MOBILE_APP_URL: co.za.ag8te.app://app
+      VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
+      VITE_GOOGLE_MAPS_API_KEY: ${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -90,15 +95,26 @@ jobs:
         working-directory: frontend
         run: npm test -- --run
 
-      - name: Build signed Android App Bundle
+      - name: Validate mobile map configuration
+        run: |
+          test -n "$VITE_GOOGLE_MAPS_API_KEY"
+          test -n "$VITE_API_URL"
+
+      - name: Build signed Google Play App Bundle
         working-directory: frontend
         run: npm run android:bundle:release
 
-      - name: Upload build artifact
+      - name: Build signed Huawei App Bundle
+        working-directory: frontend
+        run: npm run huawei:bundle:release
+
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: android-store-bundle-${{ env.APP_VERSION_CODE }}
-          path: frontend/store-builds/google-play/*.aab
+          name: android-store-bundles-${{ env.APP_VERSION_CODE }}
+          path: |
+            frontend/store-builds/google-play/*.aab
+            frontend/store-builds/huawei/*.aab
           retention-days: 30
 
       - name: Upload to Google Play internal testing
@@ -112,7 +128,7 @@ jobs:
 
       - name: Upload to Huawei AppGallery
         env:
-          ANDROID_AAB_PATH: ${{ github.workspace }}/frontend/store-builds/google-play/ag8te-google-play-${{ env.APP_VERSION_NAME }}-${{ env.APP_VERSION_CODE }}.aab
+          ANDROID_AAB_PATH: ${{ github.workspace }}/frontend/store-builds/huawei/ag8te-huawei-${{ env.APP_VERSION_NAME }}-${{ env.APP_VERSION_CODE }}.aab
           HUAWEI_CLIENT_ID: ${{ secrets.HUAWEI_CLIENT_ID }}
           HUAWEI_CLIENT_SECRET: ${{ secrets.HUAWEI_CLIENT_SECRET }}
           HUAWEI_APP_ID: ${{ secrets.HUAWEI_APP_ID }}
@@ -128,6 +144,11 @@ jobs:
     env:
       APP_VERSION_NAME: ${{ needs.prepare-version.outputs.version_name }}
       APP_VERSION_CODE: ${{ needs.prepare-version.outputs.version_code }}
+      VITE_API_URL: https://ag8te.com
+      VITE_PUBLIC_FRONTEND_URL: https://ag8te.com
+      VITE_MOBILE_APP_URL: co.za.ag8te.app://app
+      VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
+      VITE_GOOGLE_MAPS_API_KEY: ${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -147,6 +168,11 @@ jobs:
       - name: Install frontend dependencies
         working-directory: frontend
         run: npm ci
+
+      - name: Validate mobile map configuration
+        run: |
+          test -n "$VITE_GOOGLE_MAPS_API_KEY"
+          test -n "$VITE_API_URL"
 
       - name: Install Apple signing certificate and profile
         env:

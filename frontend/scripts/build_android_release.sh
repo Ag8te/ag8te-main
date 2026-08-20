@@ -53,8 +53,7 @@ echo "Preparing native web assets..."
 cd "${FRONTEND_DIR}"
 npm run cap:android
 
-# The website exposes downloadable APK files from frontend/public, but the
-# native app should not bundle those APK downloads inside the store artifact.
+# Never bundle stale or locally copied APK downloads inside a store artifact.
 rm -f "${ANDROID_DIR}/app/src/main/assets/public/"*.apk
 
 if [[ "${STORE_CHANNEL}" == "huawei" ]]; then

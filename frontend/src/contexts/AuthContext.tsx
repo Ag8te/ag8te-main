@@ -17,6 +17,8 @@ export interface User {
   registration_review_status?: string | null;
   email_verified?: boolean;
   profile_image_url?: string;
+  file_urls?: string[];
+  id_verification_status?: "pending" | "verified" | "rejected";
   tracking_number?: string;
   data?: any;
 }

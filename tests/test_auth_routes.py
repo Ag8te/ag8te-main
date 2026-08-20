@@ -1,7 +1,9 @@
 import pytest
 import json
+from io import BytesIO
 from backend.models import User
 from unittest.mock import patch
+from flask_jwt_extended import create_access_token
 
 def test_register_route_success(client, db_session):
     data = {
@@ -210,3 +212,31 @@ def test_register_route_validation_error(client, db_session):
     res_data = response.get_json()
     assert res_data['success'] is False
     assert res_data['error']['code'] == 'VALIDATION_ERROR'
+
+
+def test_client_can_upload_id_document_through_profile_route(client, db_session, app):
+    user = User(email="profile-route@example.com", role="client", is_active=True)
+    user.set_password("password123")
+    db_session.session.add(user)
+    db_session.session.commit()
+
+    with app.app_context():
+        token = create_access_token(identity=str(user.id))
+
+    with patch(
+        'backend.routes.profile.ProfileService.upload_client_id_document',
+        return_value=('/uploads/id_client.pdf', None),
+    ) as upload_document:
+        response = client.post(
+            '/api/profile/upload-id-document',
+            data={'document': (BytesIO(b'%PDF-test'), 'identity.pdf')},
+            headers={'Authorization': f'Bearer {token}'},
+            content_type='multipart/form-data',
+        )
+
+    assert response.status_code == 200
+    response_data = response.get_json()
+    assert response_data['success'] is True
+    assert response_data['data']['id_document_url'] == '/uploads/id_client.pdf'
+    assert response_data['data']['id_verification_status'] == 'pending'
+    upload_document.assert_called_once()

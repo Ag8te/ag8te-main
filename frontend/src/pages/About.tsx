@@ -8,17 +8,17 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
 const stats = [
-  { icon: Users, value: "50,000+", label: "Active Users" },
+  { icon: Users, value: "4", label: "Service Categories" },
   { icon: MapPin, value: "9", label: "Provinces Covered" },
-  { icon: Award, value: "2,500+", label: "Verified Providers" },
-  { icon: TrendingUp, value: "98%", label: "Satisfaction Rate" },
+  { icon: Award, value: "Secure", label: "Payment Options" },
+  { icon: TrendingUp, value: "Local", label: "Customer Support" },
 ];
 
 const values = [
-  { icon: ShieldCheck, title: "Trust & Verification", description: "Every provider vetted through SARS, Home Affairs, CIPC, and SAPS databases." },
-  { icon: Clock, title: "Instant Access", description: "Book services in seconds — no long calls, no waiting, just tap and go." },
-  { icon: BadgeCheck, title: "Quality Guaranteed", description: "Professional bodies validate every credential on our platform." },
-  { icon: Headphones, title: "Local Support", description: "Our South Africa-based team is available to help with any issue, anytime." },
+  { icon: ShieldCheck, title: "Profile Review", description: "We collect and review provider documentation relevant to each role." },
+  { icon: Clock, title: "Simple Booking", description: "Choose a service, location, and preferred time in one booking flow." },
+  { icon: BadgeCheck, title: "Provider Information", description: "View available credentials, services, ratings, and profile details before booking." },
+  { icon: Headphones, title: "Local Support", description: "Contact our South Africa-based support team when you need help." },
 ];
 
 const About = () => {
@@ -37,12 +37,12 @@ const About = () => {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
             <span className="inline-block mb-3 text-xs font-bold uppercase tracking-[0.2em] text-primary">Our Story</span>
             <h1 className="text-3xl md:text-5xl lg:text-6xl font-semibold text-[#222222] mb-6 tracking-tight">
-              AG8TE's Most Trusted <br className="hidden md:block" />
-              <span className="text-primary underline decoration-primary/10 decoration-8 underline-offset-8">Service Hub</span>
+              A South African <br className="hidden md:block" />
+              <span className="text-primary underline decoration-primary/10 decoration-8 underline-offset-8">Services Platform</span>
             </h1>
             <p className="text-lg md:text-xl text-slate-500 font-normal leading-relaxed max-w-3xl mx-auto">
-              Built by South Africans, for South Africans. We connect you with verified pros,
-              so you can get things done with complete peace of mind.
+              Built by South Africans, for South Africans. Connect with transport,
+              professionals, local providers, and marketplace sellers.
             </p>
           </motion.div>
         </div>

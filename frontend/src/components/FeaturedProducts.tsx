@@ -54,7 +54,7 @@ const FeaturedProducts = () => {
                         </span>
                         <h2 className="text-3xl font-bold lg:text-4xl">Featured Products</h2>
                         <p className="mt-2 text-muted-foreground max-w-lg">
-                            Discover popular products from verified local sellers across South Africa.
+                            Browse products from verified local sellers across South Africa.
                         </p>
                     </div>
                     <Button variant="outline" onClick={() => navigate("/shop")} className="shrink-0">

@@ -180,7 +180,7 @@ export const MobileAppPromo = () => {
                                                 className="absolute inset-0 w-full h-full object-cover opacity-50"
                                             />
                                             <div className="relative z-20 p-1.5 pt-2 text-left">
-                                                <div className="inline-block px-[3px] py-[1px] bg-primary/20 border border-primary/30 rounded-full text-[4px] text-primary font-bold mb-[2px] uppercase">#1 in SA</div>
+                                                <div className="inline-block px-[3px] py-[1px] bg-primary/20 border border-primary/30 rounded-full text-[4px] text-primary font-bold mb-[2px] uppercase">Made for SA</div>
                                                 <div className="text-white font-bold text-[6px] leading-none mb-[2px]">Your Life,<br />Simplified.</div>
                                                 <div className="text-white/60 text-[4px] mb-1">Services at your door.</div>
                                                 <div className="w-8 py-[2px] bg-primary rounded text-center text-white font-bold text-[4px]">Book Now</div>
@@ -204,7 +204,7 @@ export const MobileAppPromo = () => {
                                         </div>
                                         {/* Providers */}
                                         <div className="px-1.5 py-1 flex-1">
-                                            <div className="font-bold text-[#222222] text-[5px] mb-1">Top Rated Experts</div>
+                                            <div className="font-bold text-[#222222] text-[5px] mb-1">Verified Experts</div>
                                             <div className="flex gap-[3px]">
                                                 {[
                                                     { name: "Dr. Thabo", role: "Specialist", img: "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=100&fm=jpg" },
@@ -346,7 +346,7 @@ export const MobileAppPromo = () => {
                                                     className="absolute inset-0 w-full h-full object-cover opacity-50"
                                                 />
                                                 <div className="relative z-20 p-4 pt-6 text-left">
-                                                    <div className="inline-block px-1.5 py-0.5 bg-primary/20 border border-primary/30 rounded-full text-[6px] text-primary font-bold mb-1 uppercase">#1 in SA</div>
+                                                    <div className="inline-block px-1.5 py-0.5 bg-primary/20 border border-primary/30 rounded-full text-[6px] text-primary font-bold mb-1 uppercase">Made for SA</div>
                                                     <div className="text-white font-bold text-[12px] leading-none mb-1">Your Life,<br />Simplified.</div>
                                                     <div className="text-white/60 text-[7px] mb-3">Professional services at your door.</div>
                                                     <div className="w-16 py-1.5 bg-primary rounded text-center text-white font-bold shadow-sm text-[7px]">Book Now</div>
@@ -372,7 +372,7 @@ export const MobileAppPromo = () => {
 
                                             {/* Providers */}
                                             <div className="px-3 py-2">
-                                                <div className="font-bold text-[#222222] text-[9px] mb-2">Top Rated Experts</div>
+                                                <div className="font-bold text-[#222222] text-[9px] mb-2">Verified Experts</div>
                                                 <div className="flex gap-2">
                                                     {[
                                                         { name: "Dr. Thabo", role: "Specialist", img: "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=100&fm=jpg" },

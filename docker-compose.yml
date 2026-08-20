@@ -7,7 +7,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-ag8te}
       POSTGRES_USER: ${POSTGRES_USER:-ag8te}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -30,7 +30,7 @@ services:
       - "5000" # Internal only — nginx proxies this
     environment:
       # Database
-      DATABASE_URL: postgresql://${POSTGRES_USER:-ag8te}:${DB_PASSWORD:-changeme}@db:5432/${POSTGRES_DB:-ag8te}
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
       POSTGRES_USER: ${POSTGRES_USER:-ag8te}
       POSTGRES_DB: ${POSTGRES_DB:-ag8te}
       # Flask
@@ -52,6 +52,7 @@ services:
       FRONTEND_URL: ${FRONTEND_URL:-https://ag8te.com}
       BACKEND_URL: ${BACKEND_URL:-https://ag8te.com}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-${VITE_GOOGLE_CLIENT_ID:-}}
+      GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY:-}
       PAYPAL_CLIENT_ID: ${PAYPAL_CLIENT_ID:-}
       PAYPAL_CLIENT_SECRET: ${PAYPAL_CLIENT_SECRET:-${PAYPAL_SECRET:-}}
       PAYPAL_MODE: ${PAYPAL_MODE:-live}
@@ -101,12 +102,14 @@ services:
       args:
         VITE_API_URL: ${VITE_API_URL:-https://ag8te.com}
         VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-${GOOGLE_CLIENT_ID:-}}
+        VITE_GOOGLE_MAPS_API_KEY: ${VITE_GOOGLE_MAPS_API_KEY:-}
     expose:
       - "8080"          # Internal only — nginx proxies this
     environment:
       # We now route /api/ through Nginx on port 80, so no port is needed.
       - VITE_API_URL=${VITE_API_URL:-https://ag8te.com}
       - VITE_GOOGLE_CLIENT_ID=${VITE_GOOGLE_CLIENT_ID:-${GOOGLE_CLIENT_ID:-}}
+      - VITE_GOOGLE_MAPS_API_KEY=${VITE_GOOGLE_MAPS_API_KEY:-}
     depends_on:
       - app
 

@@ -14,11 +14,6 @@ export function getCurrentLocationAddress(
   mode: 'full_address' | 'city_only' = 'full_address',
   options: { allowApproximateAddress?: boolean; fallbackAddress?: string } = {}
 ) {
-  if (!window.google) {
-    onError("Maps Not Loaded", "Google Maps is not loaded yet. Please try again in a moment.");
-    return;
-  }
-
   onLoadingChange(true);
 
   requestCurrentPosition(
@@ -26,6 +21,21 @@ export function getCurrentLocationAddress(
   ).then(
     (position) => {
       const { latitude, longitude } = position.coords;
+      if (!window.google) {
+        onLoadingChange(false);
+        if (options.allowApproximateAddress && mode === 'full_address') {
+          onSuccess(
+            options.fallbackAddress || "Current location",
+            "",
+            { lat: latitude, lng: longitude },
+            ""
+          );
+          return;
+        }
+        onError("Address Lookup Unavailable", "Enter your address manually to continue.");
+        return;
+      }
+
       const geocoder = new google.maps.Geocoder();
 
       geocoder.geocode(

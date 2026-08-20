@@ -8,7 +8,7 @@ class Config:
     """Base configuration"""
     # Database
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
-        'postgresql://mzansi:changeme@localhost:5432/ag8te'
+        'sqlite:///ag8te-dev.db'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {
         'pool_size': 10,
