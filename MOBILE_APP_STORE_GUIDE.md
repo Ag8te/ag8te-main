@@ -116,6 +116,8 @@ VITE_HUAWEI_APPGALLERY_URL=
 Notes:
 
 - `VITE_GOOGLE_CLIENT_ID` is still useful for the web version
+- `VITE_GOOGLE_MAPS_API_KEY` is mandatory in the `mobile-testing` GitHub environment; the release workflow now fails before building if it is absent
+- keep `VITE_GOOGLE_MAPS_API_KEY` separate from the backend-only `GOOGLE_MAPS_API_KEY`: Vite embeds its value in the web/app bundle, so restrict the client key to the required browser APIs and allowed origins, and restrict the backend key to the Geocoding API and production server
 - native builds currently hide Google sign-in
 - the store URL variables are for the homepage app-promo buttons once the listings are live
 
@@ -144,6 +146,8 @@ Then in Android Studio:
 
 To replace the legacy brain image on the store listing, open **Grow users → Store presence → Main store listing** in Play Console and upload [app-icon-google-play-512.png](/Users/bingodedingo/Desktop/ag8te-main/frontend/src/assets/mobile/app-icon-google-play-512.png) as the app icon.
 
+If Google rejects the listing for Metadata policy, changing the app bundle is not enough. In **Main store listing**, switch to every active locale (especially **English (United Kingdom) / en-GB**) and replace any uploaded screenshot, icon, title, short description, or full description containing ranking or promotional claims such as “Best”, “#1”, “Top”, “Top Rated”, or award claims. Save the listing changes and include them in the next Publishing overview submission.
+
 Release build notes:
 
 - `versionCode` and `versionName` are ready in [frontend/android/app/build.gradle](/Users/bingodedingo/Desktop/ag8te-main/frontend/android/app/build.gradle)
@@ -161,6 +165,18 @@ The signed Google Play output is copied to:
 
 ```bash
 frontend/store-builds/google-play/
+```
+
+The Huawei build must be produced separately so it includes Huawei Location Kit while retaining the existing AppGallery package name `co.za.ag8te.app`:
+
+```bash
+npm run huawei:bundle:release
+```
+
+The signed AppGallery output is copied to:
+
+```bash
+frontend/store-builds/huawei/
 ```
 
 Google Play currently requires new apps and updates to target Android 15 / API 35 or higher. This project is configured with `targetSdkVersion = 36`.
@@ -266,6 +282,8 @@ Current Huawei readiness notes:
 - Huawei builds use Huawei Location Kit and exclude Google Play Services Location
 - Google Play builds keep the standard Google-backed Capacitor geolocation implementation
 - map screens still use Google Maps in the web UI, so a real Huawei device test is required before submission
+- on both a GMS device and an HMS-only Huawei device, test a complete booking by typing pickup and destination addresses manually as well as using current location; a successful compile does not prove that the production Maps key and Huawei Location Kit authorization are accepted on-device
+- registration labels searchable nationality values as countries/regions in both maintained app interfaces; preserve this wording in future translations and screenshots
 - AppGallery requires listing information such as app name, package name, category, screenshots, release countries/regions, and privacy policy URL
 
 Official Huawei references:
@@ -281,6 +299,7 @@ Before submitting to stores, finish these:
 - test the branded icons and splash screens on real Android and iPhone hardware
 - set your real release versioning in Android and iOS projects
 - test login, payments, maps, uploads, and live driver tracking on real devices
+- confirm every locale uses "country/region" rather than "country" for searchable geopolitical selectors
 - define privacy/data safety answers for each store
 - add store screenshots and marketing copy
 - confirm Yoco browser redirect flows behave correctly inside the native system browser handoff

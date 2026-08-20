@@ -30,12 +30,12 @@ const AdsInvitation = () => {
                             </div>
 
                             <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-8">
-                                Reach Millions within our <br />
-                                <span className="text-primary italic">Growing Ecosystem</span>
+                                Reach South African customers <br />
+                                <span className="text-primary italic">through AG8TE</span>
                             </h2>
 
                             <p className="text-lg md:text-xl text-slate-400 font-normal leading-relaxed mb-10 max-w-2xl">
-                                Elevate your brand with hyper-local targeting. Join AG8TE's exclusive network of advertisers and connect with South Africans when it matters most.
+                                Promote your products and services with local targeting and connect with relevant audiences across South Africa.
                             </p>
 
                             <div className="flex flex-wrap items-center gap-6">
@@ -48,14 +48,9 @@ const AdsInvitation = () => {
                                     <ArrowRight className="ml-3 h-5 w-5 transition-transform group-hover:translate-x-1" />
                                 </Button>
 
-                                <div className="flex -space-x-3 items-center">
-                                    {[1, 2, 3, 4].map((i) => (
-                                        <div key={i} className="w-10 h-10 rounded-full border-2 border-[#1a1a1a] bg-slate-800 flex items-center justify-center overflow-hidden">
-                                            <img src={`https://i.pravatar.cc/100?img=${i + 10}`} alt="Partner" className="w-full h-full object-cover opacity-80" />
-                                        </div>
-                                    ))}
-                                    <p className="ml-6 text-sm text-slate-500 font-medium">Joined by 500+ local brands</p>
-                                </div>
+                                <p className="text-sm text-slate-400 font-medium">
+                                    Advertising options for local businesses
+                                </p>
                             </div>
                         </div>
 
@@ -68,8 +63,8 @@ const AdsInvitation = () => {
                             />
                             <div className="absolute bottom-10 left-10 right-10 z-20">
                                 <div className="p-6 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10">
-                                    <p className="text-primary font-bold text-2xl mb-1">98%</p>
-                                    <p className="text-white/70 text-sm">Engagement rate increase for our local partners last year.</p>
+                                    <p className="text-primary font-bold text-2xl mb-1">Local reach</p>
+                                    <p className="text-white/70 text-sm">Present your offering to audiences in the areas you serve.</p>
                                 </div>
                             </div>
                         </div>

@@ -135,7 +135,7 @@ const Services = () => {
                 <span className="text-primary">what you need.</span>
               </h1>
               <p className="text-lg text-slate-500 font-normal max-w-lg leading-relaxed">
-                Browse through hundreds of verified experts and service providers across South Africa.
+                Browse verified experts and service providers across South Africa.
               </p>
             </div>
             <div className="hidden lg:block w-px h-32 bg-slate-100" />

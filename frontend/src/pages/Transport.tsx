@@ -20,13 +20,15 @@ import { openExternalUrl } from "@/lib/native";
 import { useSearchParams } from "react-router-dom";
 
 type Step = 1 | 2 | 3;
+type Coordinates = { lat: number; lng: number };
+type ResolvedAddress = { address: string; coords: Coordinates };
 
 const VEHICLE_TYPES = [
   { id: "hatchback", name: "Hatchback", desc: "Affordable compact rides", icon: Car, capacity: 3, multiplier: 4.5, details: "Perfect for zip city travel" },
-  { id: "sedan", name: "Sedan", desc: "Comfortable everyday rides", icon: Car, capacity: 4, multiplier: 5.5, details: "Our most popular standard ride" },
+  { id: "sedan", name: "Sedan", desc: "Comfortable everyday rides", icon: Car, capacity: 4, multiplier: 5.5, details: "A standard ride for everyday travel" },
   { id: "luxury", name: "Luxury/SUV", desc: "Travel in style", icon: Star, capacity: 4, multiplier: 8, details: "Premium high-end vehicles" },
   { id: "bakkie", name: "Bakkie", desc: "Versatile for cargo", icon: Car, capacity: 2, multiplier: 15, details: "Great for transporting goods" },
-  { id: "minibus", name: "Minibus", desc: "Comfortable 9 seater transport", icon: Users, capacity: 9, multiplier: 11, details: "Best for small group travel" },
+  { id: "minibus", name: "Minibus", desc: "Comfortable 9 seater transport", icon: Users, capacity: 9, multiplier: 11, details: "Comfortable travel for small groups" },
   { id: "van", name: "Van", desc: "6 seater van with extra space", icon: Users, capacity: 6, multiplier: 9, details: "Perfect for passengers and luggage" },
 ];
 
@@ -191,10 +193,8 @@ const Transport = () => {
   const [step, setStep] = useState<Step>(1);
   const [pickup, setPickup] = useState("");
   const [dropoff, setDropoff] = useState("");
-  const [pickupCoords, setPickupCoords] = useState<{ lat: number, lng: number } | null>(null);
-  const [dropoffCoords, setDropoffCoords] = useState<{ lat: number, lng: number } | null>(null);
-  const [pickupValid, setPickupValid] = useState(false);
-  const [dropoffValid, setDropoffValid] = useState(false);
+  const [pickupCoords, setPickupCoords] = useState<Coordinates | null>(null);
+  const [dropoffCoords, setDropoffCoords] = useState<Coordinates | null>(null);
 
   const [distanceKm, setDistanceKm] = useState<number | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
@@ -211,8 +211,6 @@ const Transport = () => {
 
 
   // Refs for focusing and controlling Autocomplete
-  const pickupInputRef = useRef<HTMLInputElement>(null);
-  const dropoffInputRef = useRef<HTMLInputElement>(null);
   const pickupAutocompleteRef = useRef<any>(null);
   const dropoffAutocompleteRef = useRef<any>(null);
 
@@ -258,7 +256,6 @@ const Transport = () => {
       (address, _city, coords, _postalCode) => {
         setPickup(address || "Current location");
         setPickupCoords(coords);
-        setPickupValid(true);
       },
       (title, description) => toast({ variant: "destructive", title, description }),
       setIsLocating,
@@ -267,60 +264,121 @@ const Transport = () => {
     );
   };
 
+  const geocodeAddress = async (address: string): Promise<ResolvedAddress> => {
+    if (isLoaded && window.google) {
+      try {
+        return await new Promise<ResolvedAddress>((resolve, reject) => {
+          const geocoder = new google.maps.Geocoder();
+          geocoder.geocode(
+            { address, componentRestrictions: { country: "ZA" } },
+            (results, status) => {
+              const result = results?.[0];
+              const location = result?.geometry?.location;
+              if (status === "OK" && result && location) {
+                resolve({
+                  address: result.formatted_address || address,
+                  coords: { lat: location.lat(), lng: location.lng() },
+                });
+                return;
+              }
+              reject(new Error("Client-side address lookup failed."));
+            },
+          );
+        });
+      } catch (error) {
+        console.warn("Client-side geocoding failed; using server fallback.", error);
+      }
+    }
+
+    const response = await apiFetch<ResolvedAddress>("/api/location/geocode", {
+      method: "POST",
+      data: { address },
+    });
+    return response.data;
+  };
+
+  const calculateFallbackDistance = async (origin: Coordinates, destination: Coordinates) => {
+    const response = await apiFetch<{ distance: number }>("/api/location/calculate-distance", {
+      method: "POST",
+      data: { origin, destination },
+    });
+    return response.data.distance;
+  };
+
+  const calculateDrivingDistance = (origin: Coordinates, destination: Coordinates) =>
+    new Promise<number>((resolve, reject) => {
+      const service = new google.maps.DistanceMatrixService();
+      service.getDistanceMatrix(
+        {
+          origins: [new google.maps.LatLng(origin.lat, origin.lng)],
+          destinations: [new google.maps.LatLng(destination.lat, destination.lng)],
+          travelMode: google.maps.TravelMode.DRIVING,
+          unitSystem: google.maps.UnitSystem.METRIC,
+        },
+        (response, status) => {
+          const element = response?.rows?.[0]?.elements?.[0];
+          if (status === "OK" && element?.status === "OK" && element.distance) {
+            resolve(element.distance.value / 1000);
+            return;
+          }
+          reject(new Error(`Distance Matrix status: ${status}/${element?.status || "unknown"}`));
+        },
+      );
+    });
+
   const handleSetRoute = async () => {
-    if (!pickup || !dropoff || !pickupCoords || !dropoffCoords) {
+    if (!pickup.trim() || !dropoff.trim()) {
       toast({
         variant: "destructive",
         title: "Missing locations",
-        description: "Please select both pick-up and drop-off locations from the suggestions."
+        description: "Enter both a pick-up and drop-off address."
       });
       return;
     }
     setIsCalculating(true);
 
-    // Fetch nearby drivers when pickup is set
     try {
-      const nearbyRes = await apiFetch(`/api/public/drivers-nearby?lat=${pickupCoords.lat}&lng=${pickupCoords.lng}&radius=10`);
-      if (nearbyRes.success) {
-        setNearbyDrivers(nearbyRes.data.drivers || []);
-      }
-    } catch (err) {
-      console.error("Nearby drivers fetch error:", err);
-    }
+      const [resolvedPickup, resolvedDropoff] = await Promise.all([
+        pickupCoords ? Promise.resolve({ address: pickup, coords: pickupCoords }) : geocodeAddress(pickup),
+        dropoffCoords ? Promise.resolve({ address: dropoff, coords: dropoffCoords }) : geocodeAddress(dropoff),
+      ]);
 
-    if (isLoaded && window.google) {
+      setPickup(resolvedPickup.address);
+      setPickupCoords(resolvedPickup.coords);
+      setDropoff(resolvedDropoff.address);
+      setDropoffCoords(resolvedDropoff.coords);
+
       try {
-        const service = new google.maps.DistanceMatrixService();
-        service.getDistanceMatrix(
-          {
-            origins: [new google.maps.LatLng(pickupCoords.lat, pickupCoords.lng)],
-            destinations: [new google.maps.LatLng(dropoffCoords.lat, dropoffCoords.lng)],
-            travelMode: google.maps.TravelMode.DRIVING,
-            unitSystem: google.maps.UnitSystem.METRIC,
-          },
-          (response, status) => {
-            setIsCalculating(false);
-            if (status === 'OK' && response && response.rows[0].elements[0].status === 'OK') {
-              const distMetres = response.rows[0].elements[0].distance.value;
-              setDistanceKm(distMetres / 1000);
-              setStep(2);
-            } else {
-              const elementStatus = response?.rows[0]?.elements[0]?.status;
-              toast({
-                variant: "destructive",
-                title: "Route Error",
-                description: `Could not calculate driving distance. Status: ${status} ${elementStatus ? `(${elementStatus})` : ''}. Please try again.`
-              });
-            }
-          }
-        );
-      } catch (err) {
-        setIsCalculating(false);
-        console.error("Distance Matrix Error:", err);
+        const nearbyRes = await apiFetch(`/api/public/drivers-nearby?lat=${resolvedPickup.coords.lat}&lng=${resolvedPickup.coords.lng}&radius=10`);
+        if (nearbyRes.success) {
+          setNearbyDrivers(nearbyRes.data.drivers || []);
+        }
+      } catch (error) {
+        console.warn("Nearby drivers could not be loaded during route setup.", error);
       }
-    } else {
+
+      let resolvedDistance: number;
+      if (isLoaded && window.google) {
+        try {
+          resolvedDistance = await calculateDrivingDistance(resolvedPickup.coords, resolvedDropoff.coords);
+        } catch (error) {
+          console.warn("Driving distance lookup failed; using direct-distance estimate.", error);
+          resolvedDistance = await calculateFallbackDistance(resolvedPickup.coords, resolvedDropoff.coords);
+        }
+      } else {
+        resolvedDistance = await calculateFallbackDistance(resolvedPickup.coords, resolvedDropoff.coords);
+      }
+
+      setDistanceKm(resolvedDistance);
+      setStep(2);
+    } catch (error) {
+      console.error("Route lookup error:", error);
+      const description = error instanceof Error
+        ? error.message
+        : "Could not resolve those addresses. Please add a street, suburb, and city.";
+      toast({ variant: "destructive", title: "Route Error", description });
+    } finally {
       setIsCalculating(false);
-      toast({ variant: "destructive", title: "Error", description: "Google Maps service is not ready." });
     }
   };
 
@@ -566,7 +624,6 @@ const Transport = () => {
                                         });
                                         setPickup("");
                                         setPickupCoords(null);
-                                        setPickupValid(false);
                                         return;
                                       }
                                       setPickup(place.formatted_address || place.name || "");
@@ -574,7 +631,6 @@ const Transport = () => {
                                         lat: place.geometry.location.lat(),
                                         lng: place.geometry.location.lng()
                                       });
-                                      setPickupValid(true);
                                     }
                                   }
                                 }}
@@ -584,7 +640,6 @@ const Transport = () => {
                                   value={pickup}
                                   onChange={(e) => {
                                     setPickup(e.target.value);
-                                    setPickupValid(false);
                                     setPickupCoords(null);
                                   }}
                                   placeholder="Enter origin address"
@@ -592,7 +647,16 @@ const Transport = () => {
                                 />
                               </Autocomplete>
                             ) : (
-                              <input disabled placeholder="Loading maps..." className="w-full h-16 bg-slate-50 rounded-2xl p-4 pl-16 outline-none" />
+                              <input
+                                type="text"
+                                value={pickup}
+                                onChange={(event) => {
+                                  setPickup(event.target.value);
+                                  setPickupCoords(null);
+                                }}
+                                placeholder="Enter origin address"
+                                className="w-full h-16 pl-16 pr-14 bg-slate-50 rounded-2xl border-transparent focus:bg-white focus:border-primary/20 outline-none text-[#222222] font-medium text-lg transition-all"
+                              />
                             )}
                           </div>
                           <Button
@@ -629,7 +693,6 @@ const Transport = () => {
                                         });
                                         setDropoff("");
                                         setDropoffCoords(null);
-                                        setDropoffValid(false);
                                         return;
                                       }
                                       setDropoff(place.formatted_address || place.name || "");
@@ -637,7 +700,6 @@ const Transport = () => {
                                         lat: place.geometry.location.lat(),
                                         lng: place.geometry.location.lng()
                                       });
-                                      setDropoffValid(true);
                                     }
                                   }
                                 }}
@@ -647,7 +709,6 @@ const Transport = () => {
                                   value={dropoff}
                                   onChange={(e) => {
                                     setDropoff(e.target.value);
-                                    setDropoffValid(false);
                                     setDropoffCoords(null);
                                   }}
                                   placeholder="Enter destination address"
@@ -655,7 +716,16 @@ const Transport = () => {
                                 />
                               </Autocomplete>
                             ) : (
-                              <input disabled placeholder="Loading maps..." className="w-full h-16 bg-slate-50 rounded-2xl p-4 pl-16 outline-none" />
+                              <input
+                                type="text"
+                                value={dropoff}
+                                onChange={(event) => {
+                                  setDropoff(event.target.value);
+                                  setDropoffCoords(null);
+                                }}
+                                placeholder="Enter destination address"
+                                className="w-full h-16 pl-16 pr-6 bg-slate-50 rounded-2xl border-transparent focus:bg-white focus:border-primary/20 outline-none text-[#222222] font-medium text-lg transition-all"
+                              />
                             )}
                           </div>
                         </div>
@@ -664,7 +734,7 @@ const Transport = () => {
                       <Button
                         className="w-full h-16 rounded-2xl bg-[#FF385C] hover:bg-[#D90B3E] text-white font-bold text-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 active:scale-95"
                         onClick={handleSetRoute}
-                        disabled={!pickupValid || !dropoffValid || isCalculating}
+                        disabled={!pickup.trim() || !dropoff.trim() || isCalculating}
                       >
                         {isCalculating ? <Loader2 className="animate-spin h-6 w-6" /> : "Find Rides"}
                       </Button>
@@ -694,8 +764,10 @@ const Transport = () => {
                           ))}
                         </GoogleMap>
                       ) : (
-                        <div className="h-full w-full flex items-center justify-center bg-slate-50">
-                          <Loader2 className="animate-spin h-10 w-10 text-slate-200" />
+                        <div className="h-full w-full flex flex-col items-center justify-center bg-slate-50 px-8 text-center">
+                          <MapPin className="h-10 w-10 text-slate-300 mb-4" />
+                          <p className="font-bold text-slate-600">Map preview unavailable</p>
+                          <p className="mt-2 text-sm text-slate-500">You can still enter both addresses manually and continue.</p>
                         </div>
                       )}
                     </div>

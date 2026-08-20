@@ -217,6 +217,37 @@ class ProfileService:
         return user.profile_image_url, None
 
     @staticmethod
+    def upload_client_id_document(user_id, document_file):
+        """Store or replace a client's ID/passport document from their profile."""
+        user = User.query.get(user_id)
+        if not user:
+            return None, "USER_NOT_FOUND"
+        if user.role != 'client':
+            return None, "CLIENT_ONLY"
+
+        filename = (getattr(document_file, 'filename', '') or '').strip()
+        if '.' not in filename:
+            return None, "INVALID_FILE"
+        file_ext = filename.rsplit('.', 1)[1].lower()
+        if file_ext not in {'pdf', 'jpg', 'jpeg', 'png'}:
+            return None, "INVALID_FILE"
+
+        upload_folder = current_app.config.get('UPLOAD_FOLDER')
+        if not os.path.exists(upload_folder):
+            os.makedirs(upload_folder)
+
+        user_id_token = str(user.id).replace('-', '')
+        unique_filename = f"id_{user_id_token}_{uuid.uuid4().hex[:8]}.{file_ext}"
+        document_file.save(os.path.join(upload_folder, unique_filename))
+        document_url = f"/uploads/{unique_filename}"
+
+        user.file_urls = [document_url]
+        user.id_verification_status = 'pending'
+        user.id_rejection_reason = None
+        db.session.commit()
+        return document_url, None
+
+    @staticmethod
     def initiate_registration_payment(user_id, provider='paypal'):
         """Create checkout for registration fee"""
         user = User.query.get(user_id)

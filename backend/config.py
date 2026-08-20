@@ -8,7 +8,7 @@ class Config:
     """Base configuration"""
     # Database
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
-        'postgresql://mzansi:changeme@localhost:5432/ag8te'
+        'sqlite:///ag8te-dev.db'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {
         'pool_size': 10,
@@ -42,6 +42,7 @@ class Config:
     OTP_TRUSTED_DEVICE_DAYS = int(os.environ.get('OTP_TRUSTED_DEVICE_DAYS') or 7)
     OTP_SENSITIVE_EXPIRES_MINUTES = int(os.environ.get('OTP_SENSITIVE_EXPIRES_MINUTES') or 10)
     OTP_MAX_ATTEMPTS = int(os.environ.get('OTP_MAX_ATTEMPTS') or 5)
+    GOOGLE_PLAY_REVIEW_EMAIL = os.environ.get('GOOGLE_PLAY_REVIEW_EMAIL', '').strip().lower()
     HUAWEI_REVIEW_EMAIL = os.environ.get('HUAWEI_REVIEW_EMAIL', '').strip().lower()
     FIREBASE_PROJECT_ID = os.environ.get('FIREBASE_PROJECT_ID')
     

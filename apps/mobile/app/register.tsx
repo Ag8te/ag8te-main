@@ -140,11 +140,9 @@ export default function Register() {
     };
     
     const validateStep3 = () => {
-        // All users need profile photo and ID document (mirroring web requirement)
-        if (!files.profile_photo) return "Profile photo is required";
-        if (!files.id_document) return "ID document is required";
-
         if (role !== 'client') {
+            if (!files.profile_photo) return "Profile photo is required";
+            if (!files.id_document) return "ID document is required";
             if (!files.proof_of_residence) return "Proof of residence is required";
             if (role === 'driver' && !files.drivers_license) return "Driver's license is required";
             if (role === 'professional') {
@@ -190,12 +188,15 @@ export default function Register() {
 
             formData.append("registration_data", JSON.stringify(registrationData));
             
-            // Append files
-            Object.keys(files).forEach(key => {
-                if (files[key]) {
-                    formData.append(key, files[key] as any);
-                }
-            });
+            // Client registration is data-only. Provider roles continue to
+            // submit their verification documents here.
+            if (role !== 'client') {
+                Object.keys(files).forEach(key => {
+                    if (files[key]) {
+                        formData.append(key, files[key] as any);
+                    }
+                });
+            }
 
             const result = await register(formData);
             if (result.success) {
@@ -229,7 +230,7 @@ export default function Register() {
 
                 <View style={styles.header}>
                     <Typography variant="h1" style={styles.title}>
-                        {step === 1 ? 'Create Account' : step === 2 ? 'Personal Info' : 'Verification'}
+                        {step === 1 ? 'Create Account' : step === 2 ? 'Personal Info' : role === 'client' ? 'Review' : 'Verification'}
                     </Typography>
                 </View>
 
@@ -339,7 +340,7 @@ export default function Register() {
                             style={styles.pickerTrigger} 
                             onPress={() => setShowCountryPicker(true)}
                         >
-                            <Typography variant="caption" color={COLORS.gray[600]} style={{ marginBottom: 4 }}>Nationality</Typography>
+                            <Typography variant="caption" color={COLORS.gray[600]} style={{ marginBottom: 4 }}>Nationality (country/region)</Typography>
                             <View style={styles.pickerValue}>
                                 <Globe color={COLORS.gray[400]} size={20} />
                                 <Typography variant="body" style={{ flex: 1, marginLeft: 10 }}>{nationality}</Typography>
@@ -403,7 +404,9 @@ export default function Register() {
 
                 {step === 3 && (
                     <Card style={styles.formCard}>
-                        <Typography variant="label" style={styles.sectionTitle}>Verification & Payment</Typography>
+                        <Typography variant="label" style={styles.sectionTitle}>
+                            {role === 'client' ? 'Complete Registration' : 'Verification & Payment'}
+                        </Typography>
                         
                         {role === 'professional' && (
                             <View style={{ marginBottom: SPACING.md }}>
@@ -468,7 +471,8 @@ export default function Register() {
                             </View>
                         )}
 
-                        <View style={styles.uploadSection}>
+                        {role !== 'client' && (
+                          <View style={styles.uploadSection}>
                             <Typography variant="caption" color={COLORS.gray[700]} weight="bold">Verification Documents</Typography>
                             
                             <FileRow 
@@ -483,14 +487,12 @@ export default function Register() {
                                 onPick={() => pickDocument('id_document')}
                                 icon={<FileText size={20} color={COLORS.gray[400]} />} 
                             />
-                            {role !== 'client' && (
-                                <FileRow 
-                                    label="Proof of Residence" 
-                                    picked={!!files.proof_of_residence} 
-                                    onPick={() => pickDocument('proof_of_residence')}
-                                    icon={<Globe size={20} color={COLORS.gray[400]} />} 
-                                />
-                            )}
+                            <FileRow
+                                label="Proof of Residence"
+                                picked={!!files.proof_of_residence}
+                                onPick={() => pickDocument('proof_of_residence')}
+                                icon={<Globe size={20} color={COLORS.gray[400]} />}
+                            />
                             {role === 'driver' && (
                                 <FileRow 
                                     label="Driver's License" 
@@ -515,9 +517,10 @@ export default function Register() {
                                         />
                                     </>
                                 )}
-                            </View>
+                          </View>
+                        )}
 
-                        {availableGateways.length > 0 && (
+                        {role !== 'client' && availableGateways.length > 0 && (
                             <View style={styles.paymentSelector}>
                                 <Typography variant="caption" color={COLORS.gray[700]} weight="bold" style={{ marginBottom: 8 }}>
                                     Choose Registration Payment
@@ -572,7 +575,7 @@ export default function Register() {
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
                         <View style={styles.modalHeader}>
-                            <Typography variant="h2">Select Nationality</Typography>
+                            <Typography variant="h2">Select country/region</Typography>
                             <TouchableOpacity onPress={() => setShowCountryPicker(false)}>
                                 <X color={COLORS.gray[800]} size={24} />
                             </TouchableOpacity>
@@ -581,7 +584,8 @@ export default function Register() {
                         <View style={styles.searchInputContainer}>
                             <Search color={COLORS.gray[400]} size={20} />
                             <RNTextInput
-                                placeholder="Search countries..."
+                                placeholder="Search country/region..."
+                                accessibilityLabel="Search country/region"
                                 style={styles.searchInput}
                                 value={countrySearch}
                                 onChangeText={setCountrySearch}

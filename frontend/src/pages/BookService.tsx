@@ -245,7 +245,8 @@ const BookService = () => {
       },
       (title, description) => toast({ variant: "destructive", title, description }),
       setIsLocating,
-      'full_address'
+      'full_address',
+      { allowApproximateAddress: true, fallbackAddress: "Current location" }
     );
   };
   const handleSubmit = () => {
@@ -499,13 +500,24 @@ const BookService = () => {
                             >
                               <input
                                 value={location}
-                                onChange={e => setLocation(e.target.value)}
+                                onChange={e => {
+                                  setLocation(e.target.value);
+                                  setCoords(null);
+                                }}
                                 placeholder="Enter service address"
                                 className="w-full h-16 pl-16 pr-14 bg-slate-50 rounded-2xl border-transparent focus:bg-white focus:border-primary/20 outline-none text-[#222222] font-medium text-lg transition-all"
                               />
                             </Autocomplete>
                           ) : (
-                            <input placeholder="Loading maps..." disabled className="w-full h-16 bg-slate-50 rounded-2xl pl-16" />
+                            <input
+                              value={location}
+                              onChange={event => {
+                                setLocation(event.target.value);
+                                setCoords(null);
+                              }}
+                              placeholder="Enter service address"
+                              className="w-full h-16 pl-16 pr-14 bg-slate-50 rounded-2xl border-transparent focus:bg-white focus:border-primary/20 outline-none text-[#222222] font-medium text-lg transition-all"
+                            />
                           )}
                         </div>
                       </div>

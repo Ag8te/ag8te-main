@@ -122,7 +122,7 @@ const PostAd = () => {
                         className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-2xl shadow-slate-200 border border-slate-100"
                     >
                         <div className="mb-10 text-center">
-                            <h1 className="text-3xl font-black text-[#1e293b] mb-2 tracking-tight">Sell Something <span className="text-primary italic">Fast</span></h1>
+                            <h1 className="text-3xl font-black text-[#1e293b] mb-2 tracking-tight">List an <span className="text-primary italic">Item</span></h1>
                             <p className="text-slate-500">Reach thousands of buyers in your local area.</p>
                         </div>
 

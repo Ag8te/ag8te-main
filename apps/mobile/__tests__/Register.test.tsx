@@ -63,4 +63,32 @@ describe('Mobile Register Screen', () => {
       expect(getByText('Personal Info')).toBeTruthy();
     });
   });
+
+  it('does not request document uploads during client registration', async () => {
+    const { getByText, getAllByText, getByPlaceholderText, queryByText } = render(
+      <AuthProvider>
+        <Register />
+      </AuthProvider>
+    );
+
+    fireEvent.changeText(getByPlaceholderText('Thabo'), 'John');
+    fireEvent.changeText(getByPlaceholderText('Mokoena'), 'Doe');
+    fireEvent.changeText(getByPlaceholderText('name@example.com'), 'john@example.com');
+    fireEvent.changeText(getByPlaceholderText('Min 8 characters'), 'password123');
+    fireEvent.changeText(getByPlaceholderText('Repeat password'), 'password123');
+    fireEvent.press(getByText('Continue'));
+
+    await waitFor(() => expect(getByText('Personal Info')).toBeTruthy());
+    fireEvent.changeText(getByPlaceholderText('081 000 1111'), '0820000000');
+    fireEvent.press(getByText(/female/i));
+    fireEvent.changeText(getByPlaceholderText('Enter number'), '9001010000080');
+    fireEvent.changeText(getByPlaceholderText("Kin's full name"), 'Kin Person');
+    fireEvent.changeText(getByPlaceholderText('081...'), '0821111111');
+    fireEvent.press(getByText('Continue'));
+
+    await waitFor(() => expect(getAllByText('Complete Registration').length).toBeGreaterThan(0));
+    expect(queryByText('Verification Documents')).toBeNull();
+    expect(queryByText('Profile Photo')).toBeNull();
+    expect(queryByText('ID Document')).toBeNull();
+  });
 });

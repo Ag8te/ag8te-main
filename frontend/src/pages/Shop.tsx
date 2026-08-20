@@ -498,7 +498,7 @@ export default function Shop() {
                 <span className="text-primary italic">AG8TE</span>
               </h1>
               <p className="text-slate-500 text-lg mb-8 max-w-2xl mx-auto">
-                Discover the best local items curated and sold exclusively by
+                Discover local items curated and sold by
                 AG8TE. Want us to sell your items for a small fee?{" "}
                 <button
                   onClick={() => navigate("/contact")}

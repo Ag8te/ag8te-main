@@ -3,6 +3,7 @@ Location Routes
 """
 from flask import Blueprint, request, current_app
 import math
+import requests as http_requests
 from datetime import datetime
 
 from flask_jwt_extended import get_jwt_identity
@@ -10,10 +11,97 @@ from flask_jwt_extended import get_jwt_identity
 from backend.extensions import db
 from backend.models import ServiceRequest, User
 from backend.services.request_service import RequestService
-from backend.utils.decorators import require_role
+from backend.utils.decorators import require_auth, require_role
 from backend.utils.response import error_response, success_response
 
 bp = Blueprint('location', __name__)
+
+
+@bp.route('/geocode', methods=['POST'])
+@require_auth
+def geocode_address():
+    """Resolve a manually entered South African address to coordinates.
+
+    This authenticated fallback keeps booking usable when the client-side Maps
+    JavaScript library is unavailable. Authentication also prevents this
+    endpoint from becoming an anonymous proxy for the paid Geocoding API.
+    """
+    data = request.get_json(silent=True) or {}
+    address = str(data.get('address') or '').strip()
+
+    if len(address) < 3 or len(address) > 250:
+        return error_response(
+            'INVALID_INPUT',
+            'Enter an address between 3 and 250 characters.',
+            None,
+            400,
+        )
+
+    api_key = current_app.config.get('GOOGLE_MAPS_API_KEY')
+    if not api_key:
+        return error_response(
+            'MAPS_NOT_CONFIGURED',
+            'Address lookup is temporarily unavailable. Please try again later.',
+            None,
+            503,
+        )
+
+    try:
+        response = http_requests.get(
+            'https://maps.googleapis.com/maps/api/geocode/json',
+            params={
+                'address': address,
+                'components': 'country:ZA',
+                'region': 'za',
+                'key': api_key,
+            },
+            timeout=8,
+        )
+        response.raise_for_status()
+        payload = response.json()
+    except (http_requests.RequestException, ValueError) as exc:
+        current_app.logger.warning('Geocoding request failed: %s', exc)
+        return error_response(
+            'GEOCODING_UNAVAILABLE',
+            'Address lookup is temporarily unavailable. Please try again.',
+            None,
+            502,
+        )
+
+    status = payload.get('status')
+    results = payload.get('results') or []
+    if status == 'ZERO_RESULTS' or not results:
+        return error_response(
+            'ADDRESS_NOT_FOUND',
+            'We could not find that address. Add a street name, suburb, and city.',
+            None,
+            404,
+        )
+    if status != 'OK':
+        current_app.logger.warning('Geocoding API returned status %s', status)
+        return error_response(
+            'GEOCODING_UNAVAILABLE',
+            'Address lookup is temporarily unavailable. Please try again.',
+            None,
+            502,
+        )
+
+    result = results[0]
+    location = (result.get('geometry') or {}).get('location') or {}
+    lat = location.get('lat')
+    lng = location.get('lng')
+    if lat is None or lng is None:
+        return error_response(
+            'GEOCODING_UNAVAILABLE',
+            'The address lookup returned incomplete location data.',
+            None,
+            502,
+        )
+
+    return success_response({
+        'address': result.get('formatted_address') or address,
+        'coords': {'lat': float(lat), 'lng': float(lng)},
+    })
 
 @bp.route('/calculate-distance', methods=['POST'])
 def calculate_distance():

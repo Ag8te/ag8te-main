@@ -42,7 +42,6 @@ android {
         }
         huawei {
             dimension "store"
-            applicationIdSuffix ".huawei"
         }
     }
     signingConfigs {

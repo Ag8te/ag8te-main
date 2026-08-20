@@ -78,20 +78,17 @@ const isFutureOrTodayDate = (value: string) => {
   return parsed >= today;
 };
 
-const isClientForm = (form?: FormFields) => form?.role === "client";
-
 // ─── Field-level validators ───────────────────────────────────────────────────
 const validators: Partial<Record<keyof FormFields, (v: string, form?: FormFields) => string>> = {
  //added name validation and surname validation also email for a valid email address
-  name: (v, f) => isClientForm(f) ? "" : !v.trim() ? "First name is required" : !/^[A-Za-z\s'-]+$/.test(v) ? "Name must contain only letters": "",
-  surname: (v, f) => isClientForm(f) ? "" : !v.trim() ? "Surname is required" : !/^[A-Za-z\s'-]+$/.test(v) ? "Surname must contain only letters" : "",
+  name: (v) => !v.trim() ? "First name is required" : !/^[A-Za-z\s'-]+$/.test(v) ? "Name must contain only letters": "",
+  surname: (v) => !v.trim() ? "Surname is required" : !/^[A-Za-z\s'-]+$/.test(v) ? "Surname must contain only letters" : "",
   email: (v) => !v.trim() ? "Email is required" : !emailRegex.test(v) ? "Enter a valid email address" : "",
   password: (v) => !v ? "Password is required" : v.length < 8 ? "Password must be at least 8 characters" : "",
   confirmPassword: (v, f) => !v ? "Please confirm your password" : v !== f?.password ? "Passwords do not match" : "",
-  phone: (v, f) => isClientForm(f) ? "" : !v.trim() ? "Phone number is required" : !phoneRegex.test(v) ? "Use only digits, spaces or +" : "",
+  phone: (v) => !v.trim() ? "Phone number is required" : !phoneRegex.test(v) ? "Use only digits, spaces or +" : "",
   //Full SA ID check including date validation
   id_number: (v, f) => {
-  if (isClientForm(f)) return "";
   if (!v.trim()) return "ID / Passport number is required";
 
   // ─── SOUTH AFRICA LOGIC ───
@@ -152,11 +149,11 @@ const validators: Partial<Record<keyof FormFields, (v: string, form?: FormFields
 
   return "";
 },
-  gender: (v, f) => isClientForm(f) ? "" : !v ? "Please select your gender" : "",
-  nokName: (v, f) => isClientForm(f) ? "" : !v.trim() ? "Next of Kin full name is required" : "",
+  gender: (v) => !v ? "Please select your gender" : "",
+  nokName: (v) => !v.trim() ? "Next of Kin full name is required" : "",
   nokPhone: (v) => v.trim() && !phoneRegex.test(v) ? "Use only digits, spaces or +" : "",
   role: (v) => !v ? "Please select a role to register as" : "",
-  nationality: (v, f) => isClientForm(f) ? "" : !v ? "Please select your nationality" : "",
+  nationality: (v) => !v ? "Please select your nationality" : "",
   nokEmail: (v) => v.trim() && !emailRegex.test(v) ? "Enter a valid email address" : "",
   carMake: (v, f) =>
   f?.role === "driver" && !v.trim() ? "Car make is required" : "",
@@ -265,7 +262,7 @@ const carOptions = [
   { type: "Bakkie", seats: [ 1] },
 ];
 
-// ─── Country List ─────────────────────────────────────────────────────────────
+// ─── Country/Region List ──────────────────────────────────────────────────────
 const countries = [
   "South Africa", "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua & Deps", "Argentina",
   "Armenia", "Australia", "Austria", "Azerbaijan", "Bahamas", "Bahrain", "Bangladesh", "Barbados", "Belarus",
@@ -504,8 +501,8 @@ operatingAreas: "",
       const msg = validators[field]!(form[field], form);
       if (msg) errors[field] = msg;
     });
-    // nokPhone/nokEmail — at least one required for provider registrations
-    if (form.role !== "client" && !form.nokPhone.trim() && !form.nokEmail.trim()) {
+    // nokPhone/nokEmail — at least one required
+    if (!form.nokPhone.trim() && !form.nokEmail.trim()) {
       errors.nokPhone = "Provide at least a phone or email for next of kin";
     }
     setFieldErrors(errors);
@@ -713,12 +710,12 @@ const removeCarImage = (index: number) => {
         formData.append("car_images", file);
       });
       if (form.role !== "client" && files.id_document) formData.append("id_document", files.id_document);
-      if (files.proof_of_residence) formData.append("proof_of_residence", files.proof_of_residence);
-      if (files.drivers_license) formData.append("drivers_license", files.drivers_license);
-      if (files.prdp_document) formData.append("prdp_document", files.prdp_document);
-      if (files.vehicle_disk_document) formData.append("vehicle_disk_document", files.vehicle_disk_document);
-      if (files.cv_resume) formData.append("cv_resume", files.cv_resume);
-      if (files.qualification_documents) formData.append("qualification_documents", files.qualification_documents);
+      if (form.role !== "client" && files.proof_of_residence) formData.append("proof_of_residence", files.proof_of_residence);
+      if (form.role !== "client" && files.drivers_license) formData.append("drivers_license", files.drivers_license);
+      if (form.role !== "client" && files.prdp_document) formData.append("prdp_document", files.prdp_document);
+      if (form.role !== "client" && files.vehicle_disk_document) formData.append("vehicle_disk_document", files.vehicle_disk_document);
+      if (form.role !== "client" && files.cv_resume) formData.append("cv_resume", files.cv_resume);
+      if (form.role !== "client" && files.qualification_documents) formData.append("qualification_documents", files.qualification_documents);
 
       const result = await register(formData);
       if (result.success) {
@@ -738,7 +735,7 @@ const removeCarImage = (index: number) => {
         toast({
           title: "Registration Complete",
           description: form.role === "client"
-            ? "Please check your email to confirm your registration and complete your optional profile."
+            ? "Please check your email to confirm your registration."
             : "Your account has been created successfully."
         });
         setIsSubmitted(true);
@@ -849,7 +846,7 @@ const removeCarImage = (index: number) => {
                 </h1>
                 <p className="text-slate-600 text-base mb-8">
                   {form.role === "client"
-                    ? "Your account has been created successfully. We sent you an email link to confirm your registration and open your client profile."
+                    ? "Your account has been created successfully. We sent you an email link to confirm your registration."
                     : "Your account has been created successfully. You can now sign in and start using AG8TE."}
                 </p>
                 <div className="space-y-3">
@@ -1000,7 +997,6 @@ const removeCarImage = (index: number) => {
                 </section>
 
                 {/* ── Personal Information ── */}
-                {form.role !== "client" && (
                 <section className="space-y-5 pt-6 border-t border-slate-50">
                   <p className={sectionLabel}>Personal Information</p>
                   <div className="grid gap-5 sm:grid-cols-2">
@@ -1050,7 +1046,7 @@ const removeCarImage = (index: number) => {
                     </div>
 
                     <div className="space-y-1">
-                      <label className={fieldLabel}>Nationality<Req /></label>
+                      <label className={fieldLabel}>Nationality (country/region)<Req /></label>
                       <Autocomplete
                         autoHighlight={false}
                         openOnFocus={false}
@@ -1063,7 +1059,8 @@ const removeCarImage = (index: number) => {
                           <div ref={params.InputProps.ref} className="w-full">
                             <input
                               {...params.inputProps}
-                              placeholder="Search country..."
+                              placeholder="Search country/region..."
+                              aria-label="Search country/region"
                               className={ic("nationality")}
                               autoComplete="new-password"
                             />
@@ -1095,10 +1092,8 @@ const removeCarImage = (index: number) => {
                     </div>
                   </div>
                 </section>
-                )}
 
                 {/* ── Next of Kin ── */}
-                {form.role !== "client" && (
                 <section className="space-y-5 pt-6 border-t border-slate-50">
                   <div>
                     <p className={sectionLabel}>Next of Kin</p>
@@ -1135,7 +1130,6 @@ const removeCarImage = (index: number) => {
                     </div>
                   </div>
                 </section>
-                )}
 
                 {/* ── Professional Info (conditional) ── */}
                 <AnimatePresence>
@@ -1500,16 +1494,14 @@ const removeCarImage = (index: number) => {
   )}
 </AnimatePresence>
 
-                {/* ── Verification Documents ── */}
+                {/* ── Verification Documents (provider roles only) ── */}
                 {form.role !== "client" && (
-                <section className="space-y-5 pt-6 border-t border-slate-50">
-                  <p className={sectionLabel}><ShieldCheck className="w-4 h-4" /> Verification Documents</p>
-                  <div className="grid gap-6 sm:grid-cols-2">
-                    <FileUploadArea label="Profile Photo" field="profile_photo" accept="image/*" required />
-                    <FileUploadArea label="Certified ID Document / Passport" field="id_document" accept=".pdf,.jpg,.jpeg,.png" required />
-                    {(form.role === "driver" || form.role === "professional" || form.role === "service-provider") && (
+                  <section className="space-y-5 pt-6 border-t border-slate-50">
+                    <p className={sectionLabel}><ShieldCheck className="w-4 h-4" /> Verification Documents</p>
+                    <div className="grid gap-6 sm:grid-cols-2">
+                      <FileUploadArea label="Profile Photo" field="profile_photo" accept="image/*" required />
+                      <FileUploadArea label="Certified ID Document / Passport" field="id_document" accept=".pdf,.jpg,.jpeg,.png" required />
                       <FileUploadArea label="Proof of Residence" field="proof_of_residence" accept=".pdf,.jpg,.jpeg,.png" required />
-                    )}
                     {form.role === "driver" && (
                       <>
                         <FileUploadArea label="Certified Driver's License" field="drivers_license" accept=".pdf,.jpg,.jpeg,.png" required />
@@ -1523,8 +1515,8 @@ const removeCarImage = (index: number) => {
                         <FileUploadArea label="Qualification Documents" field="qualification_documents" accept=".pdf,.jpg,.jpeg,.png" required />
                       </>
                     )}
-                  </div>
-                </section>
+                    </div>
+                  </section>
                 )}
 
                 {/* ── Terms & Submit ── */}

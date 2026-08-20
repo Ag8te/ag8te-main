@@ -1,18 +1,12 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Box, Typography, Container, Button, Stack, alpha, useTheme, Grid, Paper, Avatar } from '@mui/material';
-import { TrendingUp, Public, Groups, ArrowForward } from '@mui/icons-material';
+import { Public } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
 const ReachMillionsSection = () => {
   const theme = useTheme();
   const navigate = useNavigate();
-
-  const stats = [
-    { label: 'Active Users', value: '2.5M+', icon: <Groups />, color: '#10B981' },
-    { label: 'Daily Interactions', value: '150K+', icon: <TrendingUp />, color: '#3B82F6' },
-    { label: 'Local Impact', value: '95%', icon: <Public />, color: '#F59E0B' },
-  ];
 
   return (
     <Box
@@ -47,7 +41,7 @@ const ReachMillionsSection = () => {
                     color: '#222222'
                   }}
                 >
-                  Reach millions <br />
+                  Connect locally <br />
                   <Box component="span" sx={{ color: 'hsl(var(--primary))' }}>on AG8TE</Box>
                 </Typography>
                 <Typography
@@ -60,7 +54,7 @@ const ReachMillionsSection = () => {
                     mt: 3
                   }}
                 >
-                  From verified drivers to professional services, join trusted and accredited platform.
+                  Find transport, professional services, local providers, and marketplace listings in one platform.
                 </Typography>
               </Box>
 
@@ -151,15 +145,15 @@ const ReachMillionsSection = () => {
                     letterSpacing: '0.1em'
                   }}
                 >
-                  Verified & Protected
+                  Booking Support
                 </Typography>
 
                 <Stack spacing={3} sx={{ textAlign: 'left' }}>
                   {[
-                    'Ehailing of choice',
-                    'Verified & accredited Professionals',
-                    'Verified & accredited Service Providers',
-                    'Verified & accredited suppliers for our online shop'
+                    'Transport booking options',
+                    'Professional profile information',
+                    'Local service-provider listings',
+                    'Products from marketplace sellers'
                   ].map((text, i) => (
                     <Stack key={i} direction="row" spacing={2} alignItems="center">
                       <Box sx={{ color: 'hsl(var(--primary))', display: 'flex' }}>
@@ -174,7 +168,7 @@ const ReachMillionsSection = () => {
 
                 <Box sx={{ mt: 5, pt: 3, borderTop: '1px solid', borderColor: alpha('#000', 0.06) }}>
                   <Typography variant="caption" sx={{ color: '#717171', fontStyle: 'italic' }}>
-                    Standard on every service booking.
+                    Available for supported bookings.
                   </Typography>
                 </Box>
               </Box>

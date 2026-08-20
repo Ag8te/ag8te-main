@@ -53,6 +53,9 @@ echo "Preparing native web assets..."
 cd "${FRONTEND_DIR}"
 npm run cap:android
 
+# Never bundle stale or locally copied APK downloads inside a store artifact.
+rm -f "${ANDROID_DIR}/app/src/main/assets/public/"*.apk
+
 if [[ "${STORE_CHANNEL}" == "huawei" ]]; then
   GRADLE_FLAVOR="Huawei"
   OUTPUT_FLAVOR="huawei"
